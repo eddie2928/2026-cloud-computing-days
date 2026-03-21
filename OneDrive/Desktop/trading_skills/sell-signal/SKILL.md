@@ -57,15 +57,16 @@ metadata:
 
 당일 실현 손실 + 미실현 평가 손실 합계가 예수금의 **-2% 이하**인지 확인:
 - **YES → 서킷 브레이커 발동:**
-  1. `trading_state.json`에 `circuit_breaker: true` 기록
-  2. 보유 중인 **모든 종목**에 대해 `sell` + `circuit_breaker` 모드 출력
-  3. 프로세스 종료
+  1. 모든 미체결 매수 주문 즉시 취소
+  2. `trading_state.json`에 `circuit_breaker: true` 기록
+  3. 보유 중인 **모든 종목**에 대해 `sell` + `circuit_breaker` 모드 출력
+  4. 프로세스 종료
 
 이미 `circuit_breaker: true`이고 보유 포지션이 없으면 → `hold` 출력.
 
 ### STEP 1: 장 마감 강제 청산 확인
 
-- 현재 시각 >= **15:10** → `trading_state.json`에 `eod_liquidation_mode: true` 기록
+- 현재 시각 >= **15:10** → `trading_state.json`에 `eod_liquidation_mode: true` 기록, 모든 미체결 매수 주문 취소
 - 현재 시각 >= **15:20** → 보유 중인 **모든 종목** 전량 시장가 매도 (`eod_liquidation` 모드)
 - 이 규칙은 STEP 2~3보다 우선
 
@@ -111,7 +112,7 @@ metadata:
 ```json
 {
   "action": "sell",
-  "mode": "take_profit|daily_target|eod_liquidation|circuit_breaker",
+  "mode": "take_profit|eod_liquidation|circuit_breaker",
   "stock_code": "종목코드",
   "stock_name": "종목명",
   "quantity": 보유수량전체,
@@ -122,6 +123,7 @@ metadata:
   "flags": {
     "daily_target_reached": false,
     "market_risk": false,
+    "stop_loss_triggered": false,
     "circuit_breaker": false,
     "eod_liquidation_mode": false
   }
@@ -129,6 +131,8 @@ metadata:
 ```
 
 복수 종목 매도 시 JSON 배열로 출력.
+
+> **참고:** `daily_target` 달성 시 별도 모드로 매도하지 않음. `daily_target_reached: true` 플래그를 기록하고, 이후 매도는 모두 `take_profit` 모드로 처리된다.
 
 매도하지 않는 경우:
 
@@ -141,9 +145,15 @@ metadata:
   "quantity": 0,
   "price_type": "",
   "deterministic_signal": false,
-  "llm_quantity_ratio": 0,
+  "llm_quantity_ratio": 0.0,
   "reasoning": "매도 조건 미충족. 보유 종목 X개, 최고 수익률 +0.3%",
-  "flags": { ... }
+  "flags": {
+    "daily_target_reached": false,
+    "market_risk": false,
+    "stop_loss_triggered": false,
+    "circuit_breaker": false,
+    "eod_liquidation_mode": false
+  }
 }
 ```
 
