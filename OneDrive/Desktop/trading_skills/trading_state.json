@@ -1,0 +1,10 @@
+{
+  "daily_target_reached": false,
+  "market_risk": false,
+  "stop_loss_triggered": false,
+  "eod_liquidation_mode": false,
+  "circuit_breaker": false,
+  "llm_take_profit_override": 0.6,
+  "averaging_down_log": {},
+  "last_updated": ""
+}
