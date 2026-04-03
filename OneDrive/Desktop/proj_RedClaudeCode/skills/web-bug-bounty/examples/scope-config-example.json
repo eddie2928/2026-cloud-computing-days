@@ -1,0 +1,25 @@
+{
+  "name": "Example Bug Bounty Program",
+  "targets": [
+    {
+      "url": "https://example.com",
+      "type": "web",
+      "in_scope": [
+        "*.example.com",
+        "api.example.com"
+      ],
+      "out_of_scope": [
+        "/logout",
+        "/admin/*",
+        "*.example.com/static/*"
+      ],
+      "auth": {
+        "method": "chrome_session",
+        "login_url": "https://example.com/login"
+      }
+    }
+  ],
+  "report_template": "default",
+  "custom_template_path": null,
+  "notes": "Staging environment. 2FA disabled for testing account."
+}
