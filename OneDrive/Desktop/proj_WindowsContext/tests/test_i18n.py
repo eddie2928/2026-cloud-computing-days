@@ -28,3 +28,8 @@ def test_available_languages():
     langs = available_languages()
     assert "ko" in langs
     assert "en" in langs
+
+def test_set_language_invalid_code_does_not_change_language():
+    set_language("ko")
+    set_language("xx")  # invalid
+    assert t("save_btn") == "현재 배치 저장"  # still ko

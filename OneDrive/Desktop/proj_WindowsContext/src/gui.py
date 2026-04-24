@@ -2,11 +2,13 @@ import logging
 import os
 import queue
 import threading
+import time
 import tkinter as tk
+from datetime import datetime
 from tkinter import messagebox, simpledialog, scrolledtext, ttk
 
 from src import storage, capture, restore as restore_mod
-from src.i18n import t
+from src.i18n import t, set_language
 from src.logging_setup import setup_logging
 from src.paths import LOGS_DIR
 
@@ -18,6 +20,10 @@ class WinLayoutSaverApp(tk.Tk):
         super().__init__()
         self._log_queue: queue.Queue = queue.Queue()
         setup_logging(enable_gui_handler=True, gui_queue=self._log_queue)
+
+        config = storage.load_config()
+        lang = config.get("ui", {}).get("language", "ko")
+        set_language(lang)
 
         self.title(t("app_title"))
         self.geometry("800x600")
@@ -49,7 +55,6 @@ class WinLayoutSaverApp(tk.Tk):
         self._ar_layout_var = tk.StringVar()
         self._ar_combo = ttk.Combobox(ar_frame, textvariable=self._ar_layout_var, state="readonly", width=12)
         self._ar_combo.pack(side=tk.LEFT, padx=4)
-        self._ar_enabled_var = tk.BooleanVar()
         self._ar_toggle_btn = tk.Button(ar_frame, text=t("enable_btn"), command=self._on_ar_toggle)
         self._ar_toggle_btn.pack(side=tk.LEFT, padx=2)
         tk.Label(ar_frame, text=t("startup_delay_label")).pack(side=tk.LEFT, padx=(12, 0))
@@ -126,7 +131,6 @@ class WinLayoutSaverApp(tk.Tk):
             self._ar_layout_var.set(ar_name)
         elif names:
             self._ar_layout_var.set(names[0])
-        self._ar_enabled_var.set(ar_enabled)
         self._ar_toggle_btn.config(text=t("disable_btn") if ar_enabled else t("enable_btn"))
 
         delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 20)
@@ -140,7 +144,6 @@ class WinLayoutSaverApp(tk.Tk):
             try:
                 windows = capture.list_current_windows()
                 name = storage.next_layout_name()
-                from datetime import datetime
                 layout = {
                     "name": name,
                     "created_at": datetime.now().astimezone().isoformat(),
@@ -170,21 +173,25 @@ class WinLayoutSaverApp(tk.Tk):
 
     def _on_delete(self, name: str):
         logger.info("user clicked Delete for '%s'", name)
-        storage.delete_layout(name)
-        self._status_var.set(t("layout_deleted", name=name))
-        self._refresh_layouts()
+        def _work():
+            storage.delete_layout(name)
+            self.after(0, lambda: self._status_var.set(t("layout_deleted", name=name)))
+            self.after(0, self._refresh_layouts)
+        threading.Thread(target=_work, daemon=True).start()
 
     def _on_settings(self, name: str):
         new_name = simpledialog.askstring(t("rename_dialog_title"), t("rename_label"), initialvalue=name, parent=self)
         if new_name and new_name != name:
-            try:
-                layout = storage.load_layout(name)
-                layout["name"] = new_name
-                storage.save_layout(new_name, layout)
-                storage.delete_layout(name)
-                self._refresh_layouts()
-            except Exception as e:
-                logger.error("rename failed: %s", e)
+            def _work():
+                try:
+                    layout = storage.load_layout(name)
+                    layout["name"] = new_name
+                    storage.save_layout(new_name, layout)
+                    storage.delete_layout(name)
+                    self.after(0, self._refresh_layouts)
+                except Exception as e:
+                    logger.error("rename failed: %s", e)
+            threading.Thread(target=_work, daemon=True).start()
 
     def _on_ar_toggle(self):
         config = storage.load_config()
@@ -213,8 +220,7 @@ class WinLayoutSaverApp(tk.Tk):
             levelname = record.levelname
             # Map WARNING → WARN for display
             display_level = "WARN" if levelname == "WARNING" else levelname
-            import time as _time
-            ts = _time.strftime("%H:%M:%S", _time.localtime(record.created))
+            ts = time.strftime("%H:%M:%S", time.localtime(record.created))
             ms = int(record.msecs)
             text = f"{ts}.{ms:03d} {display_level:<5} {record.name:<12}: {record.getMessage()}\n"
             self._log_buffer.append((display_level, text))
@@ -225,7 +231,8 @@ class WinLayoutSaverApp(tk.Tk):
         self.after(100, self._drain_log_queue)
 
     def _append_log_line(self, level: str, text: str):
-        if not self._log_levels.get(level, tk.BooleanVar(value=True)).get():
+        var = self._log_levels.get(level)
+        if var is not None and not var.get():
             return
         at_end = self._log_text.yview()[1] >= 0.99
         self._log_text.config(state=tk.NORMAL)
