@@ -1,13 +1,10 @@
 import json
 import logging
-import os
 from pathlib import Path
 
 logger = logging.getLogger("storage")
 
-APPDATA = Path(os.environ.get("APPDATA", Path.home())) / "WinLayoutSaver"
-LAYOUTS_DIR = APPDATA / "layouts"
-CONFIG_PATH = APPDATA / "config.json"
+from src.paths import APPDATA, LAYOUTS_DIR, CONFIG_PATH
 
 
 def _ensure_dirs():
@@ -17,27 +14,29 @@ def _ensure_dirs():
 def save_layout(name: str, layout_data: dict) -> Path:
     _ensure_dirs()
     path = LAYOUTS_DIR / f"{name}.json"
-    logger.info("storage: saving layout '%s' to %s", name, path)
+    logger.info("saving layout '%s' to %s", name, path)
     try:
         path.write_text(json.dumps(layout_data, indent=2, ensure_ascii=False), encoding="utf-8")
     except OSError as e:
-        logger.error("storage: failed to write %s: %s", path, e)
+        logger.error("failed to write %s: %s", path, e)
         raise
     windows_count = len(layout_data.get("windows", []))
-    logger.info("storage: saved '%s' (%d windows)", name, windows_count)
+    logger.info("saved '%s' (%d windows)", name, windows_count)
     return path
 
 
 def load_layout(name: str) -> dict:
     path = LAYOUTS_DIR / f"{name}.json"
-    logger.info("storage: loading layout '%s' from %s", name, path)
+    logger.info("loading layout '%s' from %s", name, path)
     try:
         text = path.read_text(encoding="utf-8")
         data = json.loads(text)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Layout not found: {name}") from None
     except json.JSONDecodeError as e:
-        logger.error("storage: JSON parse error in %s: %s", path, e)
+        logger.error("JSON parse error in %s: %s", path, e)
         raise ValueError(f"Corrupted layout file: {path}") from e
-    logger.info("storage: loaded '%s' (%d windows)", name, len(data.get("windows", [])))
+    logger.info("loaded '%s' (%d windows)", name, len(data.get("windows", [])))
     return data
 
 
@@ -50,7 +49,7 @@ def list_layouts() -> list[str]:
 def delete_layout(name: str) -> None:
     path = LAYOUTS_DIR / f"{name}.json"
     path.unlink(missing_ok=True)
-    logger.info("storage: deleted layout '%s'", name)
+    logger.info("deleted layout '%s'", name)
 
 
 def next_layout_name() -> str:

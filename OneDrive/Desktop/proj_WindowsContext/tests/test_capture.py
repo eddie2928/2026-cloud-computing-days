@@ -30,27 +30,6 @@ def mock_win32(monkeypatch):
     sys.modules.pop("src.capture", None)
 
 
-def _make_window(hwnd, title, visible=True, ex_style=0, exe_path="C:\\Windows\\notepad.exe",
-                 class_name="Notepad", placement=None):
-    """Helper to configure mock win32gui for a single window."""
-    import win32gui, win32con
-    if placement is None:
-        placement = (0, win32con.SW_SHOWNORMAL, (-1, -1), (-1, -1), (0, 0, 800, 600))
-
-    win32gui.EnumWindows = lambda cb, extra: cb(hwnd, extra)
-    win32gui.IsWindowVisible = lambda h: visible if h == hwnd else False
-    win32gui.GetWindowText = lambda h: title if h == hwnd else ""
-    win32gui.GetWindowLong = lambda h, flag: ex_style if h == hwnd else 0
-    win32gui.GetClassName = lambda h: class_name if h == hwnd else ""
-    win32gui.GetWindowPlacement = lambda h: placement if h == hwnd else None
-    return exe_path
-
-
-def _patch_get_exe(monkeypatch, hwnd, exe_path):
-    """Patch _get_exe_path to return exe_path for the given hwnd."""
-    import src.capture as cap
-    monkeypatch.setattr(cap, "_get_exe_path", lambda h: exe_path if h == hwnd else None)
-
 
 def test_filters_empty_title(monkeypatch):
     import win32gui, win32con

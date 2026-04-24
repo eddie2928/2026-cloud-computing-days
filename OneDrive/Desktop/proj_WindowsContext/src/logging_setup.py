@@ -1,12 +1,10 @@
 import logging
 import logging.handlers
-import os
 import queue
 from datetime import datetime
-from pathlib import Path
 
-APPDATA = Path(os.environ.get("APPDATA", Path.home())) / "WinLayoutSaver"
-LOGS_DIR = APPDATA / "logs"
+from src.paths import LOGS_DIR
+
 LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)-5s %(name)-12s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 

@@ -1,4 +1,5 @@
 import json
+import sys
 import pytest
 from pathlib import Path
 
@@ -82,6 +83,13 @@ def test_list_layouts_empty_when_no_dir(tmp_appdata):
     assert list_layouts() == []
 
 
+def test_load_nonexistent_layout_raises_file_not_found_error(tmp_appdata):
+    from src.storage import load_layout
+    with pytest.raises(FileNotFoundError) as exc_info:
+        load_layout("DoesNotExist")
+    assert "DoesNotExist" in str(exc_info.value)
+
+
 def test_load_layout_corrupted_json_raises_value_error(tmp_appdata):
     from src.storage import LAYOUTS_DIR
     LAYOUTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,6 +101,7 @@ def test_load_layout_corrupted_json_raises_value_error(tmp_appdata):
     assert "Corrupt" in str(exc_info.value)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only filename restriction")
 def test_save_layout_with_invalid_chars_raises(tmp_appdata):
     from src.storage import save_layout
     # Windows does not allow these characters in filenames
