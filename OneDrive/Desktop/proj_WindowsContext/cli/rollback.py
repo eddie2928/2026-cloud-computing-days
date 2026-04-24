@@ -61,7 +61,11 @@ def main():
     if args.no_launch:
         logger.info("rollback: skipping app launch (--no-launch)")
     else:
-        logger.info("rollback: app launch not yet implemented (Stage 4)")
+        from src import launcher
+        cfg = config.get("auto_rollback", {})
+        timeout = cfg.get("app_launch_timeout_seconds", 60)
+        poll_ms = cfg.get("per_window_retry_ms", 500)
+        launcher.ensure_apps_running(layout.get("windows", []), timeout_seconds=timeout, poll_ms=poll_ms)
 
     logger.info("--- phase: restore placement ---")
     running = capture.list_current_windows()
