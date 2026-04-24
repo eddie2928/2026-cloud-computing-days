@@ -90,7 +90,7 @@ class WinLayoutSaverApp(tk.Tk):
         # Color tags
         self._log_text.tag_config("DEBUG", foreground="gray")
         self._log_text.tag_config("INFO", foreground="black")
-        self._log_text.tag_config("WARNING", foreground="orange")
+        self._log_text.tag_config("WARN", foreground="orange")
         self._log_text.tag_config("ERROR", foreground="red")
 
         # Buffer to re-apply filter
