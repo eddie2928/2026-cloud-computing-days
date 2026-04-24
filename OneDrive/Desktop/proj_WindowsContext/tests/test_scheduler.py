@@ -1,4 +1,3 @@
-import sys
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -20,7 +19,7 @@ class TestRegister:
             assert mock_run.called
             args = mock_run.call_args[0][0]  # first positional arg (the command list)
             cmd_str = " ".join(str(a) for a in args)
-            assert "/Create" in cmd_str or "/create" in cmd_str.lower()
+            assert "/Create" in cmd_str
             assert "WinLayoutSaver_Rollback" in cmd_str
 
     def test_register_includes_delay(self):
