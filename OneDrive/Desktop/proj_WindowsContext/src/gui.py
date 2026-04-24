@@ -5,9 +5,10 @@ import threading
 import time
 import tkinter as tk
 from datetime import datetime
+from pathlib import Path
 from tkinter import messagebox, simpledialog, scrolledtext, ttk
 
-from src import storage, capture, restore as restore_mod
+from src import storage, capture, restore as restore_mod, scheduler
 from src.i18n import t, set_language
 from src.logging_setup import setup_logging
 from src.paths import LOGS_DIR
@@ -206,6 +207,11 @@ class WinLayoutSaverApp(tk.Tk):
         storage.save_config(config)
         self._ar_toggle_btn.config(text=t("disable_btn") if new_enabled else t("enable_btn"))
         logger.info("auto-rollback %s for '%s'", "enabled" if new_enabled else "disabled", ar["layout_name"])
+        script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
+        if new_enabled:
+            scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 20))
+        else:
+            scheduler.unregister()
 
     # ── Log panel ────────────────────────────────────────────────────────
 
