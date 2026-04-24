@@ -7,7 +7,7 @@ from pathlib import Path
 # Ensure src is importable when run as a script
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.logging_setup import setup_logging, LOG_FORMAT, DATE_FORMAT
+from src.logging_setup import LOG_FORMAT, DATE_FORMAT
 from src import storage, capture, restore as restore_mod
 
 logger = logging.getLogger("rollback")
@@ -62,9 +62,8 @@ def main():
         logger.info("rollback: skipping app launch (--no-launch)")
     else:
         from src import launcher
-        cfg = config.get("auto_rollback", {})
-        timeout = cfg.get("app_launch_timeout_seconds", 60)
-        poll_ms = cfg.get("per_window_retry_ms", 500)
+        timeout = rollback_cfg.get("app_launch_timeout_seconds", 60)
+        poll_ms = rollback_cfg.get("per_window_retry_ms", 500)
         launcher.ensure_apps_running(layout.get("windows", []), timeout_seconds=timeout, poll_ms=poll_ms)
 
     logger.info("--- phase: restore placement ---")
