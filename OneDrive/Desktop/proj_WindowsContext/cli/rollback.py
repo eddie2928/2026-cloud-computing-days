@@ -58,9 +58,10 @@ def main():
         sys.exit(1)
 
     logger.info("--- phase: launch missing apps ---")
-    if not args.no_launch:
-        # Stage 4 will implement this; for now, just log
-        logger.info("rollback: --no-launch mode (launcher not yet implemented)")
+    if args.no_launch:
+        logger.info("rollback: skipping app launch (--no-launch)")
+    else:
+        logger.info("rollback: app launch not yet implemented (Stage 4)")
 
     logger.info("--- phase: restore placement ---")
     running = capture.list_current_windows()
