@@ -51,11 +51,41 @@ def _get_exe_path(hwnd: int) -> Optional[str]:
         return None
 
 
+def _build_hmonitor_index_map() -> dict:
+    """Build a mapping of HMONITOR handle → index for monitor_index assignment."""
+    try:
+        import ctypes
+        import win32api
+
+        hmonitor_to_index = {}
+        counter = [0]
+
+        def _enum_proc(hmonitor, hdc, lprect, lparam):
+            hmonitor_to_index[hmonitor] = counter[0]
+            counter[0] += 1
+            return True
+
+        MONITORENUMPROC = ctypes.WINFUNCTYPE(
+            ctypes.c_bool,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.POINTER(ctypes.c_long),
+            ctypes.c_long,
+        )
+        ctypes.windll.user32.EnumDisplayMonitors(None, None, MONITORENUMPROC(_enum_proc), 0)
+        return hmonitor_to_index
+    except Exception as e:
+        logger.warning("failed to build hmonitor index map: %s", e)
+        return {}
+
+
 def list_current_windows() -> list[dict]:
     import win32gui, win32con
 
     t0 = time.perf_counter()
     logger.info("enumerating windows")
+
+    hmonitor_to_index = _build_hmonitor_index_map()
 
     results = []
     all_hwnds = []
@@ -103,6 +133,13 @@ def list_current_windows() -> list[dict]:
 
             is_uwp = exe_path.lower().endswith("applicationframehost.exe")
 
+            try:
+                import ctypes
+                hwnd_monitor = ctypes.windll.user32.MonitorFromWindow(hwnd, 2)  # MONITOR_DEFAULTTONEAREST=2
+                monitor_index = hmonitor_to_index.get(hwnd_monitor, 0)
+            except Exception:
+                monitor_index = 0
+
             entry = {
                 "hwnd": hwnd,
                 "exe_path": exe_path,
@@ -117,7 +154,7 @@ def list_current_windows() -> list[dict]:
                     "min_pos": min_pos,
                     "max_pos": max_pos,
                 },
-                "monitor_index": 0,
+                "monitor_index": monitor_index,
                 "z_order": i,
                 "is_topmost": False,
                 "is_uwp": is_uwp,

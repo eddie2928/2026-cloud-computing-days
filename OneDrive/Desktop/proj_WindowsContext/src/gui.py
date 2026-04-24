@@ -11,6 +11,7 @@ from tkinter import messagebox, simpledialog, scrolledtext, ttk
 from src import storage, capture, restore as restore_mod, scheduler
 from src.i18n import t, set_language
 from src.logging_setup import setup_logging
+from src.monitors import list_current_monitors, compare_monitors, MatchResult
 from src.paths import LOGS_DIR
 
 logger = logging.getLogger("gui")
@@ -30,13 +31,21 @@ class WinLayoutSaverApp(tk.Tk):
         self.geometry("800x600")
         self.resizable(True, True)
 
+        self._current_monitors: list[dict] = []
+
         self._build_ui()
         self._refresh_layouts()
         self._drain_log_queue()
+        self._poll_monitors()
 
     # ── UI construction ─────────────────────────────────────────────────
 
     def _build_ui(self):
+        # Monitor strip
+        self._monitor_strip_var = tk.StringVar(value="Monitors: detecting…")
+        tk.Label(self, textvariable=self._monitor_strip_var, anchor="w", fg="#444",
+                 font=("Consolas", 9)).pack(fill=tk.X, padx=8, pady=(4, 0))
+
         # Top toolbar
         toolbar = tk.Frame(self, pady=4)
         toolbar.pack(fill=tk.X, padx=8)
@@ -122,6 +131,11 @@ class WinLayoutSaverApp(tk.Tk):
                 radio_var = tk.IntVar(value=1 if name == ar_name else 0)
                 tk.Radiobutton(row, variable=radio_var, value=1, state=tk.DISABLED).pack(side=tk.LEFT)
                 tk.Label(row, text=name, width=16, anchor="w").pack(side=tk.LEFT)
+
+                # Per-layout monitor match indicator
+                match_text, match_color = self._get_match_indicator(name)
+                tk.Label(row, text=match_text, fg=match_color, width=12, anchor="w").pack(side=tk.LEFT)
+
                 tk.Button(row, text=t("restore_btn"), command=lambda n=name: self._on_restore(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("settings_btn"), command=lambda n=name: self._on_settings(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("delete_btn"), command=lambda n=name: self._on_delete(n)).pack(side=tk.LEFT, padx=2)
@@ -137,6 +151,49 @@ class WinLayoutSaverApp(tk.Tk):
         delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 20)
         self._delay_var.set(str(delay))
 
+    # ── Monitor strip + polling ──────────────────────────────────────────
+
+    def _poll_monitors(self):
+        def _work():
+            monitors = list_current_monitors()
+            self.after(0, lambda: self._update_monitor_strip(monitors))
+
+        threading.Thread(target=_work, daemon=True).start()
+        self.after(1000, self._poll_monitors)
+
+    def _update_monitor_strip(self, monitors: list[dict]):
+        self._current_monitors = monitors
+        if not monitors:
+            self._monitor_strip_var.set("Monitors: unknown")
+            return
+        parts = []
+        for m in monitors:
+            x, y, w, h = m["rect"]
+            label = f"#{m['index']}{'★' if m.get('primary') else ''} {w}x{h}"
+            if m.get("scale", 1.0) != 1.0:
+                label += f" @{m['scale']:.1f}x"
+            parts.append(label)
+        self._monitor_strip_var.set("Monitors: " + "  |  ".join(parts))
+
+    def _get_match_indicator(self, name: str) -> tuple[str, str]:
+        """Return (indicator_text, color) for a layout's monitor match state."""
+        if not self._current_monitors:
+            return ("", "gray")
+        try:
+            layout = storage.load_layout(name)
+            saved_monitors = layout.get("monitors", [])
+            if not saved_monitors:
+                return ("", "gray")
+            result = compare_monitors(saved_monitors, self._current_monitors)
+            if result == MatchResult.MATCH:
+                return ("✓match", "green")
+            elif result == MatchResult.PRIMARY_ONLY:
+                return ("⚠primary", "orange")
+            else:
+                return ("⚠mismatch", "red")
+        except Exception:
+            return ("", "gray")
+
     # ── Button handlers ──────────────────────────────────────────────────
 
     def _on_save(self):
@@ -144,11 +201,12 @@ class WinLayoutSaverApp(tk.Tk):
         def _work():
             try:
                 windows = capture.list_current_windows()
+                monitors = list_current_monitors()
                 name = storage.next_layout_name()
                 layout = {
                     "name": name,
                     "created_at": datetime.now().astimezone().isoformat(),
-                    "monitors": [],
+                    "monitors": monitors,
                     "windows": windows,
                 }
                 storage.save_layout(name, layout)
@@ -160,11 +218,23 @@ class WinLayoutSaverApp(tk.Tk):
 
     def _on_restore(self, name: str):
         logger.info("user clicked Restore for '%s'", name)
+
+        # Check monitor match and prompt if warning state
+        match_text, _ = self._get_match_indicator(name)
+        if match_text in ("⚠primary", "⚠mismatch"):
+            msg = (
+                f"Monitor configuration differs from when '{name}' was saved.\n"
+                f"({match_text.lstrip('⚠')})\n\n"
+                "Windows may be restored to unexpected positions.\nContinue?"
+            )
+            if not messagebox.askyesno("Monitor Mismatch", msg, parent=self):
+                return
+
         def _work():
             try:
                 layout = storage.load_layout(name)
                 running = capture.list_current_windows()
-                result = restore_mod.restore_layout(layout, running)
+                result = restore_mod.restore_layout(layout, running, monitors_current=self._current_monitors or None)
                 self.after(0, lambda: self._status_var.set(
                     t("layout_restored", name=name, restored=result["restored"], total=result["total"])
                 ))

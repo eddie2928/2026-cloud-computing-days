@@ -96,7 +96,7 @@ def restore_placement(hwnd: int, placement: dict) -> bool:
         return False
 
 
-def restore_layout(layout: dict, running_windows: list[dict] = None) -> dict:
+def restore_layout(layout: dict, running_windows: list[dict] = None, monitors_current: list[dict] = None) -> dict:
     """
     Restore a saved layout by matching saved windows to running windows
     and repositioning them.
@@ -105,17 +105,48 @@ def restore_layout(layout: dict, running_windows: list[dict] = None) -> dict:
         layout: loaded layout dict (from storage.load_layout)
         running_windows: list of current windows (from capture.list_current_windows).
                          If None, captures current windows.
+        monitors_current: current monitor list. If provided, applies monitor gate policy.
 
     Returns:
         {"restored": int, "failed": int, "total": int, "elapsed_ms": int}
     """
+    from src.monitors import compare_monitors, filter_to_primary, clamp_rect_to_monitor, MatchResult
+
     t0 = time.perf_counter()
     saved_windows = layout.get("windows", [])
-    logger.info("restore: starting '%s' (%d windows)", layout.get("name", "?"), len(saved_windows))
+    saved_monitors = layout.get("monitors", [])
+
+    logger.info("starting '%s' (%d windows)", layout.get("name", "?"), len(saved_windows))
 
     if running_windows is None:
         from src.capture import list_current_windows
         running_windows = list_current_windows()
+
+    # Monitor gate
+    if saved_monitors and monitors_current is not None:
+        match = compare_monitors(saved_monitors, monitors_current)
+        if match == MatchResult.PRIMARY_ONLY:
+            orig_count = len(saved_windows)
+            saved_windows = filter_to_primary(saved_windows, saved_monitors)
+            logger.warning(
+                "filtered %d windows (external monitor absent/changed) — restoring %d primary windows",
+                orig_count - len(saved_windows), len(saved_windows),
+            )
+        elif match == MatchResult.NO_MATCH:
+            orig_count = len(saved_windows)
+            saved_windows = filter_to_primary(saved_windows, saved_monitors)
+            # Clamp coordinates to current primary
+            current_primary = next((m for m in monitors_current if m.get("primary")), None)
+            if current_primary:
+                for w in saved_windows:
+                    placement = w.get("placement", {})
+                    nr = placement.get("normal_rect")
+                    if nr:
+                        placement["normal_rect"] = clamp_rect_to_monitor(nr, current_primary)
+            logger.warning(
+                "primary monitor mismatch — filtered %d windows, clamped coordinates to current primary",
+                orig_count - len(saved_windows),
+            )
 
     # Sort by z_order descending (back to front) so final z-order is correct
     sorted_saved = sorted(saved_windows, key=lambda w: w.get("z_order", 0), reverse=True)
@@ -136,7 +167,7 @@ def restore_layout(layout: dict, running_windows: list[dict] = None) -> dict:
 
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     logger.info(
-        "restore: done '%s' — %d/%d restored, %d failed, elapsed %dms",
+        "done '%s' — %d/%d restored, %d failed, elapsed %dms",
         layout.get("name", "?"), restored, len(saved_windows), failed, elapsed_ms,
     )
     return {"restored": restored, "failed": failed, "total": len(saved_windows), "elapsed_ms": elapsed_ms}
