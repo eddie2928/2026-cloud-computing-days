@@ -69,10 +69,12 @@ def list_current_windows() -> list[dict]:
     for i, hwnd in enumerate(all_hwnds):
         try:
             if not win32gui.IsWindowVisible(hwnd):
+                logger.debug("capture: skipped invisible hwnd=%s", hwnd)
                 skipped += 1
                 continue
             title = win32gui.GetWindowText(hwnd)
             if not title:
+                logger.debug("capture: skipped no-title hwnd=%s", hwnd)
                 skipped += 1
                 continue
             ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)

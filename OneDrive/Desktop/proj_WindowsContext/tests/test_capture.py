@@ -121,8 +121,12 @@ def test_returns_expected_keys(monkeypatch):
     results = cap.list_current_windows()
     assert len(results) == 1
     w = results[0]
-    expected_keys = {"exe_path", "title_snapshot", "class_name", "placement", "monitor_index", "z_order"}
-    assert expected_keys.issubset(w.keys())
+    expected_keys = {
+        "exe_path", "exe_args", "cwd", "title_snapshot", "title_pattern",
+        "class_name", "placement", "monitor_index", "z_order",
+        "is_topmost", "is_uwp", "hwnd"
+    }
+    assert set(w.keys()) == expected_keys
 
 
 def test_placement_has_expected_subkeys(monkeypatch):
