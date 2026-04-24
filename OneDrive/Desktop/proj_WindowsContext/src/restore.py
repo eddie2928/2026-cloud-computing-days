@@ -33,21 +33,20 @@ def match_windows(saved_windows: list[dict], running_windows: list[dict]) -> lis
     assigned_hwnds: set[int] = set()
     results = []
     for saved in saved_windows:
-        best_hwnd = None
+        best_match = None
         best_score = 0
         for running in running_windows:
             s = score_window(saved, running, assigned_hwnds)
             if s > best_score:
                 best_score = s
-                best_hwnd = running["hwnd"]
-        if best_hwnd is not None:
-            assigned_hwnds.add(best_hwnd)
-            matched = next(r for r in running_windows if r["hwnd"] == best_hwnd)
-            results.append((saved, matched))
+                best_match = running
+        if best_match is not None:
+            assigned_hwnds.add(best_match["hwnd"])
+            results.append((saved, best_match))
             logger.info(
                 "matched saved '%s' → hwnd=0x%x score=%d",
                 saved.get("title_snapshot", saved.get("exe_path", "")),
-                best_hwnd,
+                best_match["hwnd"],
                 best_score,
             )
         else:
@@ -63,7 +62,13 @@ def match_windows(saved_windows: list[dict], running_windows: list[dict]) -> lis
 def restore_placement(hwnd: int, placement: dict) -> bool:
     """Apply saved placement to a window. Returns True on success."""
     try:
-        import win32gui, win32con
+        import win32gui
+        import win32con
+    except ImportError:
+        logger.error("pywin32 not installed — cannot restore placement")
+        raise  # ImportError should propagate, it's a deployment error
+
+    try:
         state = placement.get("state", "normal")
         normal_rect = placement.get("normal_rect", [0, 0, 800, 600])
         min_pos = tuple(placement.get("min_pos", [-1, -1]))
@@ -84,12 +89,9 @@ def restore_placement(hwnd: int, placement: dict) -> bool:
             max_pos,
             tuple(normal_rect),
         ))
-        logger.info(
-            "placed hwnd=0x%x state=%s rect=%s",
-            hwnd, state, normal_rect,
-        )
+        logger.info("placed hwnd=0x%x state=%s rect=%s", hwnd, state, normal_rect)
         return True
-    except Exception as e:
+    except OSError as e:
         logger.warning("failed to place hwnd=0x%x: %s", hwnd, e)
         return False
 

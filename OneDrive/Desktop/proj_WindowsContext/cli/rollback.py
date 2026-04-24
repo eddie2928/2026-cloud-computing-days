@@ -7,7 +7,7 @@ from pathlib import Path
 # Ensure src is importable when run as a script
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.logging_setup import setup_logging
+from src.logging_setup import setup_logging, LOG_FORMAT, DATE_FORMAT
 from src import storage, capture, restore as restore_mod
 
 logger = logging.getLogger("rollback")
@@ -16,7 +16,7 @@ logger = logging.getLogger("rollback")
 def main():
     parser = argparse.ArgumentParser(description="WinLayoutSaver headless rollback")
     parser.add_argument("--layout", default=None, help="Layout name to restore (overrides config)")
-    parser.add_argument("--no-launch", action="store_true", help="Skip launching missing apps (Stage 2 mode)")
+    parser.add_argument("--no-launch", action="store_true", help="Skip launching missing apps")
     args = parser.parse_args()
 
     # Rollback gets its own dated log file
@@ -31,7 +31,7 @@ def main():
     import logging.handlers
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
-    fmt = logging.Formatter("%(asctime)s.%(msecs)03d %(levelname)-5s %(name)-12s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    fmt = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
     fh = logging.handlers.RotatingFileHandler(rollback_log, maxBytes=5*1024*1024, backupCount=5, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(fmt)

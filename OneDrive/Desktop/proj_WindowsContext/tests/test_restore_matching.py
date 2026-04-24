@@ -197,7 +197,7 @@ def test_restore_placement_returns_false_on_exception(monkeypatch):
     import win32gui
 
     def mock_set_placement(hwnd, placement_tuple):
-        raise Exception("access denied")
+        raise OSError("access denied")
 
     win32gui.SetWindowPlacement = mock_set_placement
 
