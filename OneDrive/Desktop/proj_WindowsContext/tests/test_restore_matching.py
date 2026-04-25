@@ -150,13 +150,13 @@ def test_restore_placement_normal(monkeypatch):
     win32gui.SetWindowPlacement = mock_set_placement
 
     from src.restore import restore_placement
-    placement = {"state": "normal", "normal_rect": [10, 20, 810, 620], "min_pos": [-1, -1], "max_pos": [-1, -1]}
+    placement = {"state": "normal", "normal_rect": [10, 20, 800, 600], "min_pos": [-1, -1], "max_pos": [-1, -1]}
     result = restore_placement(100, placement)
 
     assert result is True
     assert calls["hwnd"] == 100
     assert calls["placement"][1] == win32con.SW_SHOWNORMAL
-    assert calls["placement"][4] == (10, 20, 810, 620)
+    assert calls["placement"][4] == (10, 20, 810, 620)  # XYWH converted back to LTRB
 
 
 def test_restore_placement_maximized(monkeypatch):

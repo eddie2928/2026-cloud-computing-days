@@ -68,7 +68,9 @@ def main():
 
     logger.info("--- phase: restore placement ---")
     running = capture.list_current_windows()
-    result = restore_mod.restore_layout(layout, running)
+    from src.monitors import list_current_monitors
+    monitors_current = list_current_monitors()
+    result = restore_mod.restore_layout(layout, running, monitors_current=monitors_current)
 
     logger.info(
         "rollback: complete — restored %d/%d, failed %d, elapsed %dms",

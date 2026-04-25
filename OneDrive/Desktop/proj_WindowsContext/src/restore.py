@@ -70,7 +70,7 @@ def restore_placement(hwnd: int, placement: dict) -> bool:
 
     try:
         state = placement.get("state", "normal")
-        normal_rect = placement.get("normal_rect", [0, 0, 800, 600])
+        nr = placement.get("normal_rect", [0, 0, 800, 600])  # stored as [x, y, w, h] (XYWH)
         min_pos = tuple(placement.get("min_pos", [-1, -1]))
         max_pos = tuple(placement.get("max_pos", [-1, -1]))
 
@@ -81,15 +81,18 @@ def restore_placement(hwnd: int, placement: dict) -> bool:
         else:
             show_cmd = win32con.SW_SHOWNORMAL
 
+        # Convert XYWH back to LTRB for SetWindowPlacement rcNormalPosition
+        ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
+
         # SetWindowPlacement sets state + normal_rect atomically
         win32gui.SetWindowPlacement(hwnd, (
             0,          # flags
             show_cmd,
             min_pos,
             max_pos,
-            tuple(normal_rect),
+            ltrb,       # rcNormalPosition in LTRB
         ))
-        logger.info("placed hwnd=0x%x state=%s rect=%s", hwnd, state, normal_rect)
+        logger.info("placed hwnd=0x%x state=%s rect=%s", hwnd, state, nr)
         return True
     except OSError as e:
         logger.warning("failed to place hwnd=0x%x: %s", hwnd, e)

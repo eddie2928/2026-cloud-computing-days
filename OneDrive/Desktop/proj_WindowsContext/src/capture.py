@@ -126,7 +126,11 @@ def list_current_windows() -> list[dict]:
 
             placement = win32gui.GetWindowPlacement(hwnd)
             show_cmd = placement[1] if placement else 1
-            normal_rect = list(placement[4]) if placement and len(placement) > 4 else [0, 0, 800, 600]
+            if placement and len(placement) > 4:
+                ltrb = list(placement[4])  # [left, top, right, bottom]
+                normal_rect = [ltrb[0], ltrb[1], ltrb[2] - ltrb[0], ltrb[3] - ltrb[1]]  # stored as [x, y, w, h] (XYWH)
+            else:
+                normal_rect = [0, 0, 800, 600]  # stored as [x, y, w, h] (XYWH)
             min_pos = list(placement[2]) if placement and len(placement) > 2 else [-1, -1]
             max_pos = list(placement[3]) if placement and len(placement) > 3 else [-1, -1]
             state = _get_placement_state(show_cmd)
