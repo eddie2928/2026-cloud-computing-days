@@ -162,7 +162,9 @@ class WinLayoutSaverApp(tk.Tk):
         self.after(1000, self._poll_monitors)
 
     def _update_monitor_strip(self, monitors: list[dict]):
-        self._current_monitors = monitors
+        monitors_changed = monitors != self._current_monitors
+        if monitors_changed:
+            self._current_monitors = monitors
         if not monitors:
             self._monitor_strip_var.set("Monitors: unknown")
             return
@@ -174,6 +176,8 @@ class WinLayoutSaverApp(tk.Tk):
                 label += f" @{m['scale']:.1f}x"
             parts.append(label)
         self._monitor_strip_var.set("Monitors: " + "  |  ".join(parts))
+        if monitors_changed:
+            self.after(0, self._refresh_layouts)
 
     def _get_match_indicator(self, name: str) -> tuple[str, str]:
         """Return (indicator_text, color) for a layout's monitor match state."""

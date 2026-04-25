@@ -128,17 +128,14 @@ def filter_to_primary(saved_windows: list[dict], saved_monitors: list[dict]) -> 
 def clamp_rect_to_monitor(rect: list, monitor: dict) -> list:
     """
     Clamp rect [x, y, w, h] so it fits within monitor rect.
-    Preserves size, adjusts position only.
+    Clamps size first so position clamp uses corrected dimensions.
     """
     mx, my, mw, mh = monitor["rect"]
     x, y, w, h = rect
-
-    # Clamp so the window fits within the monitor
-    x = max(mx, min(x, mx + mw - w))
-    y = max(my, min(y, my + mh - h))
-
-    # If window is larger than monitor, clamp size too
+    # Clamp size first so position clamp uses corrected dimensions
     w = min(w, mw)
     h = min(h, mh)
-
+    # Then clamp position
+    x = max(mx, min(x, mx + mw - w))
+    y = max(my, min(y, my + mh - h))
     return [x, y, w, h]

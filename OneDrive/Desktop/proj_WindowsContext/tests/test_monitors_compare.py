@@ -1,5 +1,5 @@
 import pytest
-from src.monitors import compare_monitors, MatchResult, list_current_monitors, clamp_rect_to_monitor, filter_to_primary
+from src.monitors import compare_monitors, MatchResult, clamp_rect_to_monitor, filter_to_primary
 
 
 def make_monitor(index=0, x=0, y=0, w=2560, h=1440, primary=True, scale=1.0):
@@ -77,3 +77,10 @@ class TestClampRect:
         rect = [100, 100, 800, 600]
         result = clamp_rect_to_monitor(rect, monitor)
         assert result == rect
+
+    def test_rect_larger_than_monitor_is_size_clamped(self):
+        monitor = make_monitor(x=0, y=0, w=1920, h=1080)
+        rect = [0, 0, 2560, 1440]  # window bigger than monitor
+        result = clamp_rect_to_monitor(rect, monitor)
+        assert result[2] == 1920  # width clamped to monitor width
+        assert result[3] == 1080  # height clamped to monitor height
