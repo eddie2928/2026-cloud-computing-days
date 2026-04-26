@@ -6,6 +6,11 @@ from typing import Optional
 logger = logging.getLogger("restore")
 
 
+def _rects_close(r1: list, r2: list, tol: int = 10) -> bool:
+    """r1, r2 모두 [x, y, w, h] 형식. 각 요소가 tol 이내이면 True."""
+    return len(r1) == 4 and len(r2) == 4 and all(abs(a - b) <= tol for a, b in zip(r1, r2))
+
+
 def score_window(saved: dict, running: dict, already_assigned: set) -> int:
     """Score how well a running window matches a saved window entry."""
     if running["hwnd"] in already_assigned:
@@ -20,6 +25,8 @@ def score_window(saved: dict, running: dict, already_assigned: set) -> int:
                 score += 5
         except re.error:
             pass
+    if saved.get("title_snapshot") and saved["title_snapshot"] == running.get("title_snapshot"):
+        score += 5
     if saved.get("class_name") and saved["class_name"] == running.get("class_name"):
         score += 3
     return score
@@ -59,7 +66,7 @@ def match_windows(saved_windows: list[dict], running_windows: list[dict]) -> lis
     return results
 
 
-def restore_placement(hwnd: int, placement: dict) -> bool:
+def restore_placement(hwnd: int, placement: dict, retries: int = 3, retry_delay_ms: int = 200) -> bool:
     """Apply saved placement to a window. Returns True on success."""
     try:
         import win32gui
@@ -84,22 +91,63 @@ def restore_placement(hwnd: int, placement: dict) -> bool:
         # Convert XYWH back to LTRB for SetWindowPlacement rcNormalPosition
         ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
 
-        # SetWindowPlacement sets state + normal_rect atomically
-        win32gui.SetWindowPlacement(hwnd, (
-            0,          # flags
-            show_cmd,
-            min_pos,
-            max_pos,
-            ltrb,       # rcNormalPosition in LTRB
-        ))
-        logger.info("placed hwnd=0x%x state=%s rect=%s", hwnd, state, nr)
-        return True
+        SWP_NOACTIVATE = 0x0010
+        SWP_NOZORDER   = 0x0004
+
+        for attempt in range(1, retries + 1):
+            win32gui.SetWindowPlacement(hwnd, (
+                0,          # flags
+                show_cmd,
+                min_pos,
+                max_pos,
+                ltrb,       # rcNormalPosition in LTRB
+            ))
+
+            if state == "normal":
+                # Chrome/Electron 등이 WM_WINDOWPOSCHANGED로 위치를 덮어쓰는 경우 방지.
+                win32gui.SetWindowPos(
+                    hwnd, None,
+                    nr[0], nr[1], nr[2], nr[3],
+                    SWP_NOACTIVATE | SWP_NOZORDER,
+                )
+
+                # 사후 검증: 실제 위치를 읽어서 저장 값과 비교
+                try:
+                    actual = win32gui.GetWindowPlacement(hwnd)
+                    if actual and len(actual) > 4:
+                        al = actual[4]
+                        actual_xywh = [al[0], al[1], al[2] - al[0], al[3] - al[1]]
+                        if _rects_close(actual_xywh, nr, tol=10):
+                            logger.info("placed hwnd=0x%x state=%s rect=%s (attempt %d)", hwnd, state, nr, attempt)
+                            return True
+                        logger.warning(
+                            "placement verify failed hwnd=0x%x attempt=%d: wanted=%s got=%s",
+                            hwnd, attempt, nr, actual_xywh,
+                        )
+                    else:
+                        logger.warning("placement verify failed hwnd=0x%x attempt=%d: bad GetWindowPlacement", hwnd, attempt)
+                except OSError as e:
+                    logger.warning("placement verify error hwnd=0x%x attempt=%d: %s", hwnd, attempt, e)
+
+                if attempt < retries:
+                    time.sleep(retry_delay_ms / 1000.0)
+            else:
+                # minimized/maximized: 상태가 목표 — SetWindowPlacement 예외 없으면 성공
+                logger.info("placed hwnd=0x%x state=%s (attempt %d)", hwnd, state, attempt)
+                return True
+
+        return False
     except OSError as e:
         logger.warning("failed to place hwnd=0x%x: %s", hwnd, e)
         return False
 
 
-def restore_layout(layout: dict, running_windows: list[dict] = None, monitors_current: list[dict] = None) -> dict:
+def restore_layout(
+    layout: dict,
+    running_windows: list[dict] = None,
+    monitors_current: list[dict] = None,
+    stabilize_ms: int = 1500,
+) -> dict:
     """
     Restore a saved layout by matching saved windows to running windows
     and repositioning them.
@@ -120,10 +168,6 @@ def restore_layout(layout: dict, running_windows: list[dict] = None, monitors_cu
     saved_monitors = layout.get("monitors", [])
 
     logger.info("starting '%s' (%d windows)", layout.get("name", "?"), len(saved_windows))
-
-    if running_windows is None:
-        from src.capture import list_current_windows
-        running_windows = list_current_windows()
 
     # Monitor gate
     if saved_monitors and monitors_current is not None:
@@ -153,6 +197,15 @@ def restore_layout(layout: dict, running_windows: list[dict] = None, monitors_cu
 
     # Sort by z_order descending (back to front) so final z-order is correct
     sorted_saved = sorted(saved_windows, key=lambda w: w.get("z_order", 0), reverse=True)
+
+    if running_windows is None:
+        from src.launcher import ensure_apps_running
+        from src.capture import list_current_windows
+        running_windows = list_current_windows()
+        ensure_apps_running(sorted_saved)
+        if stabilize_ms > 0:
+            time.sleep(stabilize_ms / 1000.0)
+        running_windows = list_current_windows()  # re-scan after launch
 
     matches = match_windows(sorted_saved, running_windows)
 

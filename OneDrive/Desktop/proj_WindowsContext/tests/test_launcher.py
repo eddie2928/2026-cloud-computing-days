@@ -162,18 +162,59 @@ def test_wait_for_window_timeout(monkeypatch):
 # ensure_apps_running tests
 # ---------------------------------------------------------------------------
 
-def test_ensure_apps_running_launches_missing(monkeypatch):
-    """2 saved windows, 1 already running, 1 not; verify only 1 launch."""
-    import psutil
+def test_ensure_apps_running_skips_empty_exe_path(monkeypatch):
+    """exe_path=""인 창은 실행 불가이므로 launch_app을 호출하지 않는다."""
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: [])
 
-    running_exe = "C:\\running.exe"
-    missing_exe = "C:\\missing.exe"
+    launched = []
+    monkeypatch.setattr("src.launcher.launch_app",
+                        lambda exe, *args, **kw: launched.append(exe) or MagicMock())
+    monkeypatch.setattr("src.launcher.wait_for_window", lambda *a, **kw: True)
 
-    def fake_process_iter(attrs):
-        p = _make_proc_info(running_exe)
-        return [p]
+    from src.launcher import ensure_apps_running
+    ensure_apps_running([{"exe_path": "", "exe_args": "", "cwd": "",
+                          "is_uwp": False, "title_pattern": ""}])
+    assert launched == []   # exe_path="" → 실행 시도 안 함
 
-    monkeypatch.setattr(psutil, "process_iter", fake_process_iter)
+
+# ---------------------------------------------------------------------------
+# has_visible_window tests (TC1–TC3)
+# ---------------------------------------------------------------------------
+
+def test_has_visible_window_no_windows(monkeypatch):
+    """TC1: Chrome background process only, no visible window → False."""
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: [])
+
+    from src.launcher import has_visible_window
+    assert has_visible_window("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "Chrome$") is False
+
+
+def test_has_visible_window_chrome_window_exists(monkeypatch):
+    """TC2: Chrome window visible → True."""
+    windows = [{"exe_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                "title_snapshot": "새 탭 - Chrome"}]
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+
+    from src.launcher import has_visible_window
+    assert has_visible_window("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "Chrome$") is True
+
+
+def test_has_visible_window_exe_mismatch(monkeypatch):
+    """TC3: Notepad running but querying for Chrome → False."""
+    windows = [{"exe_path": "C:\\Windows\\notepad.exe", "title_snapshot": "Untitled - Notepad"}]
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+
+    from src.launcher import has_visible_window
+    assert has_visible_window("C:\\chrome.exe", "Chrome$") is False
+
+
+# ---------------------------------------------------------------------------
+# ensure_apps_running: has_visible_window-based tests (TC4–TC5)
+# ---------------------------------------------------------------------------
+
+def test_ensure_apps_running_no_window_launches(monkeypatch):
+    """TC4: No visible window for saved app → launch_app is called."""
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: [])
 
     launched = []
 
@@ -185,13 +226,167 @@ def test_ensure_apps_running_launches_missing(monkeypatch):
     monkeypatch.setattr("src.launcher.wait_for_window", lambda *a, **kw: True)
 
     from src.launcher import ensure_apps_running
-    saved = [
-        _saved_window(exe_path=running_exe),
-        _saved_window(exe_path=missing_exe),
-    ]
-    ensure_apps_running(saved, timeout_seconds=5, poll_ms=50)
+    ensure_apps_running([_saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$")],
+                        timeout_seconds=5, poll_ms=50)
+    assert launched == ["C:\\chrome.exe"]
 
-    assert launched == [missing_exe]
+
+def test_ensure_apps_running_window_exists_no_launch(monkeypatch):
+    """TC5: Chrome window already visible → launch_app is NOT called."""
+    windows = [{"exe_path": "C:\\chrome.exe", "title_snapshot": "New Tab - Chrome"}]
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+
+    launched = []
+
+    def fake_launch_app(exe_path, exe_args="", cwd="", is_uwp=False):
+        launched.append(exe_path)
+        return MagicMock()
+
+    monkeypatch.setattr("src.launcher.launch_app", fake_launch_app)
+
+    from src.launcher import ensure_apps_running
+    ensure_apps_running([_saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$")],
+                        timeout_seconds=5, poll_ms=50)
+    assert launched == []
+
+
+def test_restore_layout_launches_missing_app_then_rematch(monkeypatch):
+    """복원 시 꺼진 앱을 자동 실행하고 재스캔 후 재매칭한다."""
+    import types, sys
+
+    # Stub out win32 modules for restore.py
+    win32gui = types.ModuleType("win32gui")
+    win32con = types.ModuleType("win32con")
+    win32con.SW_SHOWNORMAL = 1
+    win32con.SW_SHOWMINIMIZED = 2
+    win32con.SW_SHOWMAXIMIZED = 3
+    win32gui.SetWindowPlacement = lambda *a: None
+    win32gui.SetWindowPos = lambda *a: None
+    win32gui.GetWindowPlacement = lambda *a: (0, 1, (-1, -1), (-1, -1), (0, 0, 800, 600))
+    sys.modules["win32gui"] = win32gui
+    sys.modules["win32con"] = win32con
+
+    # 첫 번째 스캔: Chrome 없음 / 두 번째 스캔: Chrome 있음
+    scan_count = {"n": 0}
+
+    def fake_list_current():
+        scan_count["n"] += 1
+        if scan_count["n"] == 1:
+            return []
+        return [{
+            "hwnd": 0xABCD,
+            "exe_path": "C:\\chrome.exe",
+            "title_snapshot": "NAVER - Chrome",
+            "title_pattern": "Chrome$",
+            "class_name": "Chrome_WidgetWin_1",
+            "is_hidden": False,
+        }]
+
+    launched = []
+
+    def fake_ensure(saved_windows, **kwargs):
+        for w in saved_windows:
+            if w.get("exe_path"):
+                launched.append(w["exe_path"])
+
+    monkeypatch.setattr("src.capture.list_current_windows", fake_list_current)
+    monkeypatch.setattr("src.launcher.ensure_apps_running", fake_ensure)
+
+    sys.modules.pop("src.restore", None)
+
+    from src.restore import restore_layout
+
+    layout = {
+        "name": "test",
+        "windows": [{
+            "exe_path": "C:\\chrome.exe",
+            "title_snapshot": "NAVER - Chrome",
+            "title_pattern": "Chrome$",
+            "class_name": "Chrome_WidgetWin_1",
+            "placement": {"state": "normal", "normal_rect": [0, 0, 800, 600],
+                          "min_pos": [-1, -1], "max_pos": [-1, -1]},
+            "z_order": 0,
+        }],
+        "monitors": [],
+    }
+
+    result = restore_layout(layout)
+
+    assert "C:\\chrome.exe" in launched   # 자동 실행 시도
+    assert scan_count["n"] == 2           # 두 번 스캔 (launch 전/후)
+    assert result["restored"] == 1
+
+    # Cleanup
+    for mod in ["win32gui", "win32con", "src.restore"]:
+        sys.modules.pop(mod, None)
+
+
+def test_restore_layout_with_prescan_skips_ensure_bug(monkeypatch):
+    """GUI 경로(running_windows 미리 전달) 재현 — 버그 확인 후 올바른 경로 검증."""
+    import types, sys
+
+    win32gui = types.ModuleType("win32gui")
+    win32con = types.ModuleType("win32con")
+    win32con.SW_SHOWNORMAL = 1
+    win32con.SW_SHOWMINIMIZED = 2
+    win32con.SW_SHOWMAXIMIZED = 3
+    win32gui.SetWindowPlacement = lambda *a: None
+    win32gui.SetWindowPos = lambda *a: None
+    win32gui.GetWindowPlacement = lambda *a: (0, 1, (-1, -1), (-1, -1), (0, 0, 800, 600))
+    sys.modules["win32gui"] = win32gui
+    sys.modules["win32con"] = win32con
+
+    scan_count = {"n": 0}
+
+    def fake_list_current():
+        scan_count["n"] += 1
+        if scan_count["n"] >= 2:
+            return [{
+                "hwnd": 0xABCD,
+                "exe_path": "C:\\chrome.exe",
+                "title_snapshot": "NAVER - Chrome",
+                "title_pattern": "Chrome$",
+                "class_name": "Chrome_WidgetWin_1",
+                "is_hidden": False,
+            }]
+        return []
+
+    launched = []
+
+    def fake_ensure(saved_windows, **kwargs):
+        for w in saved_windows:
+            if w.get("exe_path"):
+                launched.append(w["exe_path"])
+
+    monkeypatch.setattr("src.capture.list_current_windows", fake_list_current)
+    monkeypatch.setattr("src.launcher.ensure_apps_running", fake_ensure)
+
+    sys.modules.pop("src.restore", None)
+
+    from src.restore import restore_layout
+
+    layout = {
+        "name": "test",
+        "windows": [{
+            "exe_path": "C:\\chrome.exe",
+            "title_snapshot": "NAVER - Chrome",
+            "title_pattern": "Chrome$",
+            "class_name": "Chrome_WidgetWin_1",
+            "placement": {"state": "normal", "normal_rect": [0, 0, 800, 600],
+                          "min_pos": [-1, -1], "max_pos": [-1, -1]},
+            "z_order": 0,
+        }],
+        "monitors": [],
+    }
+
+    # GUI 수정 후 경로: running_windows 미전달 → ensure_apps_running 내부 호출
+    result = restore_layout(layout)
+
+    assert "C:\\chrome.exe" in launched, "ensure_apps_running이 호출되지 않았음"
+    assert result["restored"] == 1
+
+    for mod in ["win32gui", "win32con", "src.restore"]:
+        sys.modules.pop(mod, None)
 
 
 def test_uwp_uses_explorer_shell(monkeypatch):
