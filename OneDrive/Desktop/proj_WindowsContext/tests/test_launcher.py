@@ -263,6 +263,7 @@ def test_restore_layout_launches_missing_app_then_rematch(monkeypatch):
     win32gui.SetWindowPlacement = lambda *a: None
     win32gui.SetWindowPos = lambda *a: None
     win32gui.GetWindowPlacement = lambda *a: (0, 1, (-1, -1), (-1, -1), (0, 0, 800, 600))
+    win32gui.GetWindowRect = lambda *a: (0, 0, 800, 600)
     sys.modules["win32gui"] = win32gui
     sys.modules["win32con"] = win32con
 
@@ -333,6 +334,7 @@ def test_restore_layout_with_prescan_skips_ensure_bug(monkeypatch):
     win32gui.SetWindowPlacement = lambda *a: None
     win32gui.SetWindowPos = lambda *a: None
     win32gui.GetWindowPlacement = lambda *a: (0, 1, (-1, -1), (-1, -1), (0, 0, 800, 600))
+    win32gui.GetWindowRect = lambda *a: (0, 0, 800, 600)
     sys.modules["win32gui"] = win32gui
     sys.modules["win32con"] = win32con
 
@@ -387,6 +389,42 @@ def test_restore_layout_with_prescan_skips_ensure_bug(monkeypatch):
 
     for mod in ["win32gui", "win32con", "src.restore"]:
         sys.modules.pop(mod, None)
+
+
+# ---------------------------------------------------------------------------
+# ensure_apps_running 반환값 테스트 (UT-L1, UT-L2)
+# ---------------------------------------------------------------------------
+
+def test_ensure_apps_running_returns_zero_when_all_running(monkeypatch):
+    """모든 앱이 이미 실행 중 → 0 반환."""
+    windows = [{"exe_path": "C:\\app.exe", "title_snapshot": "App Window"}]
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+
+    from src.launcher import ensure_apps_running
+    result = ensure_apps_running([_saved_window(exe_path="C:\\app.exe", title_pattern="App")])
+    assert result == 0
+
+
+def test_ensure_apps_running_returns_count_of_launched(monkeypatch):
+    """2개 앱 모두 없음 → 2회 론칭, 반환값 2."""
+    monkeypatch.setattr("src.launcher.list_current_windows", lambda: [])
+
+    launched = []
+
+    def fake_launch(exe, *a, **kw):
+        launched.append(exe)
+        return MagicMock()
+
+    monkeypatch.setattr("src.launcher.launch_app", fake_launch)
+    monkeypatch.setattr("src.launcher.wait_for_window", lambda *a, **kw: True)
+
+    from src.launcher import ensure_apps_running
+    result = ensure_apps_running([
+        _saved_window(exe_path="C:\\a.exe", title_pattern=""),
+        _saved_window(exe_path="C:\\b.exe", title_pattern=""),
+    ])
+    assert result == 2
+    assert len(launched) == 2
 
 
 def test_uwp_uses_explorer_shell(monkeypatch):

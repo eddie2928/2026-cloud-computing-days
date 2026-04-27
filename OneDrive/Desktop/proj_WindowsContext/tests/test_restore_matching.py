@@ -15,7 +15,8 @@ def mock_win32(monkeypatch):
     win32con.SW_SHOWMAXIMIZED = 3
 
     win32gui.SetWindowPos = lambda *a: None
-    win32gui.GetWindowPlacement = lambda *a: None  # default: verification fails gracefully
+    win32gui.GetWindowPlacement = lambda *a: None  # kept for minimized/maximized state tests
+    win32gui.GetWindowRect = lambda *a: (0, 0, 100, 100)  # default: wrong position → verify fails
 
     sys.modules["win32gui"] = win32gui
     sys.modules["win32con"] = win32con
@@ -159,9 +160,9 @@ def test_restore_placement_normal(monkeypatch):
         calls["placement"] = placement_tuple
 
     nr = [10, 20, 800, 600]
-    correct_ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
     win32gui.SetWindowPlacement = mock_set_placement
-    win32gui.GetWindowPlacement = lambda hwnd: (0, 1, (-1, -1), (-1, -1), correct_ltrb)
+    # 검증은 GetWindowRect 사용: nr에 맞는 LTRB 반환
+    win32gui.GetWindowRect = lambda hwnd: (10, 20, 810, 620)
 
     from src.restore import restore_placement
     placement = {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]}
@@ -288,10 +289,10 @@ def test_restore_placement_normal_also_calls_set_window_pos(monkeypatch):
     from unittest.mock import MagicMock
     import win32gui, win32con
     nr = [100, 200, 800, 600]
-    correct_ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock(return_value=True)
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0, 1, (-1, -1), (-1, -1), correct_ltrb))
+    # 검증: GetWindowRect가 nr에 맞는 LTRB 반환
+    win32gui.GetWindowRect = MagicMock(return_value=(100, 200, 900, 800))
 
     from src.restore import restore_placement
     placement = {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]}
@@ -364,14 +365,12 @@ def test_ut1_second_attempt_succeeds():
     import win32gui
 
     nr = [10, 20, 800, 600]
-    wrong_ltrb   = (0, 0, 100, 100)
-    correct_ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
-
+    # GetWindowRect: 1차=틀린 위치, 2차=맞는 위치
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(side_effect=[
-        (0, 1, (-1, -1), (-1, -1), wrong_ltrb),
-        (0, 1, (-1, -1), (-1, -1), correct_ltrb),
+    win32gui.GetWindowRect = MagicMock(side_effect=[
+        (0, 0, 100, 100),          # 1st attempt: wrong → fail
+        (10, 20, 810, 620),        # 2nd attempt: correct → succeed
     ])
 
     from src.restore import restore_placement
@@ -391,11 +390,10 @@ def test_ut2_all_retries_exhausted():
     import win32gui
 
     nr = [10, 20, 800, 600]
-    wrong_ltrb = (0, 0, 100, 100)
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0, 1, (-1, -1), (-1, -1), wrong_ltrb))
+    win32gui.GetWindowRect = MagicMock(return_value=(0, 0, 100, 100))  # always wrong
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -414,11 +412,10 @@ def test_ut5_retries_1_fails_immediately():
     import win32gui
 
     nr = [10, 20, 800, 600]
-    wrong_ltrb = (0, 0, 100, 100)
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0, 1, (-1, -1), (-1, -1), wrong_ltrb))
+    win32gui.GetWindowRect = MagicMock(return_value=(0, 0, 100, 100))  # always wrong
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -437,11 +434,10 @@ def test_ut6_first_attempt_succeeds_no_retry():
     import win32gui
 
     nr = [10, 20, 800, 600]
-    correct_ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0, 1, (-1, -1), (-1, -1), correct_ltrb))
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))  # correct
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -454,8 +450,8 @@ def test_ut6_first_attempt_succeeds_no_retry():
     assert win32gui.SetWindowPlacement.call_count == 1
 
 
-def test_ut7_get_placement_short_tuple():
-    """GetWindowPlacement가 len<5 반환 → crash 없이 False, retries회 호출."""
+def test_ut7_get_window_rect_oserror_no_crash():
+    """GetWindowRect OSError → 예외 미전파, False 반환."""
     from unittest.mock import MagicMock
     import win32gui
 
@@ -463,7 +459,28 @@ def test_ut7_get_placement_short_tuple():
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0,))  # len=1
+    win32gui.GetWindowRect = MagicMock(side_effect=OSError("access denied"))
+
+    from src.restore import restore_placement
+    result = restore_placement(
+        100,
+        {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]},
+        retries=3, retry_delay_ms=0,
+    )
+
+    assert result is False
+
+
+def test_ut8_get_window_rect_always_wrong_retries_exhausted():
+    """GetWindowRect가 항상 틀린 위치 반환 → retries 후 False, SetWindowPlacement retries회 호출."""
+    from unittest.mock import MagicMock
+    import win32gui
+
+    nr = [10, 20, 800, 600]
+
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(0, 0, 100, 100))  # always wrong
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -476,35 +493,15 @@ def test_ut7_get_placement_short_tuple():
     assert win32gui.SetWindowPlacement.call_count == 3
 
 
-def test_ut8_get_placement_oserror_no_crash():
-    """GetWindowPlacement OSError → 예외 미전파, False 반환."""
-    from unittest.mock import MagicMock
-    import win32gui
-
-    nr = [10, 20, 800, 600]
-
-    win32gui.SetWindowPlacement = MagicMock()
-    win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(side_effect=OSError("access denied"))
-
-    from src.restore import restore_placement
-    result = restore_placement(
-        100,
-        {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]},
-        retries=3, retry_delay_ms=0,
-    )
-
-    assert result is False
-
-
-def test_ut9_maximized_no_get_placement_call():
-    """state=maximized → GetWindowPlacement 미호출, True 반환."""
+def test_ut9_maximized_no_verification_calls():
+    """state=maximized → GetWindowRect/GetWindowPlacement 미호출, True 반환."""
     from unittest.mock import MagicMock
     import win32gui
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
     win32gui.GetWindowPlacement = MagicMock()
+    win32gui.GetWindowRect = MagicMock()
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -514,16 +511,18 @@ def test_ut9_maximized_no_get_placement_call():
 
     assert result is True
     win32gui.GetWindowPlacement.assert_not_called()
+    win32gui.GetWindowRect.assert_not_called()
 
 
-def test_ut10_minimized_no_get_placement_call():
-    """state=minimized → GetWindowPlacement 미호출, True 반환."""
+def test_ut10_minimized_no_verification_calls():
+    """state=minimized → GetWindowRect/GetWindowPlacement 미호출, True 반환."""
     from unittest.mock import MagicMock
     import win32gui
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
     win32gui.GetWindowPlacement = MagicMock()
+    win32gui.GetWindowRect = MagicMock()
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -533,6 +532,7 @@ def test_ut10_minimized_no_get_placement_call():
 
     assert result is True
     win32gui.GetWindowPlacement.assert_not_called()
+    win32gui.GetWindowRect.assert_not_called()
 
 
 def test_ut11_negative_coord_normal_rect():
@@ -541,11 +541,11 @@ def test_ut11_negative_coord_normal_rect():
     import win32gui
 
     nr = [-1920, 100, 800, 600]
-    correct_ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
 
     win32gui.SetWindowPlacement = MagicMock()
     win32gui.SetWindowPos = MagicMock()
-    win32gui.GetWindowPlacement = MagicMock(return_value=(0, 1, (-1, -1), (-1, -1), correct_ltrb))
+    # GetWindowRect: nr에 맞는 LTRB 반환 (-1920,100,-1120,700)
+    win32gui.GetWindowRect = MagicMock(return_value=(-1920, 100, -1120, 700))
 
     from src.restore import restore_placement
     result = restore_placement(
@@ -635,3 +635,279 @@ def test_ut15_stabilize_ms_default_sleeps_1500ms(mock_layout_deps):
         restore_layout({"name": "t", "windows": [], "monitors": []})
 
     mock_sleep.assert_called_once_with(1.5)
+
+
+# ---------------------------------------------------------------------------
+# restore_layout post_settle_ms (UT-16, UT-17, UT-18)
+# Chrome/Electron 앱이 WM_WINDOWPOSCHANGED로 창을 비동기 복원하는 문제 대응.
+# ---------------------------------------------------------------------------
+
+def _post_settle_env(monkeypatch, sys_modules):
+    """post_settle 테스트용 src.monitors 모킹."""
+    import types
+    from enum import Enum
+
+    class FakeMatchResult(Enum):
+        MATCH = "MATCH"
+        PRIMARY_ONLY = "PRIMARY_ONLY"
+        NO_MATCH = "NO_MATCH"
+
+    monitors_mod = types.ModuleType("src.monitors")
+    monitors_mod.MatchResult = FakeMatchResult
+    monitors_mod.compare_monitors = lambda *a, **kw: FakeMatchResult.MATCH
+    monitors_mod.filter_to_primary = lambda w, *a: w
+    monitors_mod.clamp_rect_to_monitor = lambda r, m: r
+    monkeypatch.setitem(sys_modules, "src.monitors", monitors_mod)
+    sys_modules.pop("src.restore", None)
+
+
+def _make_normal_layout(nr):
+    return {
+        "name": "t",
+        "windows": [{
+            "exe_path": "C:\\app.exe",
+            "title_snapshot": "App",
+            "title_pattern": "",
+            "class_name": "C",
+            "placement": {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]},
+            "z_order": 0,
+        }],
+        "monitors": [],
+    }
+
+
+def _make_running(nr=None):
+    return [{"hwnd": 1, "exe_path": "C:\\app.exe", "title_snapshot": "App", "class_name": "C"}]
+
+
+def test_ut16_post_settle_ms_zero_no_reapply(monkeypatch):
+    """post_settle_ms=0 → sleep 미호출, SetWindowPlacement 1회만(재적용 없음)."""
+    import sys
+    from unittest.mock import MagicMock, patch
+    import win32gui, win32con
+
+    nr = [10, 20, 800, 600]
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    with patch("time.sleep") as mock_sleep:
+        from src.restore import restore_layout
+        restore_layout(_make_normal_layout(nr), running_windows=_make_running(), post_settle_ms=0)
+
+    mock_sleep.assert_not_called()
+    assert win32gui.SetWindowPlacement.call_count == 1
+
+
+def test_ut17_post_settle_ms_positive_sleeps_and_reapplies(monkeypatch):
+    """post_settle_ms > 0, 배치 성공 → sleep(post_settle/1000) 호출, SetWindowPlacement 2회."""
+    import sys
+    from unittest.mock import MagicMock, patch
+    import win32gui, win32con
+
+    nr = [10, 20, 800, 600]
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    with patch("time.sleep") as mock_sleep:
+        from src.restore import restore_layout
+        result = restore_layout(_make_normal_layout(nr), running_windows=_make_running(), post_settle_ms=200)
+
+    mock_sleep.assert_called_once_with(0.2)
+    assert win32gui.SetWindowPlacement.call_count == 2  # 초기 배치 + 재적용
+    assert result["restored"] == 1
+
+
+def test_ut18_post_settle_runs_even_when_first_pass_failed(monkeypatch):
+    """초기 배치 실패(False)여도 매칭된 창이 있으면 post_settle sleep 및 재시도 실행.
+    Chrome처럼 시작 시 즉시 배치를 거부하지만 안정화 후 수락하는 케이스 지원."""
+    import sys
+    from unittest.mock import patch, MagicMock
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    nr = [10, 20, 800, 600]
+
+    placement_calls = []
+    def fake_placement(hwnd, placement):
+        placement_calls.append(hwnd)
+        return False  # 항상 실패
+
+    with patch("time.sleep") as mock_sleep:
+        from src.restore import restore_layout
+        with patch("src.restore.restore_placement", side_effect=fake_placement):
+            result = restore_layout(_make_normal_layout(nr), running_windows=_make_running(), post_settle_ms=500)
+
+    # 매칭된 창이 있으므로 sleep 호출됨
+    mock_sleep.assert_called_once_with(0.5)
+    # 초기 + 재시도 = 2회 호출
+    assert len(placement_calls) == 2
+    assert result["failed"] == 1
+    assert result["restored"] == 0
+
+
+def test_ut18b_post_settle_skipped_when_no_matched_windows(monkeypatch):
+    """매칭된 창이 아예 없으면(all running=None) post_settle sleep 미호출."""
+    import sys
+    from unittest.mock import patch
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    layout = {
+        "name": "t",
+        "windows": [{"exe_path": "C:\\missing.exe", "title_snapshot": "X", "title_pattern": "",
+                     "class_name": "C", "placement": {"state": "normal", "normal_rect": [0, 0, 800, 600],
+                     "min_pos": [-1, -1], "max_pos": [-1, -1]}, "z_order": 0}],
+        "monitors": [],
+    }
+    # exe/class/title 모두 다름 → score=0 → 매칭 없음(running=None)
+    running = [{"hwnd": 1, "exe_path": "C:\\other.exe", "title_snapshot": "Other", "class_name": "OtherClass"}]
+
+    with patch("time.sleep") as mock_sleep:
+        from src.restore import restore_layout
+        result = restore_layout(layout, running_windows=running, post_settle_ms=500)
+
+    mock_sleep.assert_not_called()
+    assert result["failed"] == 1
+
+
+# ---------------------------------------------------------------------------
+# restore_layout post_launch_settle_ms (UT-R1, UT-R2, UT-R3)
+# ---------------------------------------------------------------------------
+
+def test_ut19_post_launch_settle_ms_zero_no_second_reapply(monkeypatch):
+    """post_launch_settle_ms=0(기본값) → launched_count>0이어도 2차 sleep/재적용 없음."""
+    import sys
+    from unittest.mock import MagicMock, patch
+    import win32gui, win32con
+
+    nr = [10, 20, 800, 600]
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    import types
+    launcher_mod = types.ModuleType("src.launcher")
+    launcher_mod.ensure_apps_running = MagicMock(return_value=1)
+    monkeypatch.setitem(sys.modules, "src.launcher", launcher_mod)
+    capture_mod = types.ModuleType("src.capture")
+    capture_mod.list_current_windows = MagicMock(return_value=_make_running())
+    monkeypatch.setitem(sys.modules, "src.capture", capture_mod)
+
+    with patch("time.sleep") as mock_sleep:
+        from src.restore import restore_layout
+        restore_layout(
+            _make_normal_layout(nr),
+            stabilize_ms=0,
+            post_settle_ms=0,
+            post_launch_settle_ms=0,
+        )
+
+    mock_sleep.assert_not_called()
+    assert win32gui.SetWindowPlacement.call_count == 1
+
+
+def test_ut20_post_launch_settle_ms_fires_when_apps_launched(monkeypatch):
+    """post_launch_settle_ms=3000, launched_count=1 → sleep(3.0) 추가, SetWindowPlacement 3회."""
+    import sys
+    from unittest.mock import MagicMock, patch
+    import win32gui, win32con
+
+    nr = [10, 20, 800, 600]
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    import types
+    launcher_mod = types.ModuleType("src.launcher")
+    launcher_mod.ensure_apps_running = MagicMock(return_value=1)
+    monkeypatch.setitem(sys.modules, "src.launcher", launcher_mod)
+    capture_mod = types.ModuleType("src.capture")
+    capture_mod.list_current_windows = MagicMock(return_value=_make_running())
+    monkeypatch.setitem(sys.modules, "src.capture", capture_mod)
+
+    sleep_calls = []
+    with patch("time.sleep", side_effect=lambda s: sleep_calls.append(s)):
+        from src.restore import restore_layout
+        restore_layout(
+            _make_normal_layout(nr),
+            post_settle_ms=2000,
+            post_launch_settle_ms=3000,
+        )
+
+    assert 2.0 in sleep_calls
+    assert 3.0 in sleep_calls
+    assert win32gui.SetWindowPlacement.call_count == 3
+
+
+def test_ut21_post_launch_settle_skipped_when_no_apps_launched(monkeypatch):
+    """post_launch_settle_ms=3000이지만 launched_count=0 → 2차 재적용 없음."""
+    import sys
+    from unittest.mock import MagicMock, patch
+    import win32gui, win32con
+
+    nr = [10, 20, 800, 600]
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = MagicMock()
+    win32gui.GetWindowRect = MagicMock(return_value=(10, 20, 810, 620))
+
+    _post_settle_env(monkeypatch, sys.modules)
+
+    import types
+    launcher_mod = types.ModuleType("src.launcher")
+    launcher_mod.ensure_apps_running = MagicMock(return_value=0)
+    monkeypatch.setitem(sys.modules, "src.launcher", launcher_mod)
+    capture_mod = types.ModuleType("src.capture")
+    capture_mod.list_current_windows = MagicMock(return_value=_make_running())
+    monkeypatch.setitem(sys.modules, "src.capture", capture_mod)
+
+    sleep_calls = []
+    with patch("time.sleep", side_effect=lambda s: sleep_calls.append(s)):
+        from src.restore import restore_layout
+        restore_layout(
+            _make_normal_layout(nr),
+            post_settle_ms=2000,
+            post_launch_settle_ms=3000,
+        )
+
+    assert 3.0 not in sleep_calls
+    assert win32gui.SetWindowPlacement.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# UT-A4: SWP_NOSENDCHANGING 플래그 검증 (Task-8 M2)
+# ---------------------------------------------------------------------------
+
+def test_ut_a4_restore_placement_includes_swp_nosendchanging(monkeypatch):
+    """SetWindowPos 호출 시 SWP_NOSENDCHANGING(0x0400) 플래그가 포함되는지 검증."""
+    from unittest.mock import MagicMock
+    import win32gui
+
+    nr = [100, 100, 800, 600]
+    swp_calls = []
+
+    def capture_flags(hwnd, ins, x, y, cx, cy, flags):
+        swp_calls.append(flags)
+
+    win32gui.SetWindowPlacement = MagicMock()
+    win32gui.SetWindowPos = capture_flags
+    win32gui.GetWindowRect = MagicMock(return_value=(100, 100, 900, 700))
+
+    from src.restore import restore_placement
+    result = restore_placement(
+        1,
+        {"state": "normal", "normal_rect": nr, "min_pos": [-1, -1], "max_pos": [-1, -1]},
+    )
+
+    assert result is True
+    assert swp_calls, "SetWindowPos가 호출되지 않음"
+    assert swp_calls[0] & 0x0400, "SWP_NOSENDCHANGING(0x0400) 플래그 없음"

@@ -1,4 +1,12 @@
 """Headless rollback entry point — called by Windows Task Scheduler."""
+import ctypes
+try:
+    ctypes.windll.user32.SetProcessDpiAwarenessContext(
+        ctypes.c_void_p(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    )
+except Exception:
+    pass
+
 import argparse
 import logging
 import sys

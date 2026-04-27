@@ -1,3 +1,4 @@
+import re as _re
 import sys
 import types
 import pytest
@@ -18,6 +19,8 @@ def mock_win32(monkeypatch):
     win32con.SW_SHOWMINIMIZED = 2
     win32con.SW_SHOWMAXIMIZED = 3
     win32con.GWL_EXSTYLE = -20
+
+    win32gui.GetWindowRect = lambda h: (0, 0, 800, 600)  # default: typical normal window
 
     sys.modules["win32gui"] = win32gui
     sys.modules["win32process"] = win32process
@@ -223,3 +226,109 @@ def test_filters_cloaked_windows(monkeypatch):
 
     results = cap.list_current_windows()
     assert results == []
+
+
+# ---------------------------------------------------------------------------
+# _auto_title_pattern
+# ---------------------------------------------------------------------------
+
+class TestAutoTitlePattern:
+    def test_extracts_app_name_suffix(self):
+        from src.capture import _auto_title_pattern
+        assert _auto_title_pattern("My Doc - Google Chrome") == "Google\\ Chrome$"
+
+    def test_extracts_obsidian_suffix(self):
+        from src.capture import _auto_title_pattern
+        assert _auto_title_pattern("Vault - Obsidian") == "Obsidian$"
+
+    def test_no_dash_returns_escaped_full_title(self):
+        from src.capture import _auto_title_pattern
+        result = _auto_title_pattern("제목 없음")
+        assert result == _re.escape("제목 없음") + "$"
+
+    def test_multiple_dashes_uses_last_segment(self):
+        from src.capture import _auto_title_pattern
+        assert _auto_title_pattern("a - b - MyApp") == "MyApp$"
+
+    def test_pattern_matches_original_title(self):
+        from src.capture import _auto_title_pattern
+        title = "My Doc - Google Chrome"
+        pattern = _auto_title_pattern(title)
+        assert _re.search(pattern, title)
+
+
+# ---------------------------------------------------------------------------
+# B1 수정: normal 창은 GetWindowRect, min/max는 rcNormalPosition 사용 (Task-8)
+# ---------------------------------------------------------------------------
+
+def test_normal_window_uses_getwindowrect_for_normal_rect(monkeypatch):
+    """normal 창(스냅 포함)은 rcNormalPosition 대신 GetWindowRect를 normal_rect로 저장."""
+    import win32gui, win32con
+    hwnd = 42
+    win32gui.EnumWindows = lambda cb, extra: cb(hwnd, extra)
+    win32gui.IsWindowVisible = lambda h: True
+    win32gui.GetWindowText = lambda h: "Snapped Window"
+    win32gui.GetWindowLong = lambda h, flag: 0
+    win32gui.GetClassName = lambda h: "AppClass"
+    # rcNormalPosition = 스냅 이전 위치 (실제 화면 위치와 다름)
+    win32gui.GetWindowPlacement = lambda h: (0, win32con.SW_SHOWNORMAL, (-1, -1), (-1, -1), (498, 147, 1778, 962))
+    # GetWindowRect = 실제 스냅 위치
+    win32gui.GetWindowRect = lambda h: (810, 0, 1920, 1020)
+
+    import src.capture as cap
+    monkeypatch.setattr(cap, "_get_exe_path", lambda h: "C:\\app.exe")
+    monkeypatch.setattr(cap, "_is_cloaked", lambda h: False)
+
+    results = cap.list_current_windows()
+    assert len(results) == 1
+    nr = results[0]["placement"]["normal_rect"]
+    # GetWindowRect [810,0,1920,1020] → XYWH [810, 0, 1110, 1020]
+    assert nr == [810, 0, 1110, 1020], f"expected GetWindowRect coords, got {nr}"
+
+
+def test_minimized_window_uses_rcnormalposition(monkeypatch):
+    """minimized 창은 GetWindowRect를 쓰지 않고 rcNormalPosition을 그대로 저장."""
+    import win32gui, win32con
+    hwnd = 43
+    win32gui.EnumWindows = lambda cb, extra: cb(hwnd, extra)
+    win32gui.IsWindowVisible = lambda h: True
+    win32gui.GetWindowText = lambda h: "Minimized App"
+    win32gui.GetWindowLong = lambda h, flag: 0
+    win32gui.GetClassName = lambda h: "AppClass"
+    win32gui.GetWindowPlacement = lambda h: (0, win32con.SW_SHOWMINIMIZED, (-1, -1), (-1, -1), (100, 200, 900, 800))
+    win32gui.GetWindowRect = lambda h: (0, 0, 1, 1)  # 최소화된 위치는 무시
+
+    import src.capture as cap
+    monkeypatch.setattr(cap, "_get_exe_path", lambda h: "C:\\app.exe")
+    monkeypatch.setattr(cap, "_is_cloaked", lambda h: False)
+
+    results = cap.list_current_windows()
+    assert len(results) == 1
+    nr = results[0]["placement"]["normal_rect"]
+    # rcNormalPosition [100,200,900,800] → XYWH [100, 200, 800, 600]
+    assert nr == [100, 200, 800, 600], f"expected rcNormalPosition coords, got {nr}"
+
+
+def test_normal_window_getwindowrect_oserror_falls_back_to_rcnormalposition(monkeypatch):
+    """GetWindowRect OSError 발생 시 rcNormalPosition을 fallback으로 사용."""
+    import win32gui, win32con
+    hwnd = 44
+    win32gui.EnumWindows = lambda cb, extra: cb(hwnd, extra)
+    win32gui.IsWindowVisible = lambda h: True
+    win32gui.GetWindowText = lambda h: "Normal App"
+    win32gui.GetWindowLong = lambda h, flag: 0
+    win32gui.GetClassName = lambda h: "AppClass"
+    win32gui.GetWindowPlacement = lambda h: (0, win32con.SW_SHOWNORMAL, (-1, -1), (-1, -1), (50, 60, 850, 660))
+    def _raise_oserror(h):
+        raise OSError("access denied")
+    win32gui.GetWindowRect = _raise_oserror
+
+    import src.capture as cap
+    monkeypatch.setattr(cap, "_get_exe_path", lambda h: "C:\\app.exe")
+    monkeypatch.setattr(cap, "_is_cloaked", lambda h: False)
+
+    results = cap.list_current_windows()
+    assert len(results) == 1
+    nr = results[0]["placement"]["normal_rect"]
+    # OSError → fallback: rcNormalPosition [50,60,850,660] → XYWH [50, 60, 800, 600]
+    assert nr == [50, 60, 800, 600], f"expected rcNormalPosition fallback, got {nr}"

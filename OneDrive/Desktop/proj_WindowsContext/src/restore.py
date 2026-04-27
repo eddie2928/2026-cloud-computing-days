@@ -5,6 +5,12 @@ from typing import Optional
 
 logger = logging.getLogger("restore")
 
+try:
+    import pywintypes as _pywintypes
+    _WIN_ERRORS = (OSError, _pywintypes.error)
+except ImportError:
+    _WIN_ERRORS = (OSError,)
+
 
 def _rects_close(r1: list, r2: list, tol: int = 10) -> bool:
     """r1, r2 모두 [x, y, w, h] 형식. 각 요소가 tol 이내이면 True."""
@@ -91,8 +97,9 @@ def restore_placement(hwnd: int, placement: dict, retries: int = 3, retry_delay_
         # Convert XYWH back to LTRB for SetWindowPlacement rcNormalPosition
         ltrb = (nr[0], nr[1], nr[0] + nr[2], nr[1] + nr[3])
 
-        SWP_NOACTIVATE = 0x0010
-        SWP_NOZORDER   = 0x0004
+        SWP_NOACTIVATE     = 0x0010
+        SWP_NOZORDER       = 0x0004
+        SWP_NOSENDCHANGING = 0x0400  # suppress WM_WINDOWPOSCHANGING so apps (Chrome/Electron) can't override the size
 
         for attempt in range(1, retries + 1):
             win32gui.SetWindowPlacement(hwnd, (
@@ -104,28 +111,27 @@ def restore_placement(hwnd: int, placement: dict, retries: int = 3, retry_delay_
             ))
 
             if state == "normal":
-                # Chrome/Electron 등이 WM_WINDOWPOSCHANGED로 위치를 덮어쓰는 경우 방지.
+                # nr is saved as GetWindowRect (screen coords); pass SWP_NOSENDCHANGING so
+                # Chrome/Electron cannot intercept WM_WINDOWPOSCHANGING and override the size.
                 win32gui.SetWindowPos(
                     hwnd, None,
                     nr[0], nr[1], nr[2], nr[3],
-                    SWP_NOACTIVATE | SWP_NOZORDER,
+                    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING,
                 )
 
-                # 사후 검증: 실제 위치를 읽어서 저장 값과 비교
+                # 사후 검증: GetWindowRect로 실제 화면 위치 확인 (nr은 screen coords이므로)
                 try:
-                    actual = win32gui.GetWindowPlacement(hwnd)
-                    if actual and len(actual) > 4:
-                        al = actual[4]
-                        actual_xywh = [al[0], al[1], al[2] - al[0], al[3] - al[1]]
-                        if _rects_close(actual_xywh, nr, tol=10):
-                            logger.info("placed hwnd=0x%x state=%s rect=%s (attempt %d)", hwnd, state, nr, attempt)
-                            return True
-                        logger.warning(
-                            "placement verify failed hwnd=0x%x attempt=%d: wanted=%s got=%s",
-                            hwnd, attempt, nr, actual_xywh,
-                        )
-                    else:
-                        logger.warning("placement verify failed hwnd=0x%x attempt=%d: bad GetWindowPlacement", hwnd, attempt)
+                    actual_ltrb = win32gui.GetWindowRect(hwnd)
+                    actual_xywh = [actual_ltrb[0], actual_ltrb[1],
+                                   actual_ltrb[2] - actual_ltrb[0],
+                                   actual_ltrb[3] - actual_ltrb[1]]
+                    if _rects_close(actual_xywh, nr, tol=10):
+                        logger.info("placed hwnd=0x%x state=%s rect=%s (attempt %d)", hwnd, state, nr, attempt)
+                        return True
+                    logger.warning(
+                        "placement verify failed hwnd=0x%x attempt=%d: wanted=%s got=%s",
+                        hwnd, attempt, nr, actual_xywh,
+                    )
                 except OSError as e:
                     logger.warning("placement verify error hwnd=0x%x attempt=%d: %s", hwnd, attempt, e)
 
@@ -137,7 +143,7 @@ def restore_placement(hwnd: int, placement: dict, retries: int = 3, retry_delay_
                 return True
 
         return False
-    except OSError as e:
+    except _WIN_ERRORS as e:
         logger.warning("failed to place hwnd=0x%x: %s", hwnd, e)
         return False
 
@@ -147,6 +153,8 @@ def restore_layout(
     running_windows: list[dict] = None,
     monitors_current: list[dict] = None,
     stabilize_ms: int = 1500,
+    post_settle_ms: int = 2000,
+    post_launch_settle_ms: int = 0,
 ) -> dict:
     """
     Restore a saved layout by matching saved windows to running windows
@@ -157,6 +165,11 @@ def restore_layout(
         running_windows: list of current windows (from capture.list_current_windows).
                          If None, captures current windows.
         monitors_current: current monitor list. If provided, applies monitor gate policy.
+        stabilize_ms: ms to wait after launching missing apps before re-scanning.
+        post_settle_ms: ms to wait after initial placement before re-applying.
+                        Chrome/Electron apps process WM_WINDOWPOSCHANGED asynchronously
+                        and may restore their own position 1-2 s after SetWindowPos.
+                        The re-apply pass corrects this. Set to 0 to disable.
 
     Returns:
         {"restored": int, "failed": int, "total": int, "elapsed_ms": int}
@@ -198,11 +211,12 @@ def restore_layout(
     # Sort by z_order descending (back to front) so final z-order is correct
     sorted_saved = sorted(saved_windows, key=lambda w: w.get("z_order", 0), reverse=True)
 
+    launched_count = 0
     if running_windows is None:
         from src.launcher import ensure_apps_running
         from src.capture import list_current_windows
         running_windows = list_current_windows()
-        ensure_apps_running(sorted_saved)
+        launched_count = ensure_apps_running(sorted_saved)
         if stabilize_ms > 0:
             time.sleep(stabilize_ms / 1000.0)
         running_windows = list_current_windows()  # re-scan after launch
@@ -211,15 +225,37 @@ def restore_layout(
 
     restored = 0
     failed = 0
+    matched_pairs: list[tuple[dict, dict]] = []  # all matched windows (success and fail)
     for saved, running in matches:
         if running is None:
             failed += 1
             continue
         ok = restore_placement(running["hwnd"], saved["placement"])
+        matched_pairs.append((saved, running))
         if ok:
             restored += 1
         else:
             failed += 1
+
+    # Post-settle re-apply: some apps (Chrome/Electron) process WM_WINDOWPOSCHANGED
+    # asynchronously and restore their own position 1-2 s after SetWindowPos.
+    # Others (Chrome on startup) temporarily ignore SetWindowPos while loading
+    # their saved state, then become receptive after fully initializing.
+    # We wait, then re-apply ALL matched windows regardless of first-pass outcome.
+    if post_settle_ms > 0 and matched_pairs:
+        logger.info("post-settle: waiting %dms then re-applying %d placement(s)", post_settle_ms, len(matched_pairs))
+        time.sleep(post_settle_ms / 1000.0)
+        for saved, running in matched_pairs:
+            restore_placement(running["hwnd"], saved["placement"])
+
+    if post_launch_settle_ms > 0 and launched_count > 0 and matched_pairs:
+        logger.info(
+            "post-launch-settle: %d app(s) were launched — waiting %dms then re-applying %d placement(s)",
+            launched_count, post_launch_settle_ms, len(matched_pairs),
+        )
+        time.sleep(post_launch_settle_ms / 1000.0)
+        for saved, running in matched_pairs:
+            restore_placement(running["hwnd"], saved["placement"])
 
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     logger.info(

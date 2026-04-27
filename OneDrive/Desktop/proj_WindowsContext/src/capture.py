@@ -1,8 +1,17 @@
 import logging
+import re as _re
 import time
 from typing import Optional
 
 logger = logging.getLogger("capture")
+
+
+def _auto_title_pattern(title: str) -> str:
+    sep = " - "
+    if sep in title:
+        app_name = title.rsplit(sep, 1)[-1].strip()
+        return _re.escape(app_name) + "$"
+    return _re.escape(title) + "$"
 
 
 def _get_placement_state(show_cmd: int) -> str:
@@ -135,6 +144,16 @@ def list_current_windows() -> list[dict]:
             max_pos = list(placement[3]) if placement and len(placement) > 3 else [-1, -1]
             state = _get_placement_state(show_cmd)
 
+            # For normal state windows (including Windows-Snap positions), GetWindowRect
+            # gives the actual visible screen position. rcNormalPosition stores the
+            # pre-snap restore position, which doesn't match what the user sees.
+            if state == "normal":
+                try:
+                    r = win32gui.GetWindowRect(hwnd)
+                    normal_rect = [r[0], r[1], r[2] - r[0], r[3] - r[1]]
+                except OSError:
+                    pass  # keep rcNormalPosition as fallback
+
             is_uwp = exe_path.lower().endswith("applicationframehost.exe")
 
             try:
@@ -150,7 +169,7 @@ def list_current_windows() -> list[dict]:
                 "exe_args": "",
                 "cwd": "",
                 "title_snapshot": title,
-                "title_pattern": "",
+                "title_pattern": _auto_title_pattern(title),
                 "class_name": class_name,
                 "placement": {
                     "state": state,
