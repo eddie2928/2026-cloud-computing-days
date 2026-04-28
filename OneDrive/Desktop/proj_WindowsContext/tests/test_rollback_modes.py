@@ -15,8 +15,9 @@ def _stub_win32(monkeypatch):
     win32gui.SetWindowPos = lambda *a: None
     win32gui.GetWindowPlacement = lambda *a: (0, 1, (-1, -1), (-1, -1), (0, 0, 800, 600))
     win32gui.GetWindowRect = lambda *a: (0, 0, 800, 600)
-    sys.modules["win32gui"] = win32gui
-    sys.modules["win32con"] = win32con
+    win32gui.EnumWindows = lambda callback, extra: None
+    monkeypatch.setitem(sys.modules, "win32gui", win32gui)
+    monkeypatch.setitem(sys.modules, "win32con", win32con)
 
 
 def _layout():
