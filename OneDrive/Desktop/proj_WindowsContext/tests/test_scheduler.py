@@ -1,3 +1,4 @@
+import logging
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -10,55 +11,61 @@ def make_ok_result(stdout="", returncode=0):
     return r
 
 
+def _decode_ps(mock_run) -> str:
+    """Decode the base64-encoded PowerShell command from a mocked subprocess.run call."""
+    import base64
+    cmd = mock_run.call_args[0][0]
+    enc_idx = next(i for i, v in enumerate(cmd) if v == "-EncodedCommand")
+    return base64.b64decode(cmd[enc_idx + 1]).decode("utf-16-le")
+
+
 class TestRegister:
-    def test_register_calls_schtasks_create(self):
-        """register() must call schtasks /Create with /TN WinLayoutSaver_Rollback"""
+    def test_register_calls_powershell(self):
+        """register() must invoke powershell.exe with Register-ScheduledTask."""
         with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
-            from src.scheduler import register
-            register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
             assert mock_run.called
-            args = mock_run.call_args[0][0]  # first positional arg (the command list)
-            cmd_str = " ".join(str(a) for a in args)
-            assert "/Create" in cmd_str
-            assert "WinLayoutSaver_Rollback" in cmd_str
+            cmd = mock_run.call_args[0][0]
+            assert "powershell.exe" in cmd[0].lower()
+            ps = _decode_ps(mock_run)
+            assert "Register-ScheduledTask" in ps
+            assert "WinLayoutSaver_Rollback" in ps
 
     def test_register_includes_delay(self):
-        """register() must encode delay_seconds as HH:MM in /DELAY"""
+        """register() must encode delay_seconds as ISO 8601 duration in the PS command."""
         with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
-            from src.scheduler import register
-            register(script_path="C:\\path\\to\\rollback.py", delay_seconds=90)  # 1m30s
-            args = mock_run.call_args[0][0]
-            cmd_str = " ".join(str(a) for a in args)
-            assert "0001:30" in cmd_str  # 90 seconds = 0h1m30s → 0001:30
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\to\\rollback.py", delay_seconds=90)
+            ps = _decode_ps(mock_run)
+            assert "PT90S" in ps
 
     def test_register_delay_20_seconds(self):
-        """20 seconds = 0000:20"""
+        """20 seconds → PT20S."""
         with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
-            from src.scheduler import register
-            register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
-            args = mock_run.call_args[0][0]
-            cmd_str = " ".join(str(a) for a in args)
-            assert "0000:20" in cmd_str
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
+            ps = _decode_ps(mock_run)
+            assert "PT20S" in ps
 
     def test_register_uses_rl_limited(self):
-        """/RL LIMITED — no admin rights required"""
+        """RunLevel must be Limited — no admin rights required."""
         with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
-            from src.scheduler import register
-            register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
-            args = mock_run.call_args[0][0]
-            cmd_str = " ".join(str(a) for a in args)
-            assert "/RL" in cmd_str and "LIMITED" in cmd_str
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\to\\rollback.py", delay_seconds=20)
+            ps = _decode_ps(mock_run)
+            assert "Limited" in ps
 
     def test_register_returns_true_on_success(self):
         with patch("subprocess.run", return_value=make_ok_result(returncode=0)):
-            from src.scheduler import register
-            result = register(script_path="C:\\path\\rollback.py", delay_seconds=20)
+            from src import scheduler
+            result = scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
             assert result is True
 
     def test_register_returns_false_on_failure(self):
         with patch("subprocess.run", return_value=make_ok_result(returncode=1)):
-            from src.scheduler import register
-            result = register(script_path="C:\\path\\rollback.py", delay_seconds=20)
+            from src import scheduler
+            result = scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
             assert result is False
 
 
@@ -86,6 +93,141 @@ class TestUnregister:
             assert unregister() is True
 
     def test_unregister_returns_false_on_failure(self):
-        with patch("subprocess.run", return_value=make_ok_result(returncode=1)):
+        # Delete fails AND Query confirms task still exists → False
+        with patch("subprocess.run", side_effect=[
+            make_ok_result(returncode=1),  # /Delete → fail
+            make_ok_result(returncode=0),  # /Query → task exists
+        ]):
             from src.scheduler import unregister
             assert unregister() is False
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# New tests: UT-S1 to UT-S9
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegisterRU:
+    def test_register_includes_current_user(self, monkeypatch):
+        """register() PS command must include the current USERNAME for per-user logon trigger."""
+        monkeypatch.setenv("USERNAME", "testuser")
+        with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
+            ps = _decode_ps(mock_run)
+            assert "AtLogOn" in ps
+            assert "testuser" in ps
+
+    def test_register_uses_atlogon_trigger(self):
+        """register() PS command must use AtLogOn trigger (replaces schtasks /RU+/NP)."""
+        with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
+            ps = _decode_ps(mock_run)
+            assert "AtLogOn" in ps
+
+
+class TestFindExecutableForScheduler:
+    def test_non_store_path_returned_as_is(self):
+        """Non-WindowsApps path is returned unchanged."""
+        from src.scheduler import _find_executable_for_scheduler
+        path = "C:\\Python313\\pythonw.exe"
+        assert _find_executable_for_scheduler(path) == path
+
+    def test_store_path_uses_py_launcher(self, monkeypatch):
+        """WindowsApps alias + py.exe found → returns py.exe path."""
+        import shutil as _shutil
+        monkeypatch.setattr(_shutil, "which", lambda x: "C:\\Windows\\py.exe" if x == "py" else None)
+        import src.scheduler as sched
+        monkeypatch.setattr(sched, "glob", lambda p: [])
+        from src.scheduler import _find_executable_for_scheduler
+        result = _find_executable_for_scheduler(
+            "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\pythonw.exe"
+        )
+        assert result == "C:\\Windows\\py.exe"
+
+    def test_store_path_uses_packages_when_no_py_launcher(self, monkeypatch, tmp_path):
+        """WindowsApps alias + no py.exe + Packages path found → returns Packages path."""
+        import shutil as _shutil
+        monkeypatch.setattr(_shutil, "which", lambda x: None)
+        fake_pythonw = tmp_path / "pythonw.exe"
+        fake_pythonw.write_text("")
+        import src.scheduler as sched
+        monkeypatch.setattr(sched, "glob", lambda p: [str(fake_pythonw)])
+        from src.scheduler import _find_executable_for_scheduler
+        result = _find_executable_for_scheduler(
+            "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\pythonw.exe"
+        )
+        assert result == str(fake_pythonw)
+
+    def test_store_path_fallback_returns_original_with_warning(self, monkeypatch, caplog):
+        """WindowsApps alias + no alternatives → original path returned with WARNING."""
+        import shutil as _shutil
+        monkeypatch.setattr(_shutil, "which", lambda x: None)
+        import src.scheduler as sched
+        monkeypatch.setattr(sched, "glob", lambda p: [])
+        from src.scheduler import _find_executable_for_scheduler
+        original = "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps\\pythonw.exe"
+        with caplog.at_level(logging.WARNING, logger="scheduler"):
+            result = _find_executable_for_scheduler(original)
+        assert result == original
+        assert "Windows Store Python alias" in caplog.text
+
+
+    def test_store_path_prefers_pyw_over_py(self, monkeypatch):
+        """pyw.exe와 py.exe 모두 있으면 pyw.exe를 선호."""
+        import shutil as _shutil
+        def which(x):
+            if x == "pyw":
+                return "C:\\Windows\\pyw.exe"
+            if x == "py":
+                return "C:\\Windows\\py.exe"
+            return None
+        monkeypatch.setattr(_shutil, "which", which)
+        import src.scheduler as sched
+        monkeypatch.setattr(sched, "glob", lambda p: [])
+        from src.scheduler import _find_executable_for_scheduler
+        result = _find_executable_for_scheduler(
+            "C:\\Users\\u\\AppData\\Local\\Microsoft\\WindowsApps\\pythonw.exe"
+        )
+        assert result == "C:\\Windows\\pyw.exe"
+
+    def test_python_exe_path_swapped_to_pythonw(self, monkeypatch, tmp_path):
+        """python.exe를 받았는데 같은 폴더에 pythonw.exe가 있으면 그것을 사용."""
+        py = tmp_path / "python.exe"
+        pyw = tmp_path / "pythonw.exe"
+        py.write_text(""); pyw.write_text("")
+        from src.scheduler import _find_executable_for_scheduler
+        result = _find_executable_for_scheduler(str(py))
+        assert result == str(pyw)
+
+
+class TestUnregisterIdempotent:
+    def test_unregister_returns_true_when_task_not_found(self):
+        """unregister() returns True when task doesn't exist (idempotent)."""
+        with patch("subprocess.run", side_effect=[
+            make_ok_result(returncode=1),  # /Delete → fail
+            make_ok_result(returncode=1),  # /Query → not found
+        ]):
+            from src.scheduler import unregister
+            assert unregister() is True
+
+    def test_unregister_returns_false_when_task_exists_but_delete_fails(self):
+        """unregister() returns False when task exists but can't be deleted."""
+        with patch("subprocess.run", side_effect=[
+            make_ok_result(returncode=1),  # /Delete → fail
+            make_ok_result(returncode=0),  # /Query → task exists
+        ]):
+            from src.scheduler import unregister
+            assert unregister() is False
+
+
+class TestDelayStr:
+    def test_delay_str_one_hour(self):
+        """3600 seconds = 0060:00 (60 minutes), not 0100:00."""
+        from src.scheduler import _delay_str
+        assert _delay_str(3600) == "0060:00"
+
+    def test_delay_str_90_minutes(self):
+        """5400 seconds = 0090:00."""
+        from src.scheduler import _delay_str
+        assert _delay_str(5400) == "0090:00"
