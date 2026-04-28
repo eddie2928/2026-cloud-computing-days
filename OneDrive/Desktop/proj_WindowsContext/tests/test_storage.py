@@ -107,3 +107,9 @@ def test_save_layout_with_invalid_chars_raises(tmp_appdata):
     # Windows does not allow these characters in filenames
     with pytest.raises(OSError):
         save_layout("Screen/Invalid", {"windows": []})
+
+
+def test_default_config_has_auto_rollback_mode_fast():
+    from src.storage import _default_config
+    cfg = _default_config()
+    assert cfg["auto_rollback"]["mode"] == "fast"
