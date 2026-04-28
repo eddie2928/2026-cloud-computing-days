@@ -10,6 +10,7 @@ STRINGS = {
         "startup_delay_label": "시작 지연(초):",
         "enable_btn": "활성화",
         "disable_btn": "비활성화",
+        "enabled_status": "활성화됨",
         "status_label": "상태:",
         "log_panel_title": "로그",
         "clear_btn": "지우기",
@@ -25,6 +26,7 @@ STRINGS = {
         "layout_restored": "'{name}' 복원 완료 ({restored}/{total})",
         "layout_saved": "'{name}' 저장됨 ({count}개 창)",
         "no_layouts": "저장된 배치 없음",
+        "log_module_filter_label": "모듈:",
     },
     "en": {
         "app_title": "WinLayoutSaver",
@@ -37,6 +39,7 @@ STRINGS = {
         "startup_delay_label": "Startup delay (sec):",
         "enable_btn": "Enable",
         "disable_btn": "Disable",
+        "enabled_status": "Enabled",
         "status_label": "Status:",
         "log_panel_title": "Logs",
         "clear_btn": "Clear",
@@ -52,6 +55,7 @@ STRINGS = {
         "layout_restored": "'{name}' restored ({restored}/{total})",
         "layout_saved": "'{name}' saved ({count} windows)",
         "no_layouts": "No saved layouts",
+        "log_module_filter_label": "Module:",
     },
 }
 
