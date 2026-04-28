@@ -166,7 +166,7 @@ class WinLayoutSaverApp(tk.Tk):
             self._ar_layout_var.set(ar_name)
         elif names:
             self._ar_layout_var.set(names[0])
-        self._ar_toggle_btn.config(text=t("disable_btn") if ar_enabled else t("enable_btn"))
+        self._apply_ar_toggle_style(ar_enabled)
 
         delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 10)
         self._delay_var.set(str(delay))
@@ -302,13 +302,32 @@ class WinLayoutSaverApp(tk.Tk):
         except ValueError:
             ar["startup_delay_seconds"] = 10
         storage.save_config(config)
-        self._ar_toggle_btn.config(text=t("disable_btn") if new_enabled else t("enable_btn"))
+        self._apply_ar_toggle_style(new_enabled)
         logger.info("auto-rollback %s for '%s'", "enabled" if new_enabled else "disabled", ar["layout_name"])
         script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
         if new_enabled:
             scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 10))
         else:
             scheduler.unregister()
+
+    def _apply_ar_toggle_style(self, enabled: bool):
+        """부팅 자동 복구 활성화 상태에 따라 토글 버튼의 텍스트/색상을 갱신."""
+        if enabled:
+            self._ar_toggle_btn.config(
+                text=t("enabled_status"),
+                bg="#2E7D32",
+                fg="white",
+                activebackground="#388E3C",
+                activeforeground="white",
+            )
+        else:
+            self._ar_toggle_btn.config(
+                text=t("enable_btn"),
+                bg="SystemButtonFace",
+                fg="SystemButtonText",
+                activebackground="SystemButtonFace",
+                activeforeground="SystemButtonText",
+            )
 
     # ── Log panel ────────────────────────────────────────────────────────
 
