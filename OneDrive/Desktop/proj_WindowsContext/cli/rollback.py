@@ -54,6 +54,10 @@ def main():
     config = storage.load_config()
     rollback_cfg = config.get("auto_rollback", {})
     layout_name = args.layout or rollback_cfg.get("layout_name", "")
+    mode = rollback_cfg.get("mode", "fast")
+    if mode not in ("fast", "full"):
+        logger.warning("rollback: unknown mode '%s', falling back to 'fast'", mode)
+        mode = "fast"
 
     if not layout_name:
         logger.error("rollback: no layout name specified (use --layout or set config)")
@@ -65,20 +69,29 @@ def main():
         logger.error("rollback: layout '%s' not found", layout_name)
         sys.exit(1)
 
-    logger.info("--- phase: launch missing apps ---")
-    if args.no_launch:
-        logger.info("rollback: skipping app launch (--no-launch)")
-    else:
-        from src import launcher
-        timeout = rollback_cfg.get("app_launch_timeout_seconds", 60)
-        poll_ms = rollback_cfg.get("per_window_retry_ms", 500)
-        launcher.ensure_apps_running(layout.get("windows", []), timeout_seconds=timeout, poll_ms=poll_ms)
-
-    logger.info("--- phase: restore placement ---")
-    running = capture.list_current_windows()
     from src.monitors import list_current_monitors
     monitors_current = list_current_monitors()
-    result = restore_mod.restore_layout(layout, running, monitors_current=monitors_current)
+
+    logger.info("--- phase: restore placement (mode=%s) ---", mode)
+
+    if args.no_launch or mode == "fast":
+        # fast: 이미 실행 중인 창들만 즉시 재배치 — launch / settle 모두 생략
+        running = capture.list_current_windows()
+        logger.info("rollback: fast path — %d running windows, no app launching", len(running))
+        result = restore_mod.restore_layout(
+            layout,
+            running_windows=running,
+            monitors_current=monitors_current,
+            post_settle_ms=2000,
+            post_launch_settle_ms=0,
+        )
+    else:
+        # full: 누락 앱 launch + post_launch_settle 5초
+        result = restore_mod.restore_layout(
+            layout,
+            monitors_current=monitors_current,
+            post_launch_settle_ms=5000,
+        )
 
     logger.info(
         "rollback: complete — restored %d/%d, failed %d, elapsed %dms",
