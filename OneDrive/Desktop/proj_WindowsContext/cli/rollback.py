@@ -97,6 +97,7 @@ def main():
         "rollback: complete — restored %d/%d, failed %d, elapsed %dms",
         result["restored"], result["total"], result["failed"], result["elapsed_ms"],
     )
+    sys.exit(0)
 
 
 if __name__ == "__main__":

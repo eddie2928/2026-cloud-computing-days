@@ -104,3 +104,25 @@ def test_rollback_full_mode_calls_ensure_apps_running(monkeypatch, tmp_path):
         pass
 
     assert ensure_called["n"] == 1, "full mode인데 ensure_apps_running이 호출되지 않음"
+
+
+def test_rollback_calls_sys_exit_zero_on_completion(monkeypatch, tmp_path):
+    """정상 완료 시 sys.exit(0)이 호출되어야 한다(콘솔창 즉시 종료 보장)."""
+    _stub_win32(monkeypatch)
+
+    monkeypatch.setattr("src.storage.load_config", lambda: {
+        "auto_rollback": {"layout_name": "L1", "mode": "fast"},
+    })
+    monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
+    monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
+    monkeypatch.setattr("src.capture.list_current_windows", lambda: [])
+    monkeypatch.setattr("src.paths.APPDATA", tmp_path)
+
+    sys.modules.pop("cli.rollback", None)
+    from cli import rollback
+    monkeypatch.setattr(sys, "argv", ["rollback.py"])
+
+    import pytest as _pt
+    with _pt.raises(SystemExit) as exc:
+        rollback.main()
+    assert exc.value.code == 0
