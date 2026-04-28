@@ -13,6 +13,7 @@ from src.i18n import t, set_language
 from src.logging_setup import setup_logging
 from src.monitors import list_current_monitors, compare_monitors, MatchResult
 from src.paths import LOGS_DIR
+from src.version import __version__
 
 logger = logging.getLogger("gui")
 
@@ -41,6 +42,12 @@ class WinLayoutSaverApp(tk.Tk):
     # ── UI construction ─────────────────────────────────────────────────
 
     def _build_ui(self):
+        # Footer (version label) — pack BOTTOM 먼저 호출해야 항상 하단에 고정됨
+        footer = tk.Frame(self)
+        footer.pack(side=tk.BOTTOM, fill=tk.X, padx=8, pady=(0, 4))
+        tk.Label(footer, text=f"v{__version__}", anchor="w",
+                 fg="#888", font=("Consolas", 9)).pack(side=tk.LEFT)
+
         # Monitor strip
         self._monitor_strip_var = tk.StringVar(value="Monitors: detecting…")
         tk.Label(self, textvariable=self._monitor_strip_var, anchor="w", fg="#444",
@@ -68,7 +75,7 @@ class WinLayoutSaverApp(tk.Tk):
         self._ar_toggle_btn = tk.Button(ar_frame, text=t("enable_btn"), command=self._on_ar_toggle)
         self._ar_toggle_btn.pack(side=tk.LEFT, padx=2)
         tk.Label(ar_frame, text=t("startup_delay_label")).pack(side=tk.LEFT, padx=(12, 0))
-        self._delay_var = tk.StringVar(value="20")
+        self._delay_var = tk.StringVar(value="10")
         tk.Entry(ar_frame, textvariable=self._delay_var, width=5).pack(side=tk.LEFT)
 
         # Status bar
@@ -92,6 +99,19 @@ class WinLayoutSaverApp(tk.Tk):
             cb.pack(side=tk.LEFT)
             self._log_levels[lvl] = var
 
+        # Module filter checkboxes (monitors off by default)
+        self._module_filters: dict[str, tk.BooleanVar] = {}
+        module_row = tk.Frame(log_frame)
+        module_row.pack(fill=tk.X)
+        tk.Label(module_row, text=t("log_module_filter_label")).pack(side=tk.LEFT)
+        _MODULES = ["monitors", "capture", "restore", "launcher",
+                    "scheduler", "gui", "rollback", "storage"]
+        for mod in _MODULES:
+            var = tk.BooleanVar(value=(mod != "monitors"))
+            tk.Checkbutton(module_row, text=mod, variable=var,
+                           command=self._apply_log_filter).pack(side=tk.LEFT)
+            self._module_filters[mod] = var
+
         btn_row = tk.Frame(log_frame)
         btn_row.pack(fill=tk.X)
         tk.Button(btn_row, text=t("clear_btn"), command=self._clear_log).pack(side=tk.LEFT, padx=2)
@@ -109,7 +129,7 @@ class WinLayoutSaverApp(tk.Tk):
         self._log_text.tag_config("ERROR", foreground="red")
 
         # Buffer to re-apply filter
-        self._log_buffer: list[tuple[str, str]] = []  # (levelname, text)
+        self._log_buffer: list[tuple[str, str, str]] = []  # (level, logger_name, text)
 
     # ── Layout list ─────────────────────────────────────────────────────
 
@@ -148,7 +168,7 @@ class WinLayoutSaverApp(tk.Tk):
             self._ar_layout_var.set(names[0])
         self._ar_toggle_btn.config(text=t("disable_btn") if ar_enabled else t("enable_btn"))
 
-        delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 20)
+        delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 10)
         self._delay_var.set(str(delay))
 
     # ── Monitor strip + polling ──────────────────────────────────────────
@@ -237,8 +257,11 @@ class WinLayoutSaverApp(tk.Tk):
         def _work():
             try:
                 layout = storage.load_layout(name)
-                running = capture.list_current_windows()
-                result = restore_mod.restore_layout(layout, running, monitors_current=self._current_monitors or None)
+                result = restore_mod.restore_layout(
+                    layout,
+                    monitors_current=self._current_monitors or None,
+                    post_launch_settle_ms=5000,
+                )
                 self.after(0, lambda: self._status_var.set(
                     t("layout_restored", name=name, restored=result["restored"], total=result["total"])
                 ))
@@ -277,13 +300,13 @@ class WinLayoutSaverApp(tk.Tk):
         try:
             ar["startup_delay_seconds"] = int(self._delay_var.get())
         except ValueError:
-            ar["startup_delay_seconds"] = 20
+            ar["startup_delay_seconds"] = 10
         storage.save_config(config)
         self._ar_toggle_btn.config(text=t("disable_btn") if new_enabled else t("enable_btn"))
         logger.info("auto-rollback %s for '%s'", "enabled" if new_enabled else "disabled", ar["layout_name"])
         script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
         if new_enabled:
-            scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 20))
+            scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 10))
         else:
             scheduler.unregister()
 
@@ -300,19 +323,22 @@ class WinLayoutSaverApp(tk.Tk):
             levelname = record.levelname
             # Map WARNING → WARN for display
             display_level = "WARN" if levelname == "WARNING" else levelname
+            logger_name = record.name
             ts = time.strftime("%H:%M:%S", time.localtime(record.created))
             ms = int(record.msecs)
-            text = f"{ts}.{ms:03d} {display_level:<5} {record.name:<12}: {record.getMessage()}\n"
-            self._log_buffer.append((display_level, text))
+            text = f"{ts}.{ms:03d} {display_level:<5} {logger_name:<12}: {record.getMessage()}\n"
+            self._log_buffer.append((display_level, logger_name, text))
             # Trim buffer
             if len(self._log_buffer) > 1000:
                 self._log_buffer = self._log_buffer[-1000:]
-            self._append_log_line(display_level, text)
+            self._append_log_line(display_level, logger_name, text)
         self.after(100, self._drain_log_queue)
 
-    def _append_log_line(self, level: str, text: str):
-        var = self._log_levels.get(level)
-        if var is not None and not var.get():
+    def _append_log_line(self, level: str, logger_name: str, text: str):
+        from src.gui_helpers import should_show_log_entry
+        level_on  = {k for k, v in self._log_levels.items() if v.get()}
+        module_on = {k for k, v in self._module_filters.items() if v.get()}
+        if not should_show_log_entry(level, logger_name, level_on, module_on):
             return
         at_end = self._log_text.yview()[1] >= 0.99
         self._log_text.config(state=tk.NORMAL)
@@ -329,8 +355,8 @@ class WinLayoutSaverApp(tk.Tk):
         self._log_text.config(state=tk.NORMAL)
         self._log_text.delete("1.0", tk.END)
         self._log_text.config(state=tk.DISABLED)
-        for level, text in self._log_buffer:
-            self._append_log_line(level, text)
+        for level, logger_name, text in self._log_buffer:
+            self._append_log_line(level, logger_name, text)
 
     def _clear_log(self):
         self._log_text.config(state=tk.NORMAL)
