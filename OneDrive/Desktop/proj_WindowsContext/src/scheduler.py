@@ -80,7 +80,7 @@ def _build_register_ps(python_exe: str, script_path: str, delay_seconds: int, us
         f"$a = New-ScheduledTaskAction -Execute '{sq(python_exe)}' -Argument '\"{sq(script_path)}\"'; "
         f"$t = New-ScheduledTaskTrigger -AtLogOn -User '{sq(username)}'; "
         f"$t.Delay = 'PT{delay_seconds}S'; "
-        f"$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable:$false; "
+        f"$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable:$false -Hidden; "
         f"Register-ScheduledTask -TaskName '{TASK_NAME}' -Action $a -Trigger $t "
         f"-Settings $s -RunLevel Limited -Force | Out-Null"
     )

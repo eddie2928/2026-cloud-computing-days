@@ -68,6 +68,14 @@ class TestRegister:
             result = scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
             assert result is False
 
+    def test_register_uses_hidden_setting(self):
+        """Register-ScheduledTask 설정에 -Hidden이 포함되어야 한다."""
+        with patch("subprocess.run", return_value=make_ok_result()) as mock_run:
+            from src import scheduler
+            scheduler.register(script_path="C:\\path\\rollback.py", delay_seconds=20)
+            ps = _decode_ps(mock_run)
+            assert "-Hidden" in ps
+
 
 class TestUnregister:
     def test_unregister_calls_schtasks_delete(self):
