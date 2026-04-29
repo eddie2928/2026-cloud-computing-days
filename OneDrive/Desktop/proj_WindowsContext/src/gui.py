@@ -190,6 +190,7 @@ class WinLayoutSaverApp(tk.Tk):
                 match_text, match_color = self._get_match_indicator(name)
                 tk.Label(row, text=match_text, fg=match_color, width=14, anchor="w").pack(side=tk.LEFT)
 
+                tk.Button(row, text=t("preview_btn"), command=lambda n=name: self._on_preview(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("restore_btn"), command=lambda n=name: self._on_restore(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("settings_btn"), command=lambda n=name: self._on_settings(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("delete_btn"), command=lambda n=name: self._on_delete(n)).pack(side=tk.LEFT, padx=2)
@@ -285,6 +286,11 @@ class WinLayoutSaverApp(tk.Tk):
                     "windows": windows,
                 }
                 storage.save_layout(name, layout)
+                # 가상 데스크톱 전체 PNG 스크린샷 (실패해도 저장 자체는 성공으로 간주)
+                try:
+                    capture.capture_virtual_screen(storage.screenshot_path(name))
+                except Exception as e:
+                    logger.warning("screenshot capture skipped: %s", e)
                 self.after(0, lambda: self._status_var.set(t("layout_saved", name=name, count=len(windows))))
                 self.after(0, self._refresh_layouts)
             except Exception as e:
@@ -336,6 +342,14 @@ class WinLayoutSaverApp(tk.Tk):
                     layout = storage.load_layout(name)
                     layout["name"] = new_name
                     storage.save_layout(new_name, layout)
+                    # PNG 동반 이동 (있을 때만)
+                    old_png = storage.screenshot_path(name)
+                    new_png = storage.screenshot_path(new_name)
+                    if old_png.exists():
+                        try:
+                            old_png.replace(new_png)
+                        except OSError as e:
+                            logger.warning("png rename failed: %s", e)
                     storage.delete_layout(name)
                     self.after(0, self._refresh_layouts)
                 except Exception as e:
@@ -366,6 +380,49 @@ class WinLayoutSaverApp(tk.Tk):
         """모드 Radio 버튼 클릭 시 설명 Label을 갱신한다."""
         mode = self._ar_mode_var.get()
         self._mode_desc_var.set(t("mode_fast_desc" if mode == "fast" else "mode_full_desc"))
+
+    def _on_preview(self, name: str):
+        """선택한 layout의 PNG 스크린샷을 Toplevel 창에 표시.
+        파일이 없으면 messagebox로 안내."""
+        png_path = storage.screenshot_path(name)
+        if not png_path.exists():
+            messagebox.showinfo(
+                t("preview_window_title", name=name),
+                t("screenshot_missing_msg"),
+                parent=self,
+            )
+            return
+        try:
+            from PIL import Image, ImageTk
+        except ImportError:
+            messagebox.showinfo(
+                t("preview_window_title", name=name),
+                "Pillow not installed",
+                parent=self,
+            )
+            return
+
+        try:
+            img = Image.open(str(png_path))
+            max_w, max_h = 1280, 720
+            w, h = img.size
+            scale = min(max_w / w, max_h / h, 1.0)
+            if scale < 1.0:
+                img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+            top = tk.Toplevel(self)
+            top.title(t("preview_window_title", name=name))
+            photo = ImageTk.PhotoImage(img, master=top)
+            lbl = tk.Label(top, image=photo)
+            lbl.image = photo
+            lbl.pack()
+            tk.Button(top, text="Close", command=top.destroy).pack(pady=4)
+        except Exception as e:
+            logger.error("preview failed for '%s': %s", name, e)
+            messagebox.showinfo(
+                t("preview_window_title", name=name),
+                str(e),
+                parent=self,
+            )
 
     def _apply_ar_toggle_style(self, enabled: bool):
         """부팅 자동 복구 활성화 상태에 따라 토글 버튼 및 관련 컨트롤 잠금/해제."""
