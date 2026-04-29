@@ -27,6 +27,10 @@ STRINGS = {
         "layout_saved": "'{name}' 저장됨 ({count}개 창)",
         "no_layouts": "저장된 배치 없음",
         "log_module_filter_label": "모듈:",
+        "mode_fast": "빠른 복구",
+        "mode_full": "전체 복구",
+        "mode_fast_desc": "이미 실행 중인 창만 재배치",
+        "mode_full_desc": "없는 앱 자동 실행 후 배치",
     },
     "en": {
         "app_title": "WinLayoutSaver",
@@ -56,6 +60,10 @@ STRINGS = {
         "layout_saved": "'{name}' saved ({count} windows)",
         "no_layouts": "No saved layouts",
         "log_module_filter_label": "Module:",
+        "mode_fast": "Quick restore",
+        "mode_full": "Full restore",
+        "mode_fast_desc": "Reposition already-running windows only",
+        "mode_full_desc": "Launch missing apps, then reposition",
     },
 }
 

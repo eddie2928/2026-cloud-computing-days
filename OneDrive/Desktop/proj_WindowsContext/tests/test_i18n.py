@@ -33,3 +33,12 @@ def test_set_language_invalid_code_does_not_change_language():
     set_language("ko")
     set_language("xx")  # invalid
     assert t("save_btn") == "현재 배치 저장"  # still ko
+
+
+def test_mode_strings_present_in_all_languages():
+    """ko/en 양쪽에 모드 관련 4개 키가 모두 존재하고 비어있지 않아야 한다."""
+    required_keys = ("mode_fast", "mode_full", "mode_fast_desc", "mode_full_desc")
+    for lang in ("ko", "en"):
+        for key in required_keys:
+            assert key in STRINGS[lang], f"'{key}' missing in lang='{lang}'"
+            assert STRINGS[lang][key].strip(), f"'{key}' is empty in lang='{lang}'"
