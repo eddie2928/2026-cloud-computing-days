@@ -47,9 +47,16 @@ def list_layouts() -> list[str]:
 
 
 def delete_layout(name: str) -> None:
-    path = LAYOUTS_DIR / f"{name}.json"
-    path.unlink(missing_ok=True)
-    logger.info("deleted layout '%s'", name)
+    json_path = LAYOUTS_DIR / f"{name}.json"
+    png_path = LAYOUTS_DIR / f"{name}.png"
+    json_path.unlink(missing_ok=True)
+    png_path.unlink(missing_ok=True)
+    logger.info("deleted layout '%s' (json + png)", name)
+
+
+def screenshot_path(name: str) -> Path:
+    """Layout과 짝이 되는 PNG 경로 반환 (실제 파일 존재 여부와 무관)."""
+    return LAYOUTS_DIR / f"{name}.png"
 
 
 def next_layout_name() -> str:

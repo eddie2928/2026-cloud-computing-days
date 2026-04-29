@@ -113,3 +113,27 @@ def test_default_config_has_auto_rollback_mode_fast():
     from src.storage import _default_config
     cfg = _default_config()
     assert cfg["auto_rollback"]["mode"] == "fast"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Task-13: screenshot_path + delete 동반 삭제 (UT-ST1 ~ UT-ST2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_st1_screenshot_path_returns_png_under_layouts_dir(tmp_appdata):
+    from src.storage import screenshot_path, LAYOUTS_DIR
+    p = screenshot_path("Screen1")
+    assert p == LAYOUTS_DIR / "Screen1.png"
+
+
+def test_st2_delete_layout_removes_png_too(tmp_appdata):
+    from src.storage import save_layout, delete_layout, screenshot_path, LAYOUTS_DIR
+    save_layout("Screen1", {"windows": []})
+    LAYOUTS_DIR.mkdir(parents=True, exist_ok=True)
+    png = screenshot_path("Screen1")
+    png.write_bytes(b"\x89PNG\r\n\x1a\n")
+    assert png.exists()
+
+    delete_layout("Screen1")
+
+    assert not (LAYOUTS_DIR / "Screen1.json").exists()
+    assert not png.exists()
