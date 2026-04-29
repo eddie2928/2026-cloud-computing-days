@@ -1,6 +1,7 @@
 import logging
 import os
 import queue
+import sys
 import threading
 import time
 import tkinter as tk
@@ -69,9 +70,10 @@ class WinLayoutSaverApp(tk.Tk):
         self._ar_section = tk.LabelFrame(self, text=t("ar_section_title"), padx=8, pady=6)
         self._ar_section.pack(fill=tk.X, padx=8, pady=4)
 
-        # 행 0: 활성화 버튼 (가로 전체)
-        self._ar_toggle_btn = tk.Button(self._ar_section, text=t("enable_btn"), command=self._on_ar_toggle)
-        self._ar_toggle_btn.grid(row=0, column=0, columnspan=4, sticky="we", pady=(0, 6))
+        # 행 0: 활성화 버튼
+        self._ar_toggle_btn = tk.Button(self._ar_section, text=t("enable_btn"),
+                                        command=self._on_ar_toggle, padx=4, pady=0)
+        self._ar_toggle_btn.grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 6))
 
         # 행 1: 레이아웃 라벨 + 콤보
         tk.Label(self._ar_section, text=t("auto_rollback_label")).grid(row=1, column=0, sticky="w", padx=(0, 6), pady=2)
@@ -370,11 +372,24 @@ class WinLayoutSaverApp(tk.Tk):
         storage.save_config(config)
         self._apply_ar_toggle_style(new_enabled)
         logger.info("auto-rollback %s for '%s'", "enabled" if new_enabled else "disabled", ar["layout_name"])
-        script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
-        if new_enabled:
-            scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 10))
+        # Frozen (PyInstaller) → use bundled WinLayoutSaverRollback.exe directly.
+        # Otherwise → invoke pythonw on cli/rollback.py.
+        if getattr(sys, "frozen", False):
+            rollback_exe = str(Path(sys.executable).with_name("WinLayoutSaverRollback.exe"))
+            if new_enabled:
+                scheduler.register(
+                    script_path="",
+                    delay_seconds=ar.get("startup_delay_seconds", 10),
+                    python_exe=rollback_exe,
+                )
+            else:
+                scheduler.unregister()
         else:
-            scheduler.unregister()
+            script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
+            if new_enabled:
+                scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 10))
+            else:
+                scheduler.unregister()
 
     def _on_mode_change(self):
         """모드 Radio 버튼 클릭 시 설명 Label을 갱신한다."""

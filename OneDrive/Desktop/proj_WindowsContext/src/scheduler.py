@@ -76,8 +76,13 @@ def _build_register_ps(python_exe: str, script_path: str, delay_seconds: int, us
     """Build the PowerShell script for Register-ScheduledTask."""
     def sq(s):
         return s.replace("'", "''")
+    if script_path:
+        action = f"$a = New-ScheduledTaskAction -Execute '{sq(python_exe)}' -Argument '\"{sq(script_path)}\"'; "
+    else:
+        # Standalone exe (PyInstaller-frozen rollback) — no script argument needed.
+        action = f"$a = New-ScheduledTaskAction -Execute '{sq(python_exe)}'; "
     return (
-        f"$a = New-ScheduledTaskAction -Execute '{sq(python_exe)}' -Argument '\"{sq(script_path)}\"'; "
+        action +
         f"$t = New-ScheduledTaskTrigger -AtLogOn -User '{sq(username)}'; "
         f"$t.Delay = 'PT{delay_seconds}S'; "
         f"$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable:$false -Hidden; "
