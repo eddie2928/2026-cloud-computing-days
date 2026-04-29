@@ -76,7 +76,30 @@ class WinLayoutSaverApp(tk.Tk):
         self._ar_toggle_btn.pack(side=tk.LEFT, padx=2)
         tk.Label(ar_frame, text=t("startup_delay_label")).pack(side=tk.LEFT, padx=(12, 0))
         self._delay_var = tk.StringVar(value="10")
-        tk.Entry(ar_frame, textvariable=self._delay_var, width=5).pack(side=tk.LEFT)
+        self._delay_entry = tk.Entry(ar_frame, textvariable=self._delay_var, width=5)
+        self._delay_entry.pack(side=tk.LEFT)
+
+        # Mode row
+        mode_row = tk.Frame(self, pady=2)
+        mode_row.pack(fill=tk.X, padx=8)
+        self._ar_mode_var = tk.StringVar(value="fast")
+        self._ar_mode_fast_rb = tk.Radiobutton(
+            mode_row, text=t("mode_fast"),
+            variable=self._ar_mode_var, value="fast",
+            command=self._on_mode_change,
+        )
+        self._ar_mode_fast_rb.pack(side=tk.LEFT)
+        self._ar_mode_full_rb = tk.Radiobutton(
+            mode_row, text=t("mode_full"),
+            variable=self._ar_mode_var, value="full",
+            command=self._on_mode_change,
+        )
+        self._ar_mode_full_rb.pack(side=tk.LEFT, padx=(8, 0))
+        self._mode_desc_var = tk.StringVar()
+        tk.Label(
+            mode_row, textvariable=self._mode_desc_var,
+            fg="#555", font=("Consolas", 9),
+        ).pack(side=tk.LEFT, padx=(16, 0))
 
         # Status bar
         self._status_var = tk.StringVar(value="")
@@ -167,6 +190,10 @@ class WinLayoutSaverApp(tk.Tk):
         elif names:
             self._ar_layout_var.set(names[0])
         self._apply_ar_toggle_style(ar_enabled)
+
+        mode = config.get("auto_rollback", {}).get("mode", "fast")
+        self._ar_mode_var.set(mode)
+        self._on_mode_change()
 
         delay = config.get("auto_rollback", {}).get("startup_delay_seconds", 10)
         self._delay_var.set(str(delay))
@@ -297,6 +324,7 @@ class WinLayoutSaverApp(tk.Tk):
         new_enabled = not ar.get("enabled", False)
         ar["enabled"] = new_enabled
         ar["layout_name"] = self._ar_layout_var.get()
+        ar["mode"] = self._ar_mode_var.get()
         try:
             ar["startup_delay_seconds"] = int(self._delay_var.get())
         except ValueError:
@@ -310,8 +338,20 @@ class WinLayoutSaverApp(tk.Tk):
         else:
             scheduler.unregister()
 
+    def _on_mode_change(self):
+        """모드 Radio 버튼 클릭 시 설명 Label을 갱신한다."""
+        mode = self._ar_mode_var.get()
+        self._mode_desc_var.set(t("mode_fast_desc" if mode == "fast" else "mode_full_desc"))
+
     def _apply_ar_toggle_style(self, enabled: bool):
-        """부팅 자동 복구 활성화 상태에 따라 토글 버튼의 텍스트/색상을 갱신."""
+        """부팅 자동 복구 활성화 상태에 따라 토글 버튼 및 관련 컨트롤 잠금/해제."""
+        widget_state = "disabled" if enabled else "normal"
+        combo_state  = "disabled" if enabled else "readonly"
+        self._ar_combo.config(state=combo_state)
+        self._ar_mode_fast_rb.config(state=widget_state)
+        self._ar_mode_full_rb.config(state=widget_state)
+        self._delay_entry.config(state=widget_state)
+
         if enabled:
             self._ar_toggle_btn.config(
                 text=t("enabled_status"),
