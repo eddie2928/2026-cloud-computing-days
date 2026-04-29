@@ -65,41 +65,47 @@ class WinLayoutSaverApp(tk.Tk):
         self._layout_inner = tk.Frame(list_frame)
         self._layout_inner.pack(fill=tk.X)
 
-        # Auto-rollback row
-        ar_frame = tk.Frame(self, pady=4)
-        ar_frame.pack(fill=tk.X, padx=8)
-        tk.Label(ar_frame, text=t("auto_rollback_label")).pack(side=tk.LEFT)
-        self._ar_layout_var = tk.StringVar()
-        self._ar_combo = ttk.Combobox(ar_frame, textvariable=self._ar_layout_var, state="readonly", width=12)
-        self._ar_combo.pack(side=tk.LEFT, padx=4)
-        self._ar_toggle_btn = tk.Button(ar_frame, text=t("enable_btn"), command=self._on_ar_toggle)
-        self._ar_toggle_btn.pack(side=tk.LEFT, padx=2)
-        tk.Label(ar_frame, text=t("startup_delay_label")).pack(side=tk.LEFT, padx=(12, 0))
-        self._delay_var = tk.StringVar(value="10")
-        self._delay_entry = tk.Entry(ar_frame, textvariable=self._delay_var, width=5)
-        self._delay_entry.pack(side=tk.LEFT)
+        # ─── Auto-rollback section (LabelFrame) ───────────────────────────
+        self._ar_section = tk.LabelFrame(self, text=t("ar_section_title"), padx=8, pady=6)
+        self._ar_section.pack(fill=tk.X, padx=8, pady=4)
 
-        # Mode row
-        mode_row = tk.Frame(self, pady=2)
-        mode_row.pack(fill=tk.X, padx=8)
+        # 행 0: 활성화 버튼 (가로 전체)
+        self._ar_toggle_btn = tk.Button(self._ar_section, text=t("enable_btn"), command=self._on_ar_toggle)
+        self._ar_toggle_btn.grid(row=0, column=0, columnspan=4, sticky="we", pady=(0, 6))
+
+        # 행 1: 레이아웃 라벨 + 콤보
+        tk.Label(self._ar_section, text=t("auto_rollback_label")).grid(row=1, column=0, sticky="w", padx=(0, 6), pady=2)
+        self._ar_layout_var = tk.StringVar()
+        self._ar_combo = ttk.Combobox(self._ar_section, textvariable=self._ar_layout_var, state="readonly", width=16)
+        self._ar_combo.grid(row=1, column=1, columnspan=3, sticky="w", pady=2)
+
+        # 행 2: 모드 라벨 + Radio 2개 + 설명
+        tk.Label(self._ar_section, text=t("mode_label")).grid(row=2, column=0, sticky="w", padx=(0, 6), pady=2)
         self._ar_mode_var = tk.StringVar(value="fast")
         self._ar_mode_fast_rb = tk.Radiobutton(
-            mode_row, text=t("mode_fast"),
+            self._ar_section, text=t("mode_fast"),
             variable=self._ar_mode_var, value="fast",
             command=self._on_mode_change,
         )
-        self._ar_mode_fast_rb.pack(side=tk.LEFT)
+        self._ar_mode_fast_rb.grid(row=2, column=1, sticky="w", pady=2)
         self._ar_mode_full_rb = tk.Radiobutton(
-            mode_row, text=t("mode_full"),
+            self._ar_section, text=t("mode_full"),
             variable=self._ar_mode_var, value="full",
             command=self._on_mode_change,
         )
-        self._ar_mode_full_rb.pack(side=tk.LEFT, padx=(8, 0))
+        self._ar_mode_full_rb.grid(row=2, column=2, sticky="w", padx=(8, 0), pady=2)
         self._mode_desc_var = tk.StringVar()
         tk.Label(
-            mode_row, textvariable=self._mode_desc_var,
+            self._ar_section, textvariable=self._mode_desc_var,
             fg="#555", font=("Consolas", 9),
-        ).pack(side=tk.LEFT, padx=(16, 0))
+        ).grid(row=2, column=3, sticky="w", padx=(16, 0), pady=2)
+
+        # 행 3: 시작 지연 라벨 + Entry
+        tk.Label(self._ar_section, text=t("startup_delay_label")).grid(row=3, column=0, sticky="w", padx=(0, 6), pady=2)
+        self._delay_var = tk.StringVar(value="10")
+        self._delay_entry = tk.Entry(self._ar_section, textvariable=self._delay_var, width=5)
+        self._delay_entry.grid(row=3, column=1, sticky="w", pady=2)
+        # ───────────────────────────────────────────────────────────────────
 
         # Status bar
         self._status_var = tk.StringVar(value="")
