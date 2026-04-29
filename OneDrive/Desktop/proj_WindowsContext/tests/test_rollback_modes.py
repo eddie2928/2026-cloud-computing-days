@@ -173,6 +173,24 @@ def test_rb2_rollback_proceeds_when_enabled(monkeypatch, tmp_path):
     assert exc.value.code == 0
 
 
+def _reload_rollback():
+    """Re-import cli.rollback so restore_mod rebinds to current sys.modules["src.restore"].
+
+    cli.rollback caches restore_mod at import time. After test_restore_matching.py's
+    mock_win32 fixture pops src.restore from sys.modules, a subsequent monkeypatch of
+    src.restore.restore_layout patches a NEW module object — but cli.rollback's restore_mod
+    still points to the OLD one. Clearing both sys.modules["cli.rollback"] AND the
+    cached attribute on the cli package forces a fresh module execution that rebinds
+    restore_mod to the patched src.restore.
+    """
+    sys.modules.pop("cli.rollback", None)
+    cli_mod = sys.modules.get("cli")
+    if cli_mod is not None and hasattr(cli_mod, "rollback"):
+        delattr(cli_mod, "rollback")
+    from cli import rollback
+    return rollback
+
+
 def test_rb3_fast_mode_passes_no_launch_true(monkeypatch, tmp_path):
     """UT-RB3: fast 모드 → restore_layout(no_launch=True, post_launch_settle_ms=0) 호출."""
     _stub_win32(monkeypatch)
@@ -189,8 +207,7 @@ def test_rb3_fast_mode_passes_no_launch_true(monkeypatch, tmp_path):
         return {"restored": 0, "failed": 0, "total": 0, "elapsed_ms": 0}
     monkeypatch.setattr("src.restore.restore_layout", fake_restore)
 
-    sys.modules.pop("cli.rollback", None)
-    from cli import rollback
+    rollback = _reload_rollback()
     monkeypatch.setattr(sys, "argv", ["rollback.py"])
     try:
         rollback.main()
@@ -217,8 +234,7 @@ def test_rb4_full_mode_passes_no_launch_false(monkeypatch, tmp_path):
         return {"restored": 0, "failed": 0, "total": 0, "elapsed_ms": 0}
     monkeypatch.setattr("src.restore.restore_layout", fake_restore)
 
-    sys.modules.pop("cli.rollback", None)
-    from cli import rollback
+    rollback = _reload_rollback()
     monkeypatch.setattr(sys, "argv", ["rollback.py"])
     try:
         rollback.main()
