@@ -175,9 +175,14 @@ class WinLayoutSaverApp(tk.Tk):
                 tk.Radiobutton(row, variable=radio_var, value=1, state=tk.DISABLED).pack(side=tk.LEFT)
                 tk.Label(row, text=name, width=16, anchor="w").pack(side=tk.LEFT)
 
+                # 저장 시각
+                saved_at = self._format_saved_at(name)
+                tk.Label(row, text=saved_at, width=18, anchor="w",
+                         fg="#666", font=("Consolas", 9)).pack(side=tk.LEFT)
+
                 # Per-layout monitor match indicator
                 match_text, match_color = self._get_match_indicator(name)
-                tk.Label(row, text=match_text, fg=match_color, width=12, anchor="w").pack(side=tk.LEFT)
+                tk.Label(row, text=match_text, fg=match_color, width=14, anchor="w").pack(side=tk.LEFT)
 
                 tk.Button(row, text=t("restore_btn"), command=lambda n=name: self._on_restore(n)).pack(side=tk.LEFT, padx=2)
                 tk.Button(row, text=t("settings_btn"), command=lambda n=name: self._on_settings(n)).pack(side=tk.LEFT, padx=2)
@@ -225,6 +230,19 @@ class WinLayoutSaverApp(tk.Tk):
         self._monitor_strip_var.set("Monitors: " + "  |  ".join(parts))
         if monitors_changed:
             self.after(0, self._refresh_layouts)
+
+    def _format_saved_at(self, name: str) -> str:
+        """layout의 created_at(ISO 8601)을 i18n 포맷('%y.%m.%d/%H:%M:%S')으로 변환.
+        파싱 실패 또는 키 부재 시 빈 문자열."""
+        try:
+            layout = storage.load_layout(name)
+            iso = layout.get("created_at")
+            if not iso:
+                return ""
+            dt = datetime.fromisoformat(iso)
+            return dt.strftime(t("saved_at_format"))
+        except Exception:
+            return ""
 
     def _get_match_indicator(self, name: str) -> tuple[str, str]:
         """Return (indicator_text, color) for a layout's monitor match state."""
