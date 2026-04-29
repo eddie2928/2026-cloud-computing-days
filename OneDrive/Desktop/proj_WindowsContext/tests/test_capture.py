@@ -332,3 +332,39 @@ def test_normal_window_getwindowrect_oserror_falls_back_to_rcnormalposition(monk
     nr = results[0]["placement"]["normal_rect"]
     # OSError → fallback: rcNormalPosition [50,60,850,660] → XYWH [50, 60, 800, 600]
     assert nr == [50, 60, 800, 600], f"expected rcNormalPosition fallback, got {nr}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Task-13: capture_virtual_screen (UT-CAP1 ~ UT-CAP2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_cap1_capture_virtual_screen_writes_png(tmp_path, monkeypatch):
+    """UT-CAP1: capture_virtual_screen(path)는 PIL.ImageGrab.grab을 호출하고 PNG로 저장 후 True 반환."""
+    from unittest.mock import MagicMock
+    fake_img = MagicMock()
+    fake_imagegrab = MagicMock()
+    fake_imagegrab.grab.return_value = fake_img
+
+    import sys, types
+    fake_pil = types.ModuleType("PIL")
+    fake_pil.ImageGrab = fake_imagegrab
+    monkeypatch.setitem(sys.modules, "PIL", fake_pil)
+    monkeypatch.setitem(sys.modules, "PIL.ImageGrab", fake_imagegrab)
+
+    from src.capture import capture_virtual_screen
+    out = tmp_path / "shot.png"
+    result = capture_virtual_screen(out)
+
+    assert result is True
+    fake_imagegrab.grab.assert_called_once_with(all_screens=True)
+    fake_img.save.assert_called_once_with(str(out), "PNG")
+
+
+def test_cap2_capture_virtual_screen_returns_false_when_pil_missing(tmp_path, monkeypatch):
+    """UT-CAP2: PIL import 실패 시 False 반환 (예외 전파 안 함)."""
+    import sys
+    monkeypatch.setitem(sys.modules, "PIL", None)
+
+    from src.capture import capture_virtual_screen
+    result = capture_virtual_screen(tmp_path / "shot.png")
+    assert result is False

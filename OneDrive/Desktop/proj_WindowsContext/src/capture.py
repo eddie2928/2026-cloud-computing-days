@@ -194,3 +194,21 @@ def list_current_windows() -> list[dict]:
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     logger.info("found %d candidates (%d skipped) in %dms", len(results), skipped, elapsed_ms)
     return results
+
+
+def capture_virtual_screen(path) -> bool:
+    """모든 모니터 합친 가상 데스크톱 전체를 PNG로 캡처해 path에 저장.
+    PIL 미설치 또는 캡처 실패 시 False 반환 (예외 전파 안 함)."""
+    try:
+        from PIL import ImageGrab
+    except ImportError:
+        logger.warning("capture_virtual_screen: Pillow not installed — screenshot skipped")
+        return False
+    try:
+        img = ImageGrab.grab(all_screens=True)
+        img.save(str(path), "PNG")
+        logger.info("captured virtual screen → %s", path)
+        return True
+    except Exception as e:
+        logger.warning("capture_virtual_screen failed: %s", e)
+        return False
