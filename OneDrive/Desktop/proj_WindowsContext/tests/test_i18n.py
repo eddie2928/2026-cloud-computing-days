@@ -42,3 +42,33 @@ def test_mode_strings_present_in_all_languages():
         for key in required_keys:
             assert key in STRINGS[lang], f"'{key}' missing in lang='{lang}'"
             assert STRINGS[lang][key].strip(), f"'{key}' is empty in lang='{lang}'"
+
+
+def test_task13_strings_present_in_all_languages():
+    """Task-13 신규 키가 ko/en 양쪽에 비어있지 않게 존재해야 한다."""
+    from src.i18n import STRINGS
+    required_keys = (
+        "saved_at_format",
+        "not_matched_label",
+        "preview_btn",
+        "ar_section_title",
+        "mode_label",
+        "screenshot_missing_msg",
+        "preview_window_title",
+    )
+    for lang in ("ko", "en"):
+        for key in required_keys:
+            assert key in STRINGS[lang], f"'{key}' missing in lang='{lang}'"
+            assert STRINGS[lang][key].strip(), f"'{key}' empty in lang='{lang}'"
+
+
+def test_task13_saved_at_format_is_strftime_compatible():
+    """saved_at_format은 strftime 포맷 문자열이어야 한다 (예외 없이 적용 가능)."""
+    from datetime import datetime
+    from src.i18n import STRINGS
+    sample = datetime(2026, 4, 29, 14, 24, 56)
+    for lang in ("ko", "en"):
+        fmt = STRINGS[lang]["saved_at_format"]
+        out = sample.strftime(fmt)
+        assert out
+        assert out == "26.04.29/14:24:56"

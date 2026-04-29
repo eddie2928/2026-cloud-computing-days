@@ -31,6 +31,13 @@ STRINGS = {
         "mode_full": "전체 복구",
         "mode_fast_desc": "이미 실행 중인 창만 재배치",
         "mode_full_desc": "없는 앱 자동 실행 후 배치",
+        "saved_at_format": "%y.%m.%d/%H:%M:%S",
+        "not_matched_label": "⚠Not matched",
+        "preview_btn": "미리보기",
+        "ar_section_title": "부팅 자동 복구",
+        "mode_label": "모드:",
+        "screenshot_missing_msg": "이 레이아웃에는 저장된 미리보기 이미지가 없습니다.",
+        "preview_window_title": "미리보기 — {name}",
     },
     "en": {
         "app_title": "WinLayoutSaver",
@@ -64,6 +71,13 @@ STRINGS = {
         "mode_full": "Full restore",
         "mode_fast_desc": "Reposition already-running windows only",
         "mode_full_desc": "Launch missing apps, then reposition",
+        "saved_at_format": "%y.%m.%d/%H:%M:%S",
+        "not_matched_label": "⚠Not matched",
+        "preview_btn": "Preview",
+        "ar_section_title": "Auto-restore on boot",
+        "mode_label": "Mode:",
+        "screenshot_missing_msg": "No preview image saved for this layout.",
+        "preview_window_title": "Preview — {name}",
     },
 }
 
