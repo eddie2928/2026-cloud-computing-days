@@ -257,7 +257,7 @@ class WinLayoutSaverApp(tk.Tk):
             if result == MatchResult.MATCH:
                 return ("✓match", "green")
             elif result == MatchResult.PRIMARY_ONLY:
-                return ("⚠primary", "orange")
+                return (t("not_matched_label"), "orange")
             else:
                 return ("⚠mismatch", "red")
         except Exception:
@@ -290,7 +290,7 @@ class WinLayoutSaverApp(tk.Tk):
 
         # Check monitor match and prompt if warning state
         match_text, _ = self._get_match_indicator(name)
-        if match_text in ("⚠primary", "⚠mismatch"):
+        if match_text in (t("not_matched_label"), "⚠mismatch"):
             msg = (
                 f"Monitor configuration differs from when '{name}' was saved.\n"
                 f"({match_text.lstrip('⚠')})\n\n"
