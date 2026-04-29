@@ -41,7 +41,7 @@ def test_rollback_fast_mode_skips_ensure_apps_running(monkeypatch, tmp_path):
     _stub_win32(monkeypatch)
 
     monkeypatch.setattr("src.storage.load_config", lambda: {
-        "auto_rollback": {"layout_name": "L1", "mode": "fast"},
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": True},
     })
     monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
     monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
@@ -75,7 +75,7 @@ def test_rollback_full_mode_calls_ensure_apps_running(monkeypatch, tmp_path):
     _stub_win32(monkeypatch)
 
     monkeypatch.setattr("src.storage.load_config", lambda: {
-        "auto_rollback": {"layout_name": "L1", "mode": "full"},
+        "auto_rollback": {"layout_name": "L1", "mode": "full", "enabled": True},
     })
     monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
     monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
@@ -112,7 +112,7 @@ def test_rollback_calls_sys_exit_zero_on_completion(monkeypatch, tmp_path):
     _stub_win32(monkeypatch)
 
     monkeypatch.setattr("src.storage.load_config", lambda: {
-        "auto_rollback": {"layout_name": "L1", "mode": "fast"},
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": True},
     })
     monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
     monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
@@ -127,3 +127,103 @@ def test_rollback_calls_sys_exit_zero_on_completion(monkeypatch, tmp_path):
     with _pt.raises(SystemExit) as exc:
         rollback.main()
     assert exc.value.code == 0
+
+
+# ---------------------------------------------------------------------------
+# Task-12: enabled 체크 + no_launch 전달 검증 (UT-RB1 ~ UT-RB4)
+# ---------------------------------------------------------------------------
+
+import pytest
+
+
+def test_rb1_rollback_exits_cleanly_when_disabled(monkeypatch, tmp_path):
+    """UT-RB1: enabled=False → sys.exit(0) 즉시 종료 (복구 미실행)."""
+    _stub_win32(monkeypatch)
+    monkeypatch.setattr("src.storage.load_config", lambda: {
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": False},
+    })
+    monkeypatch.setattr("src.paths.APPDATA", tmp_path)
+
+    sys.modules.pop("cli.rollback", None)
+    from cli import rollback
+    monkeypatch.setattr(sys, "argv", ["rollback.py"])
+
+    with pytest.raises(SystemExit) as exc:
+        rollback.main()
+    assert exc.value.code == 0
+
+
+def test_rb2_rollback_proceeds_when_enabled(monkeypatch, tmp_path):
+    """UT-RB2: enabled=True → 복구 실행 후 sys.exit(0)."""
+    _stub_win32(monkeypatch)
+    monkeypatch.setattr("src.storage.load_config", lambda: {
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": True},
+    })
+    monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
+    monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
+    monkeypatch.setattr("src.capture.list_current_windows", lambda: [])
+    monkeypatch.setattr("src.paths.APPDATA", tmp_path)
+
+    sys.modules.pop("cli.rollback", None)
+    from cli import rollback
+    monkeypatch.setattr(sys, "argv", ["rollback.py"])
+
+    with pytest.raises(SystemExit) as exc:
+        rollback.main()
+    assert exc.value.code == 0
+
+
+def test_rb3_fast_mode_passes_no_launch_true(monkeypatch, tmp_path):
+    """UT-RB3: fast 모드 → restore_layout(no_launch=True, post_launch_settle_ms=0) 호출."""
+    _stub_win32(monkeypatch)
+    monkeypatch.setattr("src.storage.load_config", lambda: {
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": True},
+    })
+    monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
+    monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
+    monkeypatch.setattr("src.paths.APPDATA", tmp_path)
+
+    captured = {}
+    def fake_restore(layout, **kwargs):
+        captured.update(kwargs)
+        return {"restored": 0, "failed": 0, "total": 0, "elapsed_ms": 0}
+    monkeypatch.setattr("src.restore.restore_layout", fake_restore)
+
+    sys.modules.pop("cli.rollback", None)
+    from cli import rollback
+    monkeypatch.setattr(sys, "argv", ["rollback.py"])
+    try:
+        rollback.main()
+    except SystemExit:
+        pass
+
+    assert captured.get("no_launch") is True
+    assert captured.get("post_launch_settle_ms") == 0
+
+
+def test_rb4_full_mode_passes_no_launch_false(monkeypatch, tmp_path):
+    """UT-RB4: full 모드 → restore_layout(no_launch=False, post_launch_settle_ms=5000) 호출."""
+    _stub_win32(monkeypatch)
+    monkeypatch.setattr("src.storage.load_config", lambda: {
+        "auto_rollback": {"layout_name": "L1", "mode": "full", "enabled": True},
+    })
+    monkeypatch.setattr("src.storage.load_layout", lambda name: _layout())
+    monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
+    monkeypatch.setattr("src.paths.APPDATA", tmp_path)
+
+    captured = {}
+    def fake_restore(layout, **kwargs):
+        captured.update(kwargs)
+        return {"restored": 0, "failed": 0, "total": 0, "elapsed_ms": 0}
+    monkeypatch.setattr("src.restore.restore_layout", fake_restore)
+
+    sys.modules.pop("cli.rollback", None)
+    from cli import rollback
+    monkeypatch.setattr(sys, "argv", ["rollback.py"])
+    try:
+        rollback.main()
+    except SystemExit:
+        pass
+
+    assert captured.get("no_launch") is False
+    assert captured.get("post_launch_settle_ms") == 5000

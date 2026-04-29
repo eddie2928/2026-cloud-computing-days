@@ -53,6 +53,11 @@ def main():
 
     config = storage.load_config()
     rollback_cfg = config.get("auto_rollback", {})
+
+    if not rollback_cfg.get("enabled", False):
+        logger.info("rollback: auto_rollback disabled in config — exiting")
+        sys.exit(0)
+
     layout_name = args.layout or rollback_cfg.get("layout_name", "")
     mode = rollback_cfg.get("mode", "fast")
     if mode not in ("fast", "full"):
@@ -74,24 +79,15 @@ def main():
 
     logger.info("--- phase: restore placement (mode=%s) ---", mode)
 
-    if args.no_launch or mode == "fast":
-        # fast: 이미 실행 중인 창들만 즉시 재배치 — launch / settle 모두 생략
-        running = capture.list_current_windows()
-        logger.info("rollback: fast path — %d running windows, no app launching", len(running))
-        result = restore_mod.restore_layout(
-            layout,
-            running_windows=running,
-            monitors_current=monitors_current,
-            post_settle_ms=2000,
-            post_launch_settle_ms=0,
-        )
-    else:
-        # full: 누락 앱 launch + post_launch_settle 5초
-        result = restore_mod.restore_layout(
-            layout,
-            monitors_current=monitors_current,
-            post_launch_settle_ms=5000,
-        )
+    no_launch = args.no_launch or (mode == "fast")
+    logger.info("rollback: mode=%s no_launch=%s", mode, no_launch)
+    result = restore_mod.restore_layout(
+        layout,
+        no_launch=no_launch,
+        monitors_current=monitors_current,
+        post_settle_ms=2000,
+        post_launch_settle_ms=0 if no_launch else 5000,
+    )
 
     logger.info(
         "rollback: complete — restored %d/%d, failed %d, elapsed %dms",

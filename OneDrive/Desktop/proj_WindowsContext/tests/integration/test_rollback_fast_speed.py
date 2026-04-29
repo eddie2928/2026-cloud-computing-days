@@ -34,7 +34,7 @@ def test_rollback_fast_finishes_within_5_seconds(monkeypatch, tmp_path):
         "monitors": [],
     }
     monkeypatch.setattr("src.storage.load_config", lambda: {
-        "auto_rollback": {"layout_name": "L1", "mode": "fast"},
+        "auto_rollback": {"layout_name": "L1", "mode": "fast", "enabled": True},
     })
     monkeypatch.setattr("src.storage.load_layout", lambda name: layout)
     monkeypatch.setattr("src.monitors.list_current_monitors", lambda: [])
