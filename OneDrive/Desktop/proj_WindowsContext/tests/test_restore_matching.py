@@ -138,13 +138,15 @@ def test_match_returns_none_when_no_candidate():
 
 def test_duplicate_prevention_second_gets_no_match():
     from src.restore import match_windows
-    # Two saved windows want the same running window
+    # Two saved windows want the same running window — only one should be matched
     saved1 = _saved(exe_path="C:\\app.exe", title_pattern="App.*", class_name="AppClass")
     saved2 = _saved(exe_path="C:\\app.exe", title_pattern="App.*", class_name="AppClass")
     running = [_running(hwnd=1, exe_path="C:\\app.exe", title_snapshot="App Window", class_name="AppClass")]
     results = match_windows([saved1, saved2], running)
-    assert results[0][1] is not None       # first saved gets matched
-    assert results[1][1] is None           # second saved gets nothing (duplicate penalty)
+    matched = [r for r in results if r[1] is not None]
+    unmatched = [r for r in results if r[1] is None]
+    assert len(matched) == 1      # exactly one saved gets matched
+    assert len(unmatched) == 1    # the other gets nothing (duplicate prevention)
 
 
 # ---------------------------------------------------------------------------
@@ -911,3 +913,121 @@ def test_ut_a4_restore_placement_includes_swp_nosendchanging(monkeypatch):
     assert result is True
     assert swp_calls, "SetWindowPos가 호출되지 않음"
     assert swp_calls[0] & 0x0400, "SWP_NOSENDCHANGING(0x0400) 플래그 없음"
+
+
+# ---------------------------------------------------------------------------
+# TestMultiWindowMatching (UT-T10-M1-1 ~ UT-T10-M1-3)
+# ---------------------------------------------------------------------------
+
+class TestMultiWindowMatching:
+    def test_same_app_two_saved_one_running_matches_higher_score(self):
+        """
+        Chrome 2개 저장, 1개 running → title_snapshot이 일치하는 saved 창에 매칭.
+        title_snapshot 불일치 saved 창은 no candidate.
+        """
+        saved = [
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="CertiNavigator - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="새 탭 - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+        ]
+        running = [
+            _running(hwnd=0x1, exe_path="C:\\chrome.exe",
+                     title_snapshot="CertiNavigator - Chrome", class_name="Chrome_WidgetWin_1"),
+        ]
+        from src.restore import match_windows
+        results = match_windows(saved, running)
+        assert results[0][1] is not None
+        assert results[0][0]["title_snapshot"] == "CertiNavigator - Chrome"
+        assert results[0][1]["hwnd"] == 0x1
+        assert results[1][1] is None   # 새 탭 → no candidate
+
+    def test_same_app_two_saved_two_running_correct_cross_assignment(self):
+        """
+        Chrome 2개 저장, 2개 running → title_snapshot 기반으로 각자 올바른 창에 매칭.
+        (running 순서와 관계없이)
+        """
+        saved = [
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="CertiNavigator - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="새 탭 - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+        ]
+        running = [
+            _running(hwnd=0x1, exe_path="C:\\chrome.exe",
+                     title_snapshot="새 탭 - Chrome", class_name="Chrome_WidgetWin_1"),
+            _running(hwnd=0x2, exe_path="C:\\chrome.exe",
+                     title_snapshot="CertiNavigator - Chrome", class_name="Chrome_WidgetWin_1"),
+        ]
+        from src.restore import match_windows
+        results = match_windows(saved, running)
+        matched = {r[0]["title_snapshot"]: r[1]["hwnd"] for r in results if r[1]}
+        assert matched["CertiNavigator - Chrome"] == 0x2
+        assert matched["새 탭 - Chrome"] == 0x1
+
+    def test_optimal_matching_independent_of_z_order(self):
+        """
+        z_order=7인 '새 탭' saved 창이 먼저 처리되더라도 score가 낮아서
+        running Chrome-X를 선점하지 않음 (이전 그리디 버그 회귀 방지).
+        """
+        saved = [
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="CertiNavigator - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+            _saved(exe_path="C:\\chrome.exe", title_snapshot="새 탭 - Chrome",
+                   title_pattern="Chrome$", class_name="Chrome_WidgetWin_1"),
+        ]
+        saved[0]["z_order"] = 3
+        saved[1]["z_order"] = 7
+        sorted_saved = sorted(saved, key=lambda w: w.get("z_order", 0), reverse=True)
+
+        running = [
+            _running(hwnd=0x1, exe_path="C:\\chrome.exe",
+                     title_snapshot="CertiNavigator - Chrome", class_name="Chrome_WidgetWin_1"),
+        ]
+        from src.restore import match_windows
+        results = match_windows(sorted_saved, running)
+        matched_titles = {r[0]["title_snapshot"]: r[1] for r in results}
+        assert matched_titles["CertiNavigator - Chrome"] is not None
+        assert matched_titles["CertiNavigator - Chrome"]["hwnd"] == 0x1
+        assert matched_titles["새 탭 - Chrome"] is None
+
+
+# ---------------------------------------------------------------------------
+# no_launch 파라미터 (UT-NL1 ~ UT-NL3)
+# ---------------------------------------------------------------------------
+
+def test_nl1_no_launch_true_skips_ensure_apps_running(mock_layout_deps):
+    """UT-NL1: no_launch=True → ensure_apps_running 미호출."""
+    import sys
+    from unittest.mock import patch
+    ensure_mock = sys.modules["src.launcher"].ensure_apps_running
+
+    with patch("time.sleep"):
+        from src.restore import restore_layout
+        restore_layout({"name": "t", "windows": [], "monitors": []}, no_launch=True)
+
+    ensure_mock.assert_not_called()
+
+
+def test_nl2_no_launch_false_calls_ensure_apps_running(mock_layout_deps):
+    """UT-NL2: no_launch=False(기본) → ensure_apps_running 1회 호출."""
+    import sys
+    from unittest.mock import patch
+    ensure_mock = sys.modules["src.launcher"].ensure_apps_running
+
+    with patch("time.sleep"):
+        from src.restore import restore_layout
+        restore_layout({"name": "t", "windows": [], "monitors": []}, no_launch=False)
+
+    ensure_mock.assert_called_once()
+
+
+def test_nl3_no_launch_true_rescans_windows_twice(mock_layout_deps):
+    """UT-NL3: no_launch=True여도 running_windows=None이면 list_current_windows 2회 스캔."""
+    import sys
+    scan_mock = sys.modules["src.capture"].list_current_windows
+
+    from src.restore import restore_layout
+    restore_layout({"name": "t", "windows": [], "monitors": []}, no_launch=True)
+
+    assert scan_mock.call_count == 2

@@ -41,34 +41,53 @@ def score_window(saved: dict, running: dict, already_assigned: set) -> int:
 def match_windows(saved_windows: list[dict], running_windows: list[dict]) -> list[tuple[dict, Optional[dict]]]:
     """
     For each saved window, find the best-matching running window.
+    Uses global-score-priority assignment: all (saved, running) pairs sorted by score
+    descending so the highest-confidence pair is always assigned first,
+    regardless of z_order processing order.
     Returns list of (saved_window, matched_running_window_or_None).
     """
-    assigned_hwnds: set[int] = set()
+    # Step 1: 전체 (saved_i, running_j) 쌍 점수 계산
+    pairs: list[tuple[int, int, int]] = []
+    for i, saved in enumerate(saved_windows):
+        for j, running in enumerate(running_windows):
+            s = score_window(saved, running, set())
+            if s > 0:
+                pairs.append((s, i, j))
+
+    # Step 2: 점수 내림차순 정렬
+    pairs.sort(reverse=True)
+
+    assigned_saved: dict[int, int] = {}   # saved_idx → running_idx
+    assigned_running: set[int] = set()
+
+    # Step 3: 양쪽 미할당 쌍부터 순서대로 할당
+    for score, i, j in pairs:
+        if i not in assigned_saved and j not in assigned_running:
+            assigned_saved[i] = j
+            assigned_running.add(j)
+
+    # Step 4: 결과 조합 + 로그
+    score_lookup = {(i, j): s for s, i, j in pairs}
     results = []
-    for saved in saved_windows:
-        best_match = None
-        best_score = 0
-        for running in running_windows:
-            s = score_window(saved, running, assigned_hwnds)
-            if s > best_score:
-                best_score = s
-                best_match = running
-        if best_match is not None:
-            assigned_hwnds.add(best_match["hwnd"])
-            results.append((saved, best_match))
+    for i, saved in enumerate(saved_windows):
+        if i in assigned_saved:
+            j = assigned_saved[i]
+            running = running_windows[j]
             logger.info(
                 "matched saved '%s' → hwnd=0x%x score=%d",
                 saved.get("title_snapshot", saved.get("exe_path", "")),
-                best_match["hwnd"],
-                best_score,
+                running["hwnd"],
+                score_lookup[(i, j)],
             )
+            results.append((saved, running))
         else:
-            results.append((saved, None))
             logger.warning(
                 "no candidate for '%s' (exe=%s)",
                 saved.get("title_snapshot", ""),
                 saved.get("exe_path", ""),
             )
+            results.append((saved, None))
+
     return results
 
 
@@ -151,6 +170,7 @@ def restore_placement(hwnd: int, placement: dict, retries: int = 3, retry_delay_
 def restore_layout(
     layout: dict,
     running_windows: list[dict] = None,
+    no_launch: bool = False,
     monitors_current: list[dict] = None,
     stabilize_ms: int = 1500,
     post_settle_ms: int = 2000,
@@ -216,10 +236,11 @@ def restore_layout(
         from src.launcher import ensure_apps_running
         from src.capture import list_current_windows
         running_windows = list_current_windows()
-        launched_count = ensure_apps_running(sorted_saved)
-        if stabilize_ms > 0:
-            time.sleep(stabilize_ms / 1000.0)
-        running_windows = list_current_windows()  # re-scan after launch
+        if not no_launch:
+            launched_count = ensure_apps_running(sorted_saved)
+            if stabilize_ms > 0:
+                time.sleep(stabilize_ms / 1000.0)
+        running_windows = list_current_windows()  # re-scan (no_launch 시에도 늦게 뜬 창 포착)
 
     matches = match_windows(sorted_saved, running_windows)
 
