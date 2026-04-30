@@ -20,6 +20,45 @@ from src import storage, capture, restore as restore_mod
 
 logger = logging.getLogger("rollback")
 
+_SHELL_WAIT_INTERVAL_S = 5
+_SHELL_WAIT_MAX_TRIES = 12   # 5s * 12 = 60s
+
+
+def wait_for_shell_ready(
+    list_windows_fn,
+    interval_s: float = _SHELL_WAIT_INTERVAL_S,
+    max_tries: int = _SHELL_WAIT_MAX_TRIES,
+    sleep_fn=None,
+) -> int:
+    """
+    list_windows_fn() 결과가 ≥1개일 때까지 폴링.
+    Returns: 마지막 스캔에서 발견한 창 개수 (0이면 셸이 끝까지 비어 있던 것).
+    """
+    import time as _time
+    sleep = sleep_fn or _time.sleep
+
+    for attempt in range(1, max_tries + 1):
+        windows = list_windows_fn()
+        n = len(windows)
+        if n > 0:
+            logger.info(
+                "rollback: shell ready — %d window(s) at attempt %d/%d",
+                n, attempt, max_tries,
+            )
+            return n
+        logger.info(
+            "rollback: shell not ready — 0 windows, attempt %d/%d, sleeping %.1fs",
+            attempt, max_tries, interval_s,
+        )
+        if attempt < max_tries:
+            sleep(interval_s)
+
+    logger.warning(
+        "rollback: shell still empty after %d attempts (%ds total) — proceeding anyway",
+        max_tries, int(interval_s * max_tries),
+    )
+    return 0
+
 
 def main():
     parser = argparse.ArgumentParser(description="WinLayoutSaver headless rollback")
@@ -73,6 +112,9 @@ def main():
     except FileNotFoundError:
         logger.error("rollback: layout '%s' not found", layout_name)
         sys.exit(1)
+
+    from src.capture import list_current_windows as _list_current_windows
+    wait_for_shell_ready(_list_current_windows)
 
     from src.monitors import list_current_monitors
     monitors_current = list_current_monitors()
