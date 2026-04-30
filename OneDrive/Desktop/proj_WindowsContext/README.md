@@ -127,4 +127,4 @@ Python 3.11+ · tkinter · pywin32 · psutil · Pillow · PyInstaller · Inno Se
 
 ## License
 
-See `LICENSE` (add one before publishing — MIT is a reasonable default).
+[MIT](LICENSE).
