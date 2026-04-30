@@ -3,8 +3,11 @@ import logging
 import os
 import subprocess
 import sys
+from datetime import datetime
 from glob import glob
 from pathlib import Path
+
+from src.paths import LOGS_DIR
 
 logger = logging.getLogger("scheduler")
 
@@ -129,6 +132,24 @@ def register(script_path: str, delay_seconds: int = 10, python_exe: str = None) 
             "scheduler: registration failed — stderr=%s stdout=%s",
             result.stderr.strip(), result.stdout.strip(),
         )
+        try:
+            LOGS_DIR.mkdir(parents=True, exist_ok=True)
+            ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+            dump_path = LOGS_DIR / f"scheduler-register-error-{ts}.log"
+            dump_path.write_text(
+                "=== PowerShell command (decoded) ===\n"
+                f"{ps}\n\n"
+                "=== Exit code ===\n"
+                f"{result.returncode}\n\n"
+                "=== STDOUT ===\n"
+                f"{result.stdout}\n\n"
+                "=== STDERR ===\n"
+                f"{result.stderr}\n",
+                encoding="utf-8",
+            )
+            logger.info("scheduler: wrote diagnostic dump → %s", dump_path)
+        except OSError as e:
+            logger.warning("scheduler: failed to write diagnostic dump: %s", e)
         return False
     return True
 

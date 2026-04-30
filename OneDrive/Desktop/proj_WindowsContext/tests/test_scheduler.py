@@ -262,6 +262,49 @@ class TestBuildRegisterPs:
         assert "WinLayoutSaverRollback.exe" in ps
 
 
+class TestRegisterDiagnostic:
+    def test_register_writes_diagnostic_on_failure(self, monkeypatch, tmp_path):
+        import src.scheduler as sched_mod
+        import subprocess
+
+        monkeypatch.setattr(sched_mod, "LOGS_DIR", tmp_path)
+
+        fake_result = subprocess.CompletedProcess(
+            args=["powershell.exe"], returncode=1,
+            stdout="some stdout", stderr="some stderr",
+        )
+        monkeypatch.setattr(subprocess, "run", lambda *a, **kw: fake_result)
+
+        ok = sched_mod.register(script_path="C:\\rollback.py", delay_seconds=10,
+                                python_exe="C:\\pyw.exe")
+        assert ok is False
+
+        dumps = list(tmp_path.glob("scheduler-register-error-*.log"))
+        assert len(dumps) == 1
+        text = dumps[0].read_text(encoding="utf-8")
+        assert "=== STDERR ===" in text
+        assert "some stderr" in text
+        assert "=== STDOUT ===" in text
+        assert "some stdout" in text
+        assert "=== Exit code ===" in text
+        assert "Register-ScheduledTask" in text
+
+    def test_register_no_diagnostic_on_success(self, monkeypatch, tmp_path):
+        import src.scheduler as sched_mod
+        import subprocess
+
+        monkeypatch.setattr(sched_mod, "LOGS_DIR", tmp_path)
+        fake_result = subprocess.CompletedProcess(
+            args=["powershell.exe"], returncode=0, stdout="", stderr="",
+        )
+        monkeypatch.setattr(subprocess, "run", lambda *a, **kw: fake_result)
+
+        ok = sched_mod.register(script_path="C:\\rollback.py", delay_seconds=10,
+                                python_exe="C:\\pyw.exe")
+        assert ok is True
+        assert list(tmp_path.glob("scheduler-register-error-*.log")) == []
+
+
 class TestDelayStr:
     def test_delay_str_one_hour(self):
         """3600 seconds = 0060:00 (60 minutes), not 0100:00."""
