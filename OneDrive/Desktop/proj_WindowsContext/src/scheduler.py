@@ -85,7 +85,13 @@ def _build_register_ps(python_exe: str, script_path: str, delay_seconds: int, us
         action +
         f"$t = New-ScheduledTaskTrigger -AtLogOn -User '{sq(username)}'; "
         f"$t.Delay = 'PT{delay_seconds}S'; "
-        f"$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable:$false -Hidden; "
+        f"$s = New-ScheduledTaskSettingsSet "
+        f"-StartWhenAvailable "
+        f"-RunOnlyIfNetworkAvailable:$false "
+        f"-Hidden "
+        f"-AllowStartIfOnBatteries "
+        f"-DontStopIfGoingOnBatteries "
+        f"-ExecutionTimeLimit (New-TimeSpan -Minutes 30); "
         f"Register-ScheduledTask -TaskName '{TASK_NAME}' -Action $a -Trigger $t "
         f"-Settings $s -RunLevel Limited -Force | Out-Null"
     )

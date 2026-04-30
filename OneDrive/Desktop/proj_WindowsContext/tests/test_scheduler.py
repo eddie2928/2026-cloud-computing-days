@@ -229,6 +229,39 @@ class TestUnregisterIdempotent:
             assert unregister() is False
 
 
+class TestBuildRegisterPs:
+    def test_build_register_ps_allows_battery_start(self):
+        from src.scheduler import _build_register_ps
+        ps = _build_register_ps("C:\\pyw.exe", "C:\\rollback.py", 10, "ab550")
+        assert "-AllowStartIfOnBatteries" in ps
+
+    def test_build_register_ps_does_not_stop_on_battery(self):
+        from src.scheduler import _build_register_ps
+        ps = _build_register_ps("C:\\pyw.exe", "C:\\rollback.py", 10, "ab550")
+        assert "-DontStopIfGoingOnBatteries" in ps
+
+    def test_build_register_ps_has_execution_time_limit(self):
+        from src.scheduler import _build_register_ps
+        ps = _build_register_ps("C:\\pyw.exe", "C:\\rollback.py", 10, "ab550")
+        assert "ExecutionTimeLimit" in ps
+        assert "Minutes 30" in ps
+
+    def test_build_register_ps_keeps_existing_flags(self):
+        from src.scheduler import _build_register_ps
+        ps = _build_register_ps("C:\\pyw.exe", "C:\\rollback.py", 10, "ab550")
+        assert "-StartWhenAvailable" in ps
+        assert "-Hidden" in ps
+        assert "-RunOnlyIfNetworkAvailable:$false" in ps
+        assert "AtLogOn" in ps
+        assert "PT10S" in ps
+
+    def test_build_register_ps_standalone_exe_no_argument(self):
+        from src.scheduler import _build_register_ps
+        ps = _build_register_ps("C:\\WinLayoutSaverRollback.exe", "", 10, "ab550")
+        assert "-Argument" not in ps
+        assert "WinLayoutSaverRollback.exe" in ps
+
+
 class TestDelayStr:
     def test_delay_str_one_hour(self):
         """3600 seconds = 0060:00 (60 minutes), not 0100:00."""
