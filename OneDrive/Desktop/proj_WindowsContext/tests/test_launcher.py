@@ -223,7 +223,7 @@ def test_ensure_apps_running_no_window_launches(monkeypatch):
         return MagicMock()
 
     monkeypatch.setattr("src.launcher.launch_app", fake_launch_app)
-    monkeypatch.setattr("src.launcher.wait_for_window", lambda *a, **kw: True)
+    monkeypatch.setattr("src.launcher._wait_for_window_count", lambda *a, **kw: True)
 
     from src.launcher import ensure_apps_running
     ensure_apps_running([_saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$")],
@@ -416,7 +416,7 @@ def test_ensure_apps_running_returns_count_of_launched(monkeypatch):
         return MagicMock()
 
     monkeypatch.setattr("src.launcher.launch_app", fake_launch)
-    monkeypatch.setattr("src.launcher.wait_for_window", lambda *a, **kw: True)
+    monkeypatch.setattr("src.launcher._wait_for_window_count", lambda *a, **kw: True)
 
     from src.launcher import ensure_apps_running
     result = ensure_apps_running([
@@ -442,3 +442,76 @@ def test_uwp_uses_explorer_shell(monkeypatch):
     cmd_arg = mock_popen.call_args[0][0]
     assert cmd_arg[0] == "explorer.exe"
     assert f"shell:AppsFolder\\{aumid}" in cmd_arg
+
+
+# ---------------------------------------------------------------------------
+# TestEnsureAppsRunningMultiWindow (UT-T10-L1 ~ UT-T10-L3)
+# ---------------------------------------------------------------------------
+
+class TestEnsureAppsRunningMultiWindow:
+    def test_two_saved_one_running_launches_once(self, monkeypatch):
+        """
+        Chrome 2개 저장, 1개만 실행 중 → deficit=1 → launch 1회.
+        (title_pattern='Chrome$' 동일해도 count 기반이므로 정확히 탐지)
+        """
+        windows = [{"exe_path": "C:\\chrome.exe", "title_snapshot": "CertiNavigator - Chrome"}]
+        monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+        monkeypatch.setattr("src.launcher._wait_for_window_count", lambda *a, **kw: True)
+
+        launched = []
+        monkeypatch.setattr("src.launcher.launch_app",
+                            lambda exe, *a, **kw: launched.append(exe) or MagicMock())
+
+        from src.launcher import ensure_apps_running
+        result = ensure_apps_running([
+            _saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$"),
+            _saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$"),
+        ], timeout_seconds=5, poll_ms=50)
+
+        assert launched == ["C:\\chrome.exe"]   # 1회 launch
+        assert result == 1
+
+    def test_two_saved_two_running_no_launch(self, monkeypatch):
+        """Chrome 2개 저장, 2개 실행 중 → deficit=0 → launch 없음."""
+        windows = [
+            {"exe_path": "C:\\chrome.exe", "title_snapshot": "CertiNavigator - Chrome"},
+            {"exe_path": "C:\\chrome.exe", "title_snapshot": "새 탭 - Chrome"},
+        ]
+        monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+
+        launched = []
+        monkeypatch.setattr("src.launcher.launch_app",
+                            lambda exe, *a, **kw: launched.append(exe) or MagicMock())
+
+        from src.launcher import ensure_apps_running
+        result = ensure_apps_running([
+            _saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$"),
+            _saved_window(exe_path="C:\\chrome.exe", title_pattern="Chrome$"),
+        ], timeout_seconds=5, poll_ms=50)
+
+        assert launched == []
+        assert result == 0
+
+    def test_wait_for_window_count_true_when_met(self, monkeypatch):
+        """exe_path 창 수가 min_count 이상이면 True."""
+        windows = [{"exe_path": "C:\\chrome.exe"}, {"exe_path": "C:\\chrome.exe"}]
+        monkeypatch.setattr("src.launcher.list_current_windows", lambda: windows)
+        monkeypatch.setattr("time.sleep", lambda _: None)
+
+        from src.launcher import _wait_for_window_count
+        assert _wait_for_window_count("C:\\chrome.exe", 2, timeout_seconds=5, poll_ms=50) is True
+
+    def test_wait_for_window_count_false_on_timeout(self, monkeypatch):
+        """창 수 부족 상태에서 타임아웃 → False."""
+        monkeypatch.setattr("src.launcher.list_current_windows", lambda: [])
+        monkeypatch.setattr("time.sleep", lambda _: None)
+
+        tick = {"t": 0.0}
+        def fake_monotonic():
+            val = tick["t"]
+            tick["t"] += 0.6
+            return val
+        monkeypatch.setattr("time.monotonic", fake_monotonic)
+
+        from src.launcher import _wait_for_window_count
+        assert _wait_for_window_count("C:\\chrome.exe", 1, timeout_seconds=1.0, poll_ms=500) is False

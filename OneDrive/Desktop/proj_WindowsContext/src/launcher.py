@@ -83,34 +83,94 @@ def wait_for_window(
     return False
 
 
+def _wait_for_window_count(exe_path: str, min_count: int, timeout_seconds: float, poll_ms: int) -> bool:
+    """Poll until at least min_count visible windows of exe_path exist."""
+    exe_lower = exe_path.lower()
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        count = sum(1 for w in list_current_windows()
+                    if w.get("exe_path", "").lower() == exe_lower)
+        if count >= min_count:
+            return True
+        logger.debug("waiting for %d window(s) of %s (current: %d)", min_count, exe_lower, count)
+        time.sleep(poll_ms / 1000.0)
+    logger.warning("timeout waiting for %d window(s) of %s", min_count, exe_lower)
+    return False
+
+
+def has_visible_window(exe_path: str, title_pattern: str) -> bool:
+    """Return True if a visible window exists for exe_path matching title_pattern."""
+    exe_lower = exe_path.lower()
+    pattern_re = re.compile(title_pattern) if title_pattern else None
+    for w in list_current_windows():
+        if w.get("exe_path", "").lower() != exe_lower:
+            continue
+        if pattern_re is None or pattern_re.search(w.get("title_snapshot", "")):
+            return True
+    return False
+
+
 def ensure_apps_running(
     saved_windows: list[dict],
     timeout_seconds: float = 60.0,
     poll_ms: int = 500,
-) -> None:
+) -> int:
     """
-    For each saved window whose app is not running, launch it and wait for its window.
-    Missing apps are launched in sequence (not parallel) to avoid race conditions.
+    For each exe_path, compare saved window count vs running window count.
+    If running count < saved count, launch the app once per missing window.
+    Returns total number of launch_app calls made.
     """
-    not_running = [w for w in saved_windows if not is_running(w.get("exe_path", ""))]
-    logger.info(
-        "%d of %d apps not running — will launch: %s",
-        len(not_running),
-        len(saved_windows),
-        [w.get("exe_path", "") for w in not_running],
+    from collections import Counter
+
+    exe_to_saved: dict[str, list[dict]] = {}
+    for w in saved_windows:
+        exe = w.get("exe_path", "")
+        if not exe:
+            continue
+        exe_to_saved.setdefault(exe.lower(), []).append(w)
+
+    if not exe_to_saved:
+        return 0
+
+    running_now = list_current_windows()
+    running_counts = Counter(
+        w.get("exe_path", "").lower() for w in running_now if w.get("exe_path")
     )
 
-    for saved in not_running:
-        exe_path = saved.get("exe_path", "")
-        exe_args = saved.get("exe_args", "")
-        cwd = saved.get("cwd", "")
-        is_uwp = saved.get("is_uwp", False)
-        title_pattern = saved.get("title_pattern", "")
+    logger.info(
+        "ensure_apps: checking %d exe(s) — running counts: %s",
+        len(exe_to_saved), dict(running_counts),
+    )
 
-        proc = launch_app(exe_path, exe_args, cwd, is_uwp)
-        if proc is None:
+    launched_total = 0
+    for exe_lower, saved_list in exe_to_saved.items():
+        n_needed = len(saved_list)
+        n_running = running_counts.get(exe_lower, 0)
+        deficit = n_needed - n_running
+
+        if deficit <= 0:
+            logger.debug("ensure_apps: %s — %d/%d, no launch needed", exe_lower, n_running, n_needed)
             continue
 
-        found = wait_for_window(exe_path, title_pattern, timeout_seconds, poll_ms)
-        if not found:
-            logger.warning("giving up on '%s' — window did not appear in %.0fs", exe_path, timeout_seconds)
+        logger.info("ensure_apps: %s — %d running, %d needed, launching %d", exe_lower, n_running, n_needed, deficit)
+
+        rep = saved_list[0]
+        for k in range(deficit):
+            target_count = n_running + k + 1
+            proc = launch_app(
+                rep["exe_path"],
+                rep.get("exe_args", ""),
+                rep.get("cwd", ""),
+                rep.get("is_uwp", False),
+            )
+            if proc is None:
+                continue
+            launched_total += 1
+            found = _wait_for_window_count(rep["exe_path"], target_count, timeout_seconds, poll_ms)
+            if not found:
+                logger.warning(
+                    "ensure_apps: gave up waiting for window #%d of %s",
+                    target_count, exe_lower,
+                )
+
+    return launched_total
