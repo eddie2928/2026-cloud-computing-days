@@ -73,7 +73,12 @@ class WinLayoutSaverApp(tk.Tk):
         # 행 0: 활성화 버튼
         self._ar_toggle_btn = tk.Button(self._ar_section, text=t("enable_btn"),
                                         command=self._on_ar_toggle, padx=4, pady=0)
-        self._ar_toggle_btn.grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 6))
+        self._ar_toggle_btn.grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        self._run_now_btn = tk.Button(self._ar_section, text=t("run_now_btn"),
+                                      command=self._on_run_now, padx=4, pady=0)
+        self._run_now_btn.grid(row=0, column=1, columnspan=3, sticky="w",
+                               padx=(8, 0), pady=(0, 6))
 
         # 행 1: 레이아웃 라벨 + 콤보
         tk.Label(self._ar_section, text=t("auto_rollback_label")).grid(row=1, column=0, sticky="w", padx=(0, 6), pady=2)
@@ -390,6 +395,13 @@ class WinLayoutSaverApp(tk.Tk):
                 scheduler.register(script_path=script_path, delay_seconds=ar.get("startup_delay_seconds", 10))
             else:
                 scheduler.unregister()
+
+    def _on_run_now(self):
+        ok, msg = scheduler.run_now()
+        if ok:
+            messagebox.showinfo(t("app_title"), t("run_now_success_msg"))
+        else:
+            messagebox.showerror(t("app_title"), t("run_now_failed_msg").format(error=msg))
 
     def _on_mode_change(self):
         """모드 Radio 버튼 클릭 시 설명 Label을 갱신한다."""
