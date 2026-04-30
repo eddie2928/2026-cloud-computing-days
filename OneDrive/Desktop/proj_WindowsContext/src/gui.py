@@ -39,6 +39,7 @@ class WinLayoutSaverApp(tk.Tk):
         self._refresh_layouts()
         self._drain_log_queue()
         self._poll_monitors()
+        self._migrate_existing_task()
 
     # ── UI construction ─────────────────────────────────────────────────
 
@@ -402,6 +403,40 @@ class WinLayoutSaverApp(tk.Tk):
             messagebox.showinfo(t("app_title"), t("run_now_success_msg"))
         else:
             messagebox.showerror(t("app_title"), t("run_now_failed_msg").format(error=msg))
+
+    def _migrate_existing_task(self):
+        config = storage.load_config()
+        ar = config.get("auto_rollback", {})
+        if not ar.get("enabled", False):
+            return
+        if ar.get("_migrated_v14", False):
+            return
+
+        logger.info(t("migrate_task_log"))
+
+        if getattr(sys, "frozen", False):
+            rollback_exe = str(Path(sys.executable).with_name("WinLayoutSaverRollback.exe"))
+            scheduler.unregister()
+            ok = scheduler.register(
+                script_path="",
+                delay_seconds=ar.get("startup_delay_seconds", 10),
+                python_exe=rollback_exe,
+            )
+        else:
+            script_path = str(Path(__file__).parent.parent / "cli" / "rollback.py")
+            scheduler.unregister()
+            ok = scheduler.register(
+                script_path=script_path,
+                delay_seconds=ar.get("startup_delay_seconds", 10),
+            )
+
+        if ok:
+            ar["_migrated_v14"] = True
+            config["auto_rollback"] = ar
+            storage.save_config(config)
+            logger.info("scheduler: migration complete (v14)")
+        else:
+            logger.warning("scheduler: migration failed — will retry on next launch")
 
     def _on_mode_change(self):
         """모드 Radio 버튼 클릭 시 설명 Label을 갱신한다."""
