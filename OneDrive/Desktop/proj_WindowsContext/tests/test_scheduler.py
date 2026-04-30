@@ -262,6 +262,32 @@ class TestBuildRegisterPs:
         assert "WinLayoutSaverRollback.exe" in ps
 
 
+class TestRunNow:
+    def test_run_now_success(self, monkeypatch):
+        import src.scheduler as sched_mod
+        import subprocess
+        captured = {}
+        def fake_run(cmd, **kw):
+            captured["cmd"] = cmd
+            return subprocess.CompletedProcess(cmd, 0, "성공: ...", "")
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        ok, msg = sched_mod.run_now()
+        assert ok is True
+        assert captured["cmd"][:3] == ["schtasks.exe", "/Run", "/TN"]
+        assert captured["cmd"][3] == sched_mod.TASK_NAME
+
+    def test_run_now_failure(self, monkeypatch):
+        import src.scheduler as sched_mod
+        import subprocess
+        monkeypatch.setattr(subprocess, "run",
+            lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", "오류: 작업 없음"))
+
+        ok, msg = sched_mod.run_now()
+        assert ok is False
+        assert "오류: 작업 없음" in msg
+
+
 class TestRegisterDiagnostic:
     def test_register_writes_diagnostic_on_failure(self, monkeypatch, tmp_path):
         import src.scheduler as sched_mod

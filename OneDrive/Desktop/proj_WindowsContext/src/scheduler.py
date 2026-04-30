@@ -154,6 +154,21 @@ def register(script_path: str, delay_seconds: int = 10, python_exe: str = None) 
     return True
 
 
+def run_now() -> tuple[bool, str]:
+    """
+    schtasks /Run /TN WinLayoutSaver_Rollback 으로 등록된 작업을 즉시 실행 트리거.
+    Returns (ok, message). ok=False 인 경우 message에 stderr 포함.
+    """
+    cmd = ["schtasks.exe", "/Run", "/TN", TASK_NAME]
+    logger.info("scheduler: run_now — %s", " ".join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    logger.info("scheduler: run_now exit=%d", result.returncode)
+    if result.returncode == 0:
+        return True, result.stdout.strip() or "OK"
+    return False, (result.stderr.strip() or result.stdout.strip()
+                   or f"exit code {result.returncode}")
+
+
 def unregister() -> bool:
     """
     Remove WinLayoutSaver_Rollback from Windows Task Scheduler.
