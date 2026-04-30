@@ -62,6 +62,16 @@ def test_task13_strings_present_in_all_languages():
             assert STRINGS[lang][key].strip(), f"'{key}' empty in lang='{lang}'"
 
 
+def test_task14_keys_present_in_both_languages():
+    from src.i18n import STRINGS
+    keys = ["run_now_btn", "run_now_success_msg", "run_now_failed_msg", "migrate_task_log"]
+    for k in keys:
+        assert k in STRINGS["ko"], f"missing ko: {k}"
+        assert k in STRINGS["en"], f"missing en: {k}"
+        assert STRINGS["ko"][k]
+        assert STRINGS["en"][k]
+
+
 def test_task13_saved_at_format_is_strftime_compatible():
     """saved_at_format은 strftime 포맷 문자열이어야 한다 (예외 없이 적용 가능)."""
     from datetime import datetime
