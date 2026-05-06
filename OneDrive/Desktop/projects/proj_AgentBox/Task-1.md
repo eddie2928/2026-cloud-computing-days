@@ -391,8 +391,8 @@ class WSMessage(BaseModel):
 
 ### Phase G — 문서 및 마무리
 
-- [ ] **G1.** `README.md` 작성: 설치, CA 등록, HTTPS_PROXY 설정, Claude Code 사용 예시, 트러블슈팅(인증서 신뢰 실패, 포트 충돌, hang)
-- [ ] **G2.** 감사 로그 위치 명시 (`logs/agentbox.log`, `data/agentbox.db`) 및 SQL 조회 예시 포함
+- [x] **G1.** `README.md` 작성: 설치, CA 등록, HTTPS_PROXY 설정, Claude Code 사용 예시, 트러블슈팅(인증서 신뢰 실패, 포트 충돌, hang)
+- [x] **G2.** 감사 로그 위치 명시 (`logs/agentbox.log`, `data/agentbox.db`) 및 SQL 조회 예시 포함
 - [ ] **G3.** `Task-1.md` 본 문서의 모든 체크박스가 `[x]`인지 최종 점검 후 사용자에게 완료 보고
 
 **Phase G Gate:** README의 "Quick Start" 단계대로 따라 했을 때 외부인이 SC-1~SC-6를 재현 가능.
