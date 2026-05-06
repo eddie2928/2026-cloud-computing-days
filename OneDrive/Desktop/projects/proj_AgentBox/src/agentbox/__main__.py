@@ -38,6 +38,13 @@ def _run() -> None:
     addon.ws_hub = ws_hub
     addon.storage_path = cfg.DB_PATH
 
+    print(f"  AgentBox starting...")
+    print(f"  Proxy : http://127.0.0.1:{cfg.PROXY_PORT}")
+    print(f"  Web UI: http://localhost:{cfg.API_PORT}")
+    print(f"  CA    : {cfg.CA_DIR}/agentbox-ca.crt")
+    print(f"  To activate in a shell: source {_PROJ_ROOT}/scripts/activate.sh")
+    print()
+
     async def _main() -> None:
         server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning"))
         await asyncio.gather(
