@@ -9,6 +9,13 @@ from agentbox.logging_setup import setup as setup_logging
 
 def _run() -> None:
     setup_logging()
+    # Anchor relative paths to CWD at startup so they stay consistent.
+    from pathlib import Path
+    if not Path(cfg.CA_DIR).is_absolute():
+        cfg.CA_DIR = str(Path.cwd() / cfg.CA_DIR)
+    if not Path(cfg.DB_PATH).is_absolute():
+        cfg.DB_PATH = str(Path.cwd() / cfg.DB_PATH)
+
     from agentbox.api.server import create_app
     from agentbox.proxy.master import start_master
     from agentbox.proxy.addon import AgentBoxAddon
