@@ -1,20 +1,27 @@
 import asyncio
 import sys
+from pathlib import Path
 
 import uvicorn
 
 from agentbox.config import cfg
 from agentbox.logging_setup import setup as setup_logging
 
+# Resolve relative config paths to the project root (parent of src/).
+# Works for editable installs (pip install -e).
+_PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _resolve_paths() -> None:
+    if not Path(cfg.CA_DIR).is_absolute():
+        cfg.CA_DIR = str(_PROJ_ROOT / cfg.CA_DIR)
+    if not Path(cfg.DB_PATH).is_absolute():
+        cfg.DB_PATH = str(_PROJ_ROOT / cfg.DB_PATH)
+
 
 def _run() -> None:
     setup_logging()
-    # Anchor relative paths to CWD at startup so they stay consistent.
-    from pathlib import Path
-    if not Path(cfg.CA_DIR).is_absolute():
-        cfg.CA_DIR = str(Path.cwd() / cfg.CA_DIR)
-    if not Path(cfg.DB_PATH).is_absolute():
-        cfg.DB_PATH = str(Path.cwd() / cfg.DB_PATH)
+    _resolve_paths()
 
     from agentbox.api.server import create_app
     from agentbox.proxy.master import start_master
@@ -42,7 +49,7 @@ def _run() -> None:
 
 
 def _ca_install() -> None:
-    from pathlib import Path
+    _resolve_paths()
     from agentbox.proxy.ca import ensure_ca
     ca_crt, _ = ensure_ca(Path(cfg.CA_DIR))
     print(f"CA certificate ready: {ca_crt}")
