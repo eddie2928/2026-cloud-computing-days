@@ -12,9 +12,17 @@ def _run() -> None:
     from agentbox.api.server import create_app
     from agentbox.proxy.master import start_master
     from agentbox.proxy.addon import AgentBoxAddon
+    from agentbox.api.hitl import HITLQueue
+    from agentbox.api.ws import WSHub
 
-    app = create_app()
+    hitl_queue = HITLQueue()
+    ws_hub = WSHub()
+
+    app = create_app(hitl_queue=hitl_queue, ws_hub=ws_hub)
     addon = AgentBoxAddon()
+    addon.hitl_queue = hitl_queue
+    addon.ws_hub = ws_hub
+    addon.storage_path = cfg.DB_PATH
 
     async def _main() -> None:
         server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning"))

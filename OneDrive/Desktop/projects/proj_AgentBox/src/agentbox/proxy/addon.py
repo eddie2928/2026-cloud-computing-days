@@ -9,6 +9,7 @@ from agentbox.config import cfg
 from agentbox.models import PromptEvent
 
 _TARGET_HOST = "api.anthropic.com"
+_TARGET_PATH = "/v1/messages"
 _EXCERPT_LEN = 500
 
 
@@ -21,6 +22,8 @@ class AgentBoxAddon:
 
     async def request(self, flow: http.HTTPFlow) -> None:
         if flow.request.pretty_host != _TARGET_HOST:
+            return
+        if _TARGET_PATH not in flow.request.pretty_url:
             return
         await self._handle(flow)
 

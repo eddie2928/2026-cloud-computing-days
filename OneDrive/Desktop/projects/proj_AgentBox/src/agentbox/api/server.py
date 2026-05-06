@@ -9,13 +9,13 @@ from agentbox.config import cfg
 from agentbox import storage as _storage
 
 
-def create_app() -> FastAPI:
+def create_app(hitl_queue: HITLQueue | None = None, ws_hub: WSHub | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         await _storage.init_db(cfg.DB_PATH)
         app.state.db_path = cfg.DB_PATH
-        app.state.hitl_queue = HITLQueue()
-        app.state.ws_hub = WSHub()
+        app.state.hitl_queue = hitl_queue if hitl_queue is not None else HITLQueue()
+        app.state.ws_hub = ws_hub if ws_hub is not None else WSHub()
         yield
 
     app = FastAPI(title="AgentBox", lifespan=lifespan)
