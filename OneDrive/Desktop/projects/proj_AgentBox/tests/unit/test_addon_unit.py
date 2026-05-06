@@ -20,18 +20,15 @@ def _make_flow(host="api.anthropic.com", method="POST", body=b'{"model":"test"}'
 
 @pytest.mark.asyncio
 async def test_non_target_passthrough(tmp_db):
-    addon = AgentBoxAddon()
-    addon.hitl_queue = HITLQueue()
-    addon.storage_path = tmp_db
-    flow = _make_flow(host="example.com")
-
     from agentbox import storage as _storage
     await _storage.init_db(tmp_db)
-
-    with patch("agentbox.proxy.addon.asyncio") as mock_asyncio:
-        mock_asyncio.get_event_loop.return_value.run_until_complete = MagicMock()
-        addon.request(flow)
-        mock_asyncio.get_event_loop.return_value.run_until_complete.assert_not_called()
+    addon = AgentBoxAddon()
+    addon.hitl_queue = HITLQueue()
+    addon.ws_hub = None
+    addon.storage_path = tmp_db
+    flow = _make_flow(host="example.com")
+    await addon.request(flow)
+    assert flow.response is None
 
 
 @pytest.mark.asyncio

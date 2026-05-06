@@ -19,12 +19,10 @@ class AgentBoxAddon:
         self.ws_hub = None
         self.storage_path: str = cfg.DB_PATH
 
-    def request(self, flow: http.HTTPFlow) -> None:
+    async def request(self, flow: http.HTTPFlow) -> None:
         if flow.request.pretty_host != _TARGET_HOST:
             return
-        # Bridge sync mitmproxy hook → async HITL logic
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._handle(flow))
+        await self._handle(flow)
 
     async def _handle(self, flow: http.HTTPFlow) -> None:
         event_id = uuid.uuid4().hex
