@@ -1,0 +1,55 @@
+import asyncio
+import sys
+
+import uvicorn
+
+from agentbox.config import cfg
+from agentbox.logging_setup import setup as setup_logging
+
+
+def _run() -> None:
+    setup_logging()
+    from agentbox.api.server import create_app
+    from agentbox.proxy.master import start_master
+    from agentbox.proxy.addon import AgentBoxAddon
+
+    app = create_app()
+    addon = AgentBoxAddon()
+
+    async def _main() -> None:
+        server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning"))
+        await asyncio.gather(
+            start_master(addon, cfg.PROXY_PORT),
+            server.serve(),
+        )
+
+    asyncio.run(_main())
+
+
+def _ca_install() -> None:
+    from pathlib import Path
+    from agentbox.proxy.ca import ensure_ca
+    ca_crt, _ = ensure_ca(Path(cfg.CA_DIR))
+    print(f"CA certificate ready: {ca_crt}")
+    print("Run scripts/install_ca.sh to register in system trust store.")
+
+
+def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser(prog="agentbox", description="AgentBox local MITM sandbox")
+    sub = parser.add_subparsers(dest="cmd")
+    sub.add_parser("run", help="Start proxy + API server")
+    sub.add_parser("ca", help="Ensure CA certificate exists")
+    args = parser.parse_args()
+
+    if args.cmd == "run":
+        _run()
+    elif args.cmd == "ca":
+        _ca_install()
+    else:
+        parser.print_help()
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

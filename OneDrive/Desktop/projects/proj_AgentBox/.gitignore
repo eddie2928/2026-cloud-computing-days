@@ -1,0 +1,16 @@
+certs/*.crt
+certs/*.key
+certs/*.pem
+data/
+logs/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.env

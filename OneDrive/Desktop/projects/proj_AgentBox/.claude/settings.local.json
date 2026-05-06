@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl *)",
+      "Bash(Start-Sleep -Seconds 30)",
+      "PowerShell(wsl -d Ubuntu -e bash -c \"ls /mnt/c/ 2>&1 | head -5\")",
+      "PowerShell(wsl -d Ubuntu -e cat *)",
+      "PowerShell(wsl -d Ubuntu -e bash -c \"cd ~/agentbox && source ~/agentbox-venv/bin/activate && python -m pytest tests/ -q --tb=short 2>&1 | tail -20\")"
+    ]
+  }
+}
