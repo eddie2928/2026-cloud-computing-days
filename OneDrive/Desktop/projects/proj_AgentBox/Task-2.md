@@ -443,15 +443,15 @@
 - [ ] 1D-6 MCP decrypt 플로우 E2E 검증 - EC2 배포 후 검증 필요
 
 ### Phase 2A - Lambda MCP + Bedrock
-- [ ] 2A-1 Bedrock 모델 액세스
-- [ ] 2A-2 Terraform Lambda MCP 브릿지
-- [ ] 2A-3 Terraform Bedrock Agent
-- [ ] 2A-4 InvokeAgent 통합 + KB 정리
-- [ ] 2A-5 의미론적 fallback
-- [ ] 2A-6 비용 가드
-- [ ] 2A-7 KB sync 지연 측정 및 방식 결정
-- [ ] 2A-8 단위 테스트
-- [ ] 2A-9 통합 테스트 (실 Bedrock)
+- [ ] 2A-1 Bedrock 모델 액세스 - AWS Console 수동 승인 필요
+- [x] 2A-2 Terraform Lambda MCP 브릿지
+- [x] 2A-3 Terraform Bedrock Agent IAM (Agent 리소스는 모델 액세스 후 활성화)
+- [x] 2A-4 InvokeAgent 통합 + KB 정리 (ec2/grpc_server/server.py)
+- [x] 2A-5 의미론적 fallback (semantic_fallback.py)
+- [x] 2A-6 비용 가드 (토큰 cap, 프롬프트 길이 제한)
+- [ ] 2A-7 KB sync 지연 측정 - 실 Bedrock 배포 후 측정 필요
+- [x] 2A-8 단위 테스트 (test_bedrock_client.py)
+- [ ] 2A-9 통합 테스트 (실 Bedrock) - EC2 배포 후 실행 필요
 
 ### Phase 2B - SaaS 대시보드
 - [ ] 2B-1 Vite/React 스캐폴드
