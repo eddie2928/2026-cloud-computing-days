@@ -71,6 +71,7 @@ def _setup_shell() -> None:
     marker = "# AgentBox shell integration"
     integration = f"""
 {marker}
+unalias agentbox 2>/dev/null
 agentbox() {{
     case "$1" in
         on)  source {scripts_dir}/activate.sh ;;
