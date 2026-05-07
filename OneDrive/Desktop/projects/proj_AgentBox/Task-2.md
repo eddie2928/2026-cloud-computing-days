@@ -435,12 +435,12 @@
 - [x] 1C-8 통합 테스트
 
 ### Phase 1D - SOPS 암호화
-- [ ] 1D-1 Terraform KMS + S3 (2버킷)
-- [ ] 1D-2 SOPS 설치 + .sops.yaml
-- [ ] 1D-3 encrypt_and_upload.sh
-- [ ] 1D-4 IAM 최소 권한 확인
-- [ ] 1D-5 보안 검증 (평문 불가)
-- [ ] 1D-6 MCP decrypt 플로우 E2E 검증
+- [x] 1D-1 Terraform KMS + S3 (2버킷)
+- [x] 1D-2 SOPS 설치 + .sops.yaml
+- [x] 1D-3 encrypt_and_upload.sh
+- [x] 1D-4 IAM 최소 권한 확인
+- [ ] 1D-5 보안 검증 (평문 불가) - EC2 배포 후 검증 필요
+- [ ] 1D-6 MCP decrypt 플로우 E2E 검증 - EC2 배포 후 검증 필요
 
 ### Phase 2A - Lambda MCP + Bedrock
 - [ ] 2A-1 Bedrock 모델 액세스
