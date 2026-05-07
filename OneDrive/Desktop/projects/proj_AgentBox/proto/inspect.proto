@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package agentbox;
+
+service Inspector {
+  rpc Inspect(InspectRequest) returns (InspectResponse);
+}
+
+message InspectRequest {
+  string user_id = 1;
+  string prompt  = 2;
+  string model   = 3;
+}
+
+message InspectResponse {
+  string verdict          = 1;  // "ALLOW" | "BLOCK"
+  repeated string reasons = 2;
+  string event_id         = 3;
+}

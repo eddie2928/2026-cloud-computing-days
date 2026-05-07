@@ -417,12 +417,12 @@
 - [x] 1A-8 eBPF stats 로깅
 
 ### Phase 1B - gRPC 클라이언트
-- [ ] 1B-1 proto 정의
-- [ ] 1B-2 gRPC 클라이언트
-- [ ] 1B-3 mTLS 인증서
-- [ ] 1B-4 Addon 수정 (HITL 제거)
-- [ ] 1B-5 단위 테스트
-- [ ] 1B-6 통합 테스트
+- [x] 1B-1 proto 정의
+- [x] 1B-2 gRPC 클라이언트
+- [x] 1B-3 mTLS 인증서
+- [x] 1B-4 Addon 수정 (HITL 제거)
+- [x] 1B-5 단위 테스트
+- [x] 1B-6 통합 테스트
 
 ### Phase 1C - EC2 서버 3종
 - [ ] 1C-1 Terraform EC2+보안그룹+IAM

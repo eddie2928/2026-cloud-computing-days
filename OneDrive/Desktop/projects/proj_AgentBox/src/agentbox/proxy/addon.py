@@ -1,21 +1,38 @@
-import asyncio
+import hashlib
+import json
 import uuid
 from datetime import datetime, timezone
 
+import grpc
 from loguru import logger
 from mitmproxy import http
 
 from agentbox.config import cfg
-from agentbox.models import PromptEvent
 
 _TARGET_HOST = "api.anthropic.com"
 _TARGET_PATH = "/v1/messages"
 _EXCERPT_LEN = 500
 
 
+def _extract_user_id(body: str) -> str:
+    """Best-effort: pull 'user' field from Claude Code request metadata."""
+    try:
+        data = json.loads(body)
+        return str(data.get("metadata", {}).get("user_id", "unknown"))
+    except Exception:
+        return "unknown"
+
+
+def _extract_model(body: str) -> str:
+    try:
+        return str(json.loads(body).get("model", ""))
+    except Exception:
+        return ""
+
+
 class AgentBoxAddon:
     def __init__(self) -> None:
-        # Injected by server after creation
+        # legacy attrs kept so existing tests still inject them without error
         self.hitl_queue = None
         self.ws_hub = None
         self.storage_path: str = cfg.DB_PATH
@@ -30,44 +47,46 @@ class AgentBoxAddon:
     async def _handle(self, flow: http.HTTPFlow) -> None:
         event_id = uuid.uuid4().hex
         body = flow.request.get_text(strict=False) or ""
-        excerpt = body[:_EXCERPT_LEN]
+        user_id = _extract_user_id(body)
+        model = _extract_model(body)
+        prompt_hash = hashlib.sha256(body.encode()).hexdigest()
 
-        event = PromptEvent(
-            id=event_id,
-            created_at=datetime.now(timezone.utc),
-            source="claude_code",
-            method=flow.request.method,  # type: ignore[arg-type]
-            url=flow.request.pretty_url,
-            request_headers=dict(flow.request.headers),
-            request_body=body,
-            prompt_excerpt=excerpt,
-            status="pending",
-        )
+        logger.info("inspect_start", event_id=event_id, user_id=user_id,
+                    prompt_hash=prompt_hash[:12])
 
-        from agentbox import storage as _storage
-        await _storage.insert_event(self.storage_path, event)
-        logger.info("event_created", event_id=event_id, url=event.url)
+        if cfg.GRPC_HOST:
+            verdict, reasons = await self._grpc_inspect(event_id, body, user_id, model)
+        else:
+            # No EC2 configured — allow and log (development mode)
+            verdict, reasons = "ALLOW", []
+            logger.warning("grpc_not_configured", event_id=event_id)
 
-        if self.ws_hub:
-            from agentbox.models import WSMessage
-            await self.ws_hub.broadcast(WSMessage(type="event_created", event=event).model_dump_json())
-
-        try:
-            verdict = await self.hitl_queue.wait(event_id, timeout=cfg.HITL_TIMEOUT)
-        except asyncio.TimeoutError:
-            verdict = "block"
-            await _storage.update_verdict(
-                self.storage_path, event_id,
-                status="failed", verdict_by="auto",
-                resolved_at=datetime.now(timezone.utc).isoformat(),
-                error="HITL timeout",
-            )
-            logger.warning("hitl_timeout", event_id=event_id)
-
-        if verdict == "block":
+        if verdict == "BLOCK":
+            reason_text = "; ".join(reasons) if reasons else "blocked by policy"
             flow.response = http.Response.make(
-                403, b"Blocked by AgentBox", {"content-type": "text/plain"}
+                403, f"Blocked by AgentBox: {reason_text}".encode(),
+                {"content-type": "text/plain"},
             )
-            logger.info("verdict_block", event_id=event_id)
+            logger.info("verdict_block", event_id=event_id, reasons=reasons)
         else:
             logger.info("verdict_allow", event_id=event_id)
+
+    async def _grpc_inspect(
+        self, event_id: str, body: str, user_id: str, model: str
+    ) -> tuple[str, list[str]]:
+        """1B-4: Call EC2 Inspector via gRPC. On any error -> safe BLOCK."""
+        try:
+            from agentbox.grpc.client import inspect as grpc_inspect
+            resp = grpc_inspect(user_id=user_id, prompt=body, model=model)
+            verdict = resp.verdict.upper() if resp.verdict else "BLOCK"
+            reasons = list(resp.reasons)
+            logger.info("grpc_verdict", event_id=event_id, verdict=verdict,
+                        grpc_event_id=resp.event_id)
+            return verdict, reasons
+        except grpc.RpcError as exc:
+            logger.error("grpc_error", event_id=event_id,
+                         code=exc.code(), detail=exc.details())
+            return "BLOCK", ["gRPC 오류: 안전 차단"]
+        except Exception as exc:
+            logger.error("grpc_unexpected", event_id=event_id, error=str(exc))
+            return "BLOCK", ["검사 서버 오류: 안전 차단"]
