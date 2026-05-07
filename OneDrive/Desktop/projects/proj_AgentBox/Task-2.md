@@ -461,10 +461,10 @@
 - [ ] 2B-5 Lighthouse - EC2 배포 후 측정 필요
 
 ### Phase 2C - 로깅/모니터링
-- [ ] 2C-1 CloudWatch Logs
-- [ ] 2C-2 Custom Metrics
-- [ ] 2C-3 SNS 알람
-- [ ] 2C-4 보존 정책
+- [x] 2C-1 CloudWatch Logs (log groups + SSM agent config)
+- [x] 2C-2 Custom Metrics (DynamoDB Streams -> Lambda -> BlockRate/EventCount)
+- [x] 2C-3 SNS 알람 (BlockRate>10%, ErrorRate>5%)
+- [x] 2C-4 보존 정책 (CloudWatch 90일, DynamoDB events TTL 365일)
 
 ---
 

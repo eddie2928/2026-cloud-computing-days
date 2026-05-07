@@ -31,6 +31,10 @@ resource "aws_dynamodb_table" "events" {
     enabled        = true
   }
 
+  # 2C-2: Enable DynamoDB Streams for metrics Lambda
+  stream_enabled   = true
+  stream_view_type = "NEW_IMAGE"
+
   tags = { Name = "${var.project}-events" }
 }
 
