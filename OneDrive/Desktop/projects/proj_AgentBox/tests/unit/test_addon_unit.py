@@ -1,7 +1,7 @@
 import asyncio
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
+import grpc
 
 from agentbox.proxy.addon import AgentBoxAddon
 from agentbox.api.hitl import HITLQueue
@@ -19,136 +19,88 @@ def _make_flow(host="api.anthropic.com", method="POST", body=b'{"model":"test"}'
 
 
 @pytest.mark.asyncio
-async def test_non_target_passthrough(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
+async def test_non_target_passthrough():
     addon = AgentBoxAddon()
-    addon.hitl_queue = HITLQueue()
-    addon.ws_hub = None
-    addon.storage_path = tmp_db
     flow = _make_flow(host="example.com")
     await addon.request(flow)
     assert flow.response is None
 
 
 @pytest.mark.asyncio
-async def test_allow_verdict_no_response(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
-
-    queue = HITLQueue()
+async def test_allow_verdict_no_response():
     addon = AgentBoxAddon()
-    addon.hitl_queue = queue
-    addon.ws_hub = None
-    addon.storage_path = tmp_db
-
     flow = _make_flow()
 
-    async def resolve_after():
-        await asyncio.sleep(0.01)
-        # find the pending event id and resolve it
-        rows = await _storage.list_events(tmp_db, status="pending")
-        if rows:
-            queue.resolve(rows[0]["id"], "allow")
+    mock_resp = MagicMock()
+    mock_resp.verdict = "ALLOW"
+    mock_resp.reasons = []
+    mock_resp.event_id = "abc123"
 
-    await asyncio.gather(addon._handle(flow), resolve_after())
+    with patch("agentbox.grpc.client.inspect", return_value=mock_resp), \
+         patch("agentbox.config.cfg.GRPC_HOST", "localhost"):
+        await addon._handle(flow)
+
     assert flow.response is None
 
 
 @pytest.mark.asyncio
-async def test_block_verdict_sets_403(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
-
-    queue = HITLQueue()
+async def test_block_verdict_sets_403():
     addon = AgentBoxAddon()
-    addon.hitl_queue = queue
-    addon.ws_hub = None
-    addon.storage_path = tmp_db
-
     flow = _make_flow()
 
-    async def resolve_after():
-        await asyncio.sleep(0.01)
-        rows = await _storage.list_events(tmp_db, status="pending")
-        if rows:
-            queue.resolve(rows[0]["id"], "block")
+    mock_resp = MagicMock()
+    mock_resp.verdict = "BLOCK"
+    mock_resp.reasons = ["내부 코드 유출 탐지"]
+    mock_resp.event_id = "abc123"
 
-    await asyncio.gather(addon._handle(flow), resolve_after())
+    with patch("agentbox.grpc.client.inspect", return_value=mock_resp), \
+         patch("agentbox.config.cfg.GRPC_HOST", "localhost"):
+        await addon._handle(flow)
+
     assert flow.response is not None
     assert flow.response.status_code == 403
 
 
+class _FakeRpcError(grpc.RpcError):
+    def code(self):
+        return grpc.StatusCode.UNAVAILABLE
+    def details(self):
+        return "connection refused"
+
+
 @pytest.mark.asyncio
-async def test_timeout_causes_block(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
-
-    queue = HITLQueue()
+async def test_grpc_error_causes_block():
     addon = AgentBoxAddon()
-    addon.hitl_queue = queue
-    addon.ws_hub = None
-    addon.storage_path = tmp_db
-
     flow = _make_flow()
 
-    with patch.object(addon, '_handle', wraps=addon._handle):
-        # patch timeout to 0.05s
-        import agentbox.proxy.addon as addon_mod
-        orig_timeout = addon_mod.cfg.HITL_TIMEOUT
-        addon_mod.cfg.HITL_TIMEOUT = 0.05
-        try:
-            await addon._handle(flow)
-        finally:
-            addon_mod.cfg.HITL_TIMEOUT = orig_timeout
+    with patch("agentbox.grpc.client.inspect", side_effect=_FakeRpcError()), \
+         patch("agentbox.config.cfg.GRPC_HOST", "localhost"):
+        await addon._handle(flow)
 
     assert flow.response is not None
     assert flow.response.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_event_stored_on_intercept(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
-
-    queue = HITLQueue()
+async def test_unexpected_exception_causes_block():
     addon = AgentBoxAddon()
-    addon.hitl_queue = queue
-    addon.ws_hub = None
-    addon.storage_path = tmp_db
-
     flow = _make_flow()
 
-    async def resolve_after():
-        await asyncio.sleep(0.01)
-        rows = await _storage.list_events(tmp_db, status="pending")
-        if rows:
-            queue.resolve(rows[0]["id"], "allow")
+    with patch("agentbox.grpc.client.inspect", side_effect=RuntimeError("boom")), \
+         patch("agentbox.config.cfg.GRPC_HOST", "localhost"):
+        await addon._handle(flow)
 
-    await asyncio.gather(addon._handle(flow), resolve_after())
-    rows = await _storage.list_events(tmp_db)
-    assert len(rows) >= 1
+    assert flow.response is not None
+    assert flow.response.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_ws_broadcast_called(tmp_db):
-    from agentbox import storage as _storage
-    await _storage.init_db(tmp_db)
-
-    queue = HITLQueue()
-    hub = AsyncMock()
+async def test_no_grpc_host_allows():
+    """When GRPC_HOST is empty (dev mode), traffic is allowed through."""
     addon = AgentBoxAddon()
-    addon.hitl_queue = queue
-    addon.ws_hub = hub
-    addon.storage_path = tmp_db
-
     flow = _make_flow()
 
-    async def resolve_after():
-        await asyncio.sleep(0.01)
-        rows = await _storage.list_events(tmp_db, status="pending")
-        if rows:
-            queue.resolve(rows[0]["id"], "allow")
+    with patch("agentbox.config.cfg.GRPC_HOST", ""):
+        await addon._handle(flow)
 
-    await asyncio.gather(addon._handle(flow), resolve_after())
-    hub.broadcast.assert_called_once()
+    assert flow.response is None

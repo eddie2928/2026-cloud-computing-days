@@ -73,7 +73,7 @@ async def post_verdict(event_id: str, verdict: Verdict, request: Request):
 
 
 @router.websocket("/ws")
-async def ws_endpoint(websocket: WebSocket, request: Request):
+async def ws_endpoint(websocket: WebSocket):
     hub = websocket.app.state.ws_hub
     await hub.connect(websocket)
     try:
