@@ -1,0 +1,21 @@
+# Regex ruleset for 1C-3 gRPC server - 1차 필터 (즉시 BLOCK, Bedrock 호출 생략)
+rules:
+  - id: secret_key
+    pattern: "(?i)(secret[_\\-]?key|api[_\\-]?key|access[_\\-]?key)\\s*[:=]\\s*[A-Za-z0-9/+]{16,}"
+    reason: "내부 기밀값 유출 탐지 (API Key 패턴)"
+
+  - id: aws_access_key
+    pattern: "AKIA[0-9A-Z]{16}"
+    reason: "내부 기밀값 유출 탐지 (AWS Access Key ID)"
+
+  - id: private_key_pem
+    pattern: "-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----"
+    reason: "내부 기밀값 유출 탐지 (Private Key PEM)"
+
+  - id: password_literal
+    pattern: "(?i)(password|passwd|pwd)\\s*[:=]\\s*[^\\s]{8,}"
+    reason: "내부 기밀값 유출 탐지 (Password 리터럴)"
+
+  - id: db_connection_string
+    pattern: "(?i)(mongodb|postgresql|mysql|redis)://[^@\\s]+@"
+    reason: "내부 기밀값 유출 탐지 (DB 연결 문자열)"

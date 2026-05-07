@@ -425,14 +425,14 @@
 - [x] 1B-6 통합 테스트
 
 ### Phase 1C - EC2 서버 3종
-- [ ] 1C-1 Terraform EC2+보안그룹+IAM
-- [ ] 1C-2 systemd 서비스 3개
-- [ ] 1C-3 gRPC 서버 (regex+Bedrock)
-- [ ] 1C-4 MCP 서버 (decrypt_and_stage + cleanup)
-- [ ] 1C-5 SaaS 기본 API
-- [ ] 1C-6 DynamoDB 테이블+GSI
-- [ ] 1C-7 단위 테스트
-- [ ] 1C-8 통합 테스트
+- [x] 1C-1 Terraform EC2+보안그룹+IAM
+- [x] 1C-2 systemd 서비스 3개
+- [x] 1C-3 gRPC 서버 (regex+Bedrock)
+- [x] 1C-4 MCP 서버 (decrypt_and_stage + cleanup)
+- [x] 1C-5 SaaS 기본 API
+- [x] 1C-6 DynamoDB 테이블+GSI
+- [x] 1C-7 단위 테스트
+- [x] 1C-8 통합 테스트
 
 ### Phase 1D - SOPS 암호화
 - [ ] 1D-1 Terraform KMS + S3 (2버킷)
