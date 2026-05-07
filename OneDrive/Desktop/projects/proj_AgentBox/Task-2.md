@@ -454,11 +454,11 @@
 - [ ] 2A-9 통합 테스트 (실 Bedrock) - EC2 배포 후 실행 필요
 
 ### Phase 2B - SaaS 대시보드
-- [ ] 2B-1 Vite/React 스캐폴드
-- [ ] 2B-2 인증 (admin 토큰)
-- [ ] 2B-3 화면 4개 구현
-- [ ] 2B-4 Playwright E2E
-- [ ] 2B-5 Lighthouse
+- [x] 2B-1 Vite/React 스캐폴드
+- [x] 2B-2 인증 (admin 토큰)
+- [x] 2B-3 화면 4개 구현
+- [x] 2B-4 Playwright E2E
+- [ ] 2B-5 Lighthouse - EC2 배포 후 측정 필요
 
 ### Phase 2C - 로깅/모니터링
 - [ ] 2C-1 CloudWatch Logs
