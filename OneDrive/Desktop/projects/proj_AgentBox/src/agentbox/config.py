@@ -11,5 +11,17 @@ class Settings(BaseSettings):
     HITL_TIMEOUT: float = 300.0
     DEBUG: bool = False
 
+    # Phase 1A: transparent interception (iptables REDIRECT, no HTTPS_PROXY needed)
+    TRANSPARENT_MODE: bool = False
+    EBPF_STATS_LOG: str = "logs/ebpf-stats.log"
+
+    # Phase 1B: EC2 gRPC endpoint
+    GRPC_HOST: str = ""
+    GRPC_PORT: int = 50051
+    GRPC_TIMEOUT: float = 5.0
+    GRPC_CA_CERT: str = ""   # path to agentbox-ca.crt for mTLS
+    GRPC_CLIENT_CERT: str = ""  # path to endpoint.crt
+    GRPC_CLIENT_KEY: str = ""   # path to endpoint.key
+
 
 cfg = Settings()

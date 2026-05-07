@@ -47,10 +47,17 @@ def _run() -> None:
 
     async def _main() -> None:
         server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning"))
-        await asyncio.gather(
+        tasks = [
             start_master(addon, cfg.PROXY_PORT),
             server.serve(),
-        )
+        ]
+        if cfg.TRANSPARENT_MODE:
+            from agentbox.proxy.ebpf_stats import run_stats_loop
+            stats_log = cfg.EBPF_STATS_LOG
+            if not Path(stats_log).is_absolute():
+                stats_log = str(_PROJ_ROOT / stats_log)
+            tasks.append(run_stats_loop(stats_log))
+        await asyncio.gather(*tasks)
 
     asyncio.run(_main())
 
