@@ -63,18 +63,49 @@ def _ca_install() -> None:
     print("Run scripts/install_ca.sh to register in system trust store.")
 
 
+def _setup_shell() -> None:
+    _resolve_paths()
+    scripts_dir = _PROJ_ROOT / "scripts"
+    bashrc = Path.home() / ".bashrc"
+
+    marker = "# AgentBox shell integration"
+    integration = f"""
+{marker}
+agentbox() {{
+    case "$1" in
+        on)  source {scripts_dir}/activate.sh ;;
+        off) source {scripts_dir}/deactivate.sh ;;
+        *)   command agentbox "$@" ;;
+    esac
+}}
+"""
+    content = bashrc.read_text() if bashrc.exists() else ""
+    if marker in content:
+        print("Shell integration already installed in ~/.bashrc")
+        return
+    with open(bashrc, "a") as f:
+        f.write(integration)
+    print("Shell integration added to ~/.bashrc")
+    print("Run:  source ~/.bashrc")
+    print("Then: agentbox on   # activate proxy")
+    print("      agentbox off  # deactivate proxy")
+
+
 def main() -> None:
     import argparse
     parser = argparse.ArgumentParser(prog="agentbox", description="AgentBox local MITM sandbox")
     sub = parser.add_subparsers(dest="cmd")
     sub.add_parser("run", help="Start proxy + API server")
     sub.add_parser("ca", help="Ensure CA certificate exists")
+    sub.add_parser("setup", help="Install agentbox on/off shell integration into ~/.bashrc")
     args = parser.parse_args()
 
     if args.cmd == "run":
         _run()
     elif args.cmd == "ca":
         _ca_install()
+    elif args.cmd == "setup":
+        _setup_shell()
     else:
         parser.print_help()
         sys.exit(0)

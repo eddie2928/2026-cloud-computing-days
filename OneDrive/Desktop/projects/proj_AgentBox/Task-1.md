@@ -357,7 +357,7 @@ class WSMessage(BaseModel):
 - [x] **E2.** `static/app.js` — 바닐라 JS:
   - `new WebSocket("ws://" + location.host + "/ws")` 연결, `event_created`/`verdict_set` 처리하여 DOM 갱신
   - Allow/Block 버튼: `fetch("/verdict/" + id, {method:"POST", body: JSON.stringify({decision})})`
-- [ ] **E3.** 수동 검증: `agentbox run` 후 `http://localhost:8000` 접속, 가짜 POST `/dev/seed` (개발 빌드에서만 노출)로 샘플 이벤트 주입 → 화면에 즉시 표시 → Allow/Block 클릭 시 status 변경
+- [x] **E3.** 수동 검증: `agentbox run` 후 `http://localhost:8000` 접속, 가짜 POST `/dev/seed` (개발 빌드에서만 노출)로 샘플 이벤트 주입 → 화면에 즉시 표시 → Allow/Block 클릭 시 status 변경
 
 > 주의: `/dev/seed` 라우터는 `config.DEBUG=True` 일 때만 라우팅에 등록한다 (운영 시 미노출).
 
@@ -376,7 +376,7 @@ class WSMessage(BaseModel):
   5. 동일 시나리오 ALLOW 버전: 클라이언트 200 수신, mock 호출=1, DB status=allowed
 - [x] **F3.** 전체 테스트 + 커버리지: `pytest --cov=agentbox --cov-report=term-missing tests/`
   - 완료 조건: 모든 테스트 통과, line coverage ≥ 80%
-- [ ] **F4.** **수동 E2E (실제 Claude Code)**:
+- [x] **F4.** **수동 E2E (실제 Claude Code)**:
   1. `agentbox run`
   2. 별도 터미널: `export HTTPS_PROXY=http://127.0.0.1:8080; export NODE_EXTRA_CA_CERTS=$(pwd)/certs/agentbox-ca.crt`
   3. `claude --print "테스트 프롬프트입니다"` 실행 (응답 받지 못하고 hang)
@@ -393,7 +393,7 @@ class WSMessage(BaseModel):
 
 - [x] **G1.** `README.md` 작성: 설치, CA 등록, HTTPS_PROXY 설정, Claude Code 사용 예시, 트러블슈팅(인증서 신뢰 실패, 포트 충돌, hang)
 - [x] **G2.** 감사 로그 위치 명시 (`logs/agentbox.log`, `data/agentbox.db`) 및 SQL 조회 예시 포함
-- [ ] **G3.** `Task-1.md` 본 문서의 모든 체크박스가 `[x]`인지 최종 점검 후 사용자에게 완료 보고
+- [x] **G3.** `Task-1.md` 본 문서의 모든 체크박스가 `[x]`인지 최종 점검 후 사용자에게 완료 보고
 
 **Phase G Gate:** README의 "Quick Start" 단계대로 따라 했을 때 외부인이 SC-1~SC-6를 재현 가능.
 
