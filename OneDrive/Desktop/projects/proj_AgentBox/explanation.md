@@ -1,200 +1,294 @@
-# AgentBox — 동작 원리, 데이터 흐름, 기술 용어
+# AgentBox - 시스템 구조와 워크플로우
+
+---
 
 ## 1. 한 줄 요약
 
-AgentBox는 Claude Code CLI와 Anthropic 서버 사이에 끼어들어, 모든 AI 요청을 **사람이 Allow/Block할 때까지 실시간으로 멈추는** 로컬 HITL(Human-In-The-Loop) 프록시다.
+AgentBox는 Claude Code와 Anthropic API 사이에 투명 프록시를 삽입해, **기업 코드 유출 여부를 Bedrock Agent가 자동으로 판단하고 차단**하는 보안 감사 시스템이다.
 
 ---
 
-## 2. 전체 데이터 흐름
+## 2. 전체 인프라 아키텍처
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  WSL2 Ubuntu                                                    │
-│                                                                 │
-│  ┌──────────────┐                                               │
-│  │  claude CLI  │  (Node.js 프로세스)                            │
-│  └──────┬───────┘                                               │
-│         │ HTTPS 요청                                             │
-│         │ (env: HTTPS_PROXY=http://127.0.0.1:8080)              │
-│         │ (env: NODE_EXTRA_CA_CERTS=certs/agentbox-ca.crt)      │
-│         ▼                                                       │
-│  ┌──────────────────────────────────────┐                       │
-│  │  mitmproxy :8080  (AgentBoxAddon)   │                       │
-│  │                                      │                       │
-│  │  1. TLS 복호화 (동적 leaf cert 발급) │                       │
-│  │  2. request 후킹                     │                       │
-│  │  3. api.anthropic.com + /v1/messages │                       │
-│  │     만 필터링                         │                       │
-│  │  4. HITLQueue.wait(event_id) ──────► PENDING (asyncio.Future)│
-│  │     ↑ 여기서 요청이 멈춤              │                       │
-│  └──────┬───────────────────────────────┘                       │
-│         │ 공유 메모리 (같은 asyncio 루프)                        │
-│         ▼                                                       │
-│  ┌────────────────────────────────────┐                         │
-│  │  FastAPI + uvicorn :8000           │                         │
-│  │                                    │                         │
-│  │  ┌─────────┐   ┌────────────────┐  │                         │
-│  │  │ SQLite  │   │ WebSocket /ws  │  │                         │
-│  │  │(events) │   │ (WSHub)        │──┼──► Browser UI           │
-│  │  └────┬────┘   └───────┬────────┘  │    (실시간 tailing)     │
-│  │       │                │            │         │               │
-│  │  ┌────▼────────────────▼────────┐  │         │               │
-│  │  │ HITLQueue (asyncio.Future)   │  │         │ Allow / Block  │
-│  │  │  .wait()  ←→  .resolve()    │◄─┼─────────┘               │
-│  │  └─────────────────────────────┘  │   POST /verdict/{id}     │
-│  └────────────────────────────────────┘                         │
-│         │ verdict == allow                                       │
-│         ▼                                                       │
-│  mitmproxy가 요청을 upstream으로 forward                         │
-│         │                                                       │
-└─────────┼───────────────────────────────────────────────────────┘
-          │ TLS (실제 인터넷)
-          ▼
-   api.anthropic.com
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ Endpoint  (WSL2 / Linux VM)                                                    │
+│                                                                                │
+│  [1회성 초기화]                                                                  │
+│  $ encrypt_and_upload.sh ./src/  ─────────────────────────────────────────────►│
+│                                                                                │
+│  Claude Code (Node.js)                                                         │
+│      │                                                                         │
+│      │ iptables OUTPUT REDIRECT                                                │
+│      │ (uid-based, dport 443 → :8080)                                          │
+│      ▼                                                                         │
+│  mitmproxy :8080 (AgentBoxAddon)                                               │
+│  ├── TLS 복호화 (agentbox-ca.crt, 동적 leaf cert)                               │
+│  ├── api.anthropic.com/v1/messages 만 필터                                     │
+│  └── gRPC Inspect(prompt, user_id) ──── mTLS ──────────────────────────────►  │
+│         │ verdict{ALLOW|BLOCK, reasons}  ◄────────────────────────────────── │
+│         │                                                                      │
+│         ├── BLOCK → 403 "Blocked by AgentBox"                                 │
+│         └── ALLOW → upstream forward                                           │
+└────────────────────────────────────────────────────────────────────────────────┘
+                                    │ mTLS gRPC :50051
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ AWS  us-east-1                                          VPC  10.0.0.0/16       │
+│                                                                                │
+│  ┌───────────────────── Public Subnet 10.0.1.0/24 + EIP ──────────────────┐   │
+│  │                                                                         │   │
+│  │  EC2  t3.micro                                                          │   │
+│  │                                                                         │   │
+│  │  ┌── agentbox-grpc :50051 ─────────────────────────────────────────┐   │   │
+│  │  │   SG: endpoint CIDR 만 허용                                      │   │   │
+│  │  │   IAM: KMS Decrypt · S3 Read(encrypted-code)                    │   │   │
+│  │  │        S3 Write/Delete(kb-staging) · Bedrock · DynamoDB         │   │   │
+│  │  │                                                                  │   │   │
+│  │  │   ① regex 1차 필터 (rules.yaml) — 패턴 매칭 시 즉시 BLOCK        │   │   │
+│  │  │   ② bedrock-agent-runtime.invoke_agent(prompt)                  │   │   │
+│  │  │   ③ 검사 완료 후 DynamoDB events 기록                            │   │   │
+│  │  │   ④ InspectResponse{verdict, reasons, event_id} 반환            │   │   │
+│  │  └──────────────────────────────────────────────────────────────────┘   │   │
+│  │                                                                         │   │
+│  │  ┌── agentbox-mcp :8443 ───────────────────────────────────────────┐   │   │
+│  │  │   SG: VPC CIDR 만 허용 (Lambda ENI)                              │   │   │
+│  │  │                                                                  │   │   │
+│  │  │   POST /mcp/decrypt_and_stage                                    │   │   │
+│  │  │     S3 encrypted-code ──► sops --decrypt ──► kb-staging 업로드  │   │   │
+│  │  │     bytearray zero-fill                                          │   │   │
+│  │  │   DELETE /mcp/cleanup/{session_id}                               │   │   │
+│  │  │     kb-staging 객체 즉시 삭제                                    │   │   │
+│  │  └──────────────────────────────────────────────────────────────────┘   │   │
+│  │                                                                         │   │
+│  │  ┌── agentbox-saas :8000 ───────────────────────────────────────────►  Browser
+│  │  │   SG: 관리자 IP 만 허용                                             │   │
+│  │  │   WS  /pipeline/stream  — DynamoDB 실시간 이벤트                   │   │
+│  │  │   GET  /audit            — 날짜·verdict 필터 + CSV export           │   │
+│  │  │   PUT  /settings/prompt  — Bedrock 시스템 프롬프트 편집             │   │
+│  │  │   PUT  /settings/kb-ttl  — KB 버킷 객체 보존 기간                  │   │
+│  │  └──────────────────────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                │
+│  Lambda: {project}-mcp-bridge  (Bedrock Action Group)                         │
+│  ├── Bedrock → Lambda: decrypt_and_stage(project_id, session_id)              │
+│  └── Lambda → EC2 MCP: POST /mcp/decrypt_and_stage  (HTTP, VPC 내부)          │
+│                                                                                │
+│  Lambda: {project}-metrics-publisher  (DynamoDB Streams 트리거)               │
+│  └── INSERT/MODIFY 이벤트 → BlockRate · EventCount · ErrorRate → CloudWatch   │
+│                                                                                │
+│  Bedrock Agent  (claude-haiku-20240307)                                        │
+│  ├── Action Group: mcp-bridge Lambda                                           │
+│  ├── Knowledge Base: kb-staging 버킷                                           │
+│  └── 반환: {"verdict": "BLOCK"|"ALLOW", "reasons": [...]}                     │
+│                                                                                │
+│  KMS CMK  alias/agentbox-sops-key                                              │
+│  ├── 개발자 IAM: kms:Encrypt · kms:GenerateDataKey                            │
+│  └── EC2 IAM Role: kms:Decrypt 만                                              │
+│                                                                                │
+│  S3: {project}-encrypted-code   SSE-KMS · 버전관리 · 퍼블릭 차단              │
+│  S3: {project}-kb-staging       SSE-KMS · Bedrock Agent IAM만 GetObject       │
+│                                                                                │
+│  DynamoDB: events    PK=event_id  SK=ts  GSI=user_id-ts  TTL=365일  Stream=ON │
+│  DynamoDB: settings  PK=key  (Bedrock 시스템 프롬프트, KB TTL 등)              │
+│                                                                                │
+│  CloudWatch                                                                    │
+│  ├── Log Groups: /agentbox/ec2/{grpc,mcp,saas}  보존 90일                     │
+│  ├── Alarm: BlockRate  > 10% (10분 평균) → SNS → 이메일                       │
+│  └── Alarm: ErrorRate  > 5%  (10분 평균) → SNS → 이메일                       │
+└────────────────────────────────────────────────────────────────────────────────┘
+                         │ verdict == ALLOW
+                         ▼
+                  api.anthropic.com
 ```
-
-### 단계별 설명
-
-| 단계 | 무슨 일이 일어나는가 |
-|------|----------------------|
-| **①** | `claude --print "..."` 실행 → Node.js가 `HTTPS_PROXY` 환경변수를 읽어 `127.0.0.1:8080`으로 CONNECT 터널 연결 |
-| **②** | mitmproxy가 CONNECT 요청을 받아 클라이언트에게 **agentbox-ca.crt로 서명된 가짜 leaf 인증서** 제시 → TLS 핸드셰이크 성공 (Node.js는 `NODE_EXTRA_CA_CERTS`로 이 CA를 신뢰) |
-| **③** | mitmproxy가 클라이언트 요청을 평문으로 복호화 → `AgentBoxAddon.request()` 훅 호출 |
-| **④** | Addon이 `api.anthropic.com/v1/messages`인지 확인 → 해당하면 `PromptEvent` 생성, SQLite 저장, WebSocket 브로드캐스트 |
-| **⑤** | `HITLQueue.wait(event_id, timeout=300s)` 호출 → asyncio.Future가 완료될 때까지 요청을 블로킹 (mitmproxy는 이 코루틴이 끝날 때까지 upstream으로 forward하지 않음) |
-| **⑥** | Browser UI가 WebSocket으로 PENDING 이벤트 수신 → 사용자에게 표시 |
-| **⑦** | 사용자가 Allow/Block 클릭 → `POST /verdict/{id}` → `HITLQueue.resolve(event_id, verdict)` |
-| **⑧** | asyncio.Future가 완료됨 → `wait()` 반환 → verdict에 따라 분기: `allow`이면 return(forward), `block`이면 `flow.response = 403` |
 
 ---
 
-## 3. 컴포넌트 맵
+## 3. 요청 1건 처리 워크플로우
+
+Claude Code가 Anthropic API를 호출할 때마다 다음 흐름이 실행된다.
 
 ```
-proj_AgentBox/
-├── src/agentbox/
-│   ├── __main__.py        ← CLI 진입점 (agentbox run / ca / setup)
-│   ├── config.py          ← 환경변수 설정 (포트, 경로)
-│   ├── models.py          ← Pydantic 데이터 모델
-│   ├── storage.py         ← SQLite CRUD (aiosqlite)
-│   ├── logging_setup.py   ← loguru 구조화 로깅
-│   ├── proxy/
-│   │   ├── ca.py          ← Root CA 생성/관리
-│   │   ├── addon.py       ← mitmproxy 훅 (핵심 로직)
-│   │   └── master.py      ← DumpMaster 부팅
-│   ├── api/
-│   │   ├── server.py      ← FastAPI 앱 팩토리
-│   │   ├── routes.py      ← REST 엔드포인트
-│   │   ├── ws.py          ← WebSocket 브로드캐스터
-│   │   └── hitl.py        ← asyncio.Future 기반 HITL 큐
-│   └── ui/
-│       └── templates/
-│           └── index.html ← 바닐라 JS 대시보드
-└── scripts/
-    ├── activate.sh        ← source하면 프록시 시작 + env var 설정
-    └── deactivate.sh      ← source하면 프록시 종료 + env var 해제
+Claude Code
+  │  HTTPS POST /v1/messages
+  │  (iptables가 443 → :8080 리다이렉트)
+  ▼
+mitmproxy AddonBox
+  │  TLS 복호화 → prompt, user_id, model 추출
+  │  gRPC Inspect(prompt, user_id, model)  timeout=5s
+  ▼
+EC2 agentbox-grpc
+  │
+  ├─[패턴 매칭]─ rules.yaml regex 1차 필터
+  │                AWS Access Key / 비밀번호 / API Key 등
+  │                매칭 시: 즉시 BLOCK 반환 (Bedrock 생략)
+  │
+  └─[통과]─ bedrock-agent-runtime.invoke_agent(prompt, session_id=event_id)
+                │
+                ▼
+            Bedrock Agent  (claude-haiku)
+                │  "코드 샘플 가져와서 비교하라"
+                │  → Action Group Lambda 호출
+                ▼
+            Lambda mcp-bridge
+                │  POST https://ec2-eip:8443/mcp/decrypt_and_stage
+                │       {project_id, session_id}
+                ▼
+            EC2 agentbox-mcp
+                │  S3 encrypted-code 다운로드 (.enc 파일)
+                │  sops --decrypt  →  bytearray 버퍼
+                │  S3 kb-staging/staging/{session_id}/ 업로드
+                │  bytearray[:] = b'\x00' * len  (zero-fill)
+                │  반환: {kb_bucket, prefix}
+                ▼
+            Bedrock Agent
+                │  KB 버킷 내용과 prompt 비교
+                │  반환: {"verdict": "BLOCK"|"ALLOW", "reasons": [...]}
+                ▼
+EC2 agentbox-grpc
+  │  DELETE /mcp/cleanup/{session_id}  (KB 버킷 객체 삭제)
+  │  DynamoDB events 기록
+  │    (event_id, ts, user_id, prompt_hash, verdict, reasons, latency_ms)
+  │  InspectResponse{verdict, reasons, event_id} 반환
+  ▼
+mitmproxy AddonBox
+  ├── BLOCK → flow.response = HTTP 403 "Blocked by AgentBox: {reasons}"
+  └── ALLOW → return  (upstream forward to api.anthropic.com)
 ```
+
+**Bedrock 장애 시 Fallback 순서:**
+1. regex 1차 필터 통과 후 Bedrock 오류 → semantic fallback (sentence-transformers/all-MiniLM-L6-v2, cosine ≥ 0.85 시 BLOCK)
+2. gRPC timeout(5s) 또는 RpcError → 안전 차단 (BLOCK)
+
+**비용 가드:**
+- `BEDROCK_MAX_TOKENS_PER_DAY` (기본 100,000) 초과 시 regex-only 모드
+- `PROMPT_MAX_CHARS` (기본 8,000) 초과 시 즉시 BLOCK
 
 ---
 
-## 4. 사용된 기술과 역할
+## 4. 코드 암호화 워크플로우 (초기 1회 + 코드 변경 시)
 
-### mitmproxy
-Python 기반 오픈소스 TLS MITM(Man-in-the-Middle) 프록시. 클라이언트와 서버 사이에서 HTTPS 트래픽을 복호화하고 Python 코드(addon)로 조작할 수 있다.
+```
+[개발자 로컬]
 
-- **DumpMaster**: mitmproxy의 실행 엔진. 비대화형(headless)으로 동작.
-- **Addon**: `request()`, `response()` 등 훅을 구현하는 Python 클래스. `async def request()` 형태로 asyncio와 통합.
-- **동적 leaf 인증서**: mitmproxy가 접속 도메인별로 즉석에서 서버 인증서를 위조. Root CA가 이를 서명하므로, CA를 신뢰하는 클라이언트는 검증 통과.
+  $ ./scripts/encrypt_and_upload.sh ./src/
+        │
+        │ SOPS + KMS CMK (alias/agentbox-sops-key)
+        │ Developer IAM: kms:Encrypt 권한
+        ▼
+  ./encrypted/src/**/*.enc    ← 암호문 파일 (바이너리)
+        │
+        │ aws s3 sync
+        ▼
+  S3: {project}-encrypted-code/
+      SSE-KMS (서버 측 2중 암호화)
+      버전관리 ON
 
-### asyncio (Python 표준 라이브러리)
-Python의 단일 스레드 비동기 I/O 프레임워크. AgentBox는 하나의 asyncio 이벤트 루프에서 mitmproxy와 uvicorn을 `asyncio.gather()`로 동시 실행한다.
+[EC2 agentbox-mcp — 검사 요청 1건당]
 
-- **Future**: 나중에 완료될 값의 자리표시자. `HITLQueue`는 이를 이용해 verdict 대기를 구현한다.
-- **gather()**: 여러 코루틴을 병렬로 실행하되 모두 같은 이벤트 루프에서 돌림.
+  S3에서 .enc 다운로드
+        │
+        │ sops --decrypt --output-type binary (subprocess)
+        │ EC2 IAM Role: kms:Decrypt 권한
+        ▼
+  bytearray 버퍼  (메모리, 디스크 미기록)
+        │
+        │ aws s3 put-object
+        ▼
+  S3: {project}-kb-staging/staging/{session_id}/
+      Bedrock Agent IAM Role만 GetObject 허용
+        │
+        ▼
+  Bedrock Agent 판단 완료
+        │
+        │ DELETE (즉시 또는 TTL 5분 이내)
+        ▼
+  KB 버킷 객체 삭제 + bytearray[:] = b'\x00' * len (zero-fill)
+```
 
-### FastAPI + uvicorn
-FastAPI: Python 타입 힌트 기반 웹 프레임워크. REST API와 WebSocket을 모두 지원.  
-uvicorn: ASGI 서버. FastAPI 앱을 asyncio 위에서 구동.
-
-### WebSocket
-HTTP를 업그레이드해 만드는 양방향 지속 연결. 브라우저가 `/ws`에 연결한 채로 있으면, 서버(WSHub)가 새 이벤트 발생 시 즉시 push할 수 있다. 폴링(polling) 없이 실시간 tailing을 구현하는 핵심.
-
-### SQLite + aiosqlite
-SQLite: 파일 하나가 DB인 경량 관계형 DB. 별도 서버 불필요.  
-aiosqlite: SQLite를 asyncio 코루틴으로 감싼 비동기 드라이버.
-
-### Pydantic v2
-Python 타입 힌트로 데이터 검증과 직렬화를 처리하는 라이브러리. `PromptEvent`, `Verdict`, `WSMessage`가 모두 Pydantic 모델이다.
-
-### loguru
-Python 로깅 라이브러리. `logger.info("event_created", event_id=..., url=...)` 형태로 구조화된 JSON 로그를 `logs/agentbox.log`에 기록한다.
-
-### X.509 / TLS
-HTTPS의 인증서 표준. AgentBox는 Root CA 인증서를 생성하고, 각 도메인별로 이 CA가 서명한 leaf 인증서를 동적으로 발급한다. 클라이언트가 이 CA를 신뢰하면 위조된 인증서를 진짜로 받아들인다.
+평문 코드는 검사 순간에만 Bedrock-only 접근 버킷에 임시 존재한다.
+EC2 디스크, 로그, 기타 저장소에 평문이 남지 않는다.
 
 ---
 
-## 5. 핵심 용어 정리
+## 5. 관측성
+
+| 채널 | 내용 | 보존 |
+|------|------|------|
+| CloudWatch Logs `/agentbox/ec2/grpc` | gRPC 서버 stdout (loguru JSON) | 90일 |
+| CloudWatch Logs `/agentbox/ec2/mcp` | MCP 서버 stdout | 90일 |
+| CloudWatch Logs `/agentbox/ec2/saas` | SaaS 서버 stdout | 90일 |
+| CloudWatch Metrics `AgentBox/BlockRate` | DynamoDB Streams → Lambda → CW | - |
+| CloudWatch Metrics `AgentBox/EventCount` | 동일 | - |
+| CloudWatch Metrics `AgentBox/ErrorRate` | 동일 | - |
+| SNS 이메일 알람 | BlockRate > 10% 또는 ErrorRate > 5% (10분 평균) | - |
+| DynamoDB events 테이블 | event_id, verdict, reasons, latency_ms 등 전체 감사 로그 | TTL 365일 |
+| SaaS 대시보드 `/pipeline/stream` | WebSocket 실시간 이벤트 | - |
+
+---
+
+## 6. 보안 모델 요약
+
+| 영역 | 적용 메커니즘 |
+|------|--------------|
+| 트래픽 인터셉트 | iptables uid-based REDIRECT (HTTPS_PROXY 환경변수 불필요) |
+| TLS 복호화 | 자체 Root CA → 동적 leaf cert → agentbox-ca 신뢰 등록 |
+| Endpoint ↔ EC2 통신 | mTLS (자체 CA 서명 endpoint.crt + ec2.crt 양방향 검증) |
+| 코드 암호화 | SOPS + KMS CMK; 개발자=Encrypt 전용, EC2=Decrypt 전용 |
+| KB 버킷 격리 | Bedrock Agent IAM Role만 GetObject; EC2 직접 읽기 불가 |
+| 평문 수명 | 검사 1건 기간만 존재 → 삭제 + zero-fill |
+| EC2 네트워크 | SG로 포트별 소스 CIDR 최소화; 외부 아웃바운드 IGW 직접 |
+| 감사 | DynamoDB events 전건 기록; CloudWatch 알람 자동 통지 |
+
+---
+
+## 7. 로컬 엔드포인트 활성화/비활성화
+
+```
+agentbox on   ← shell 함수 (source scripts/activate.sh)
+  ├── CA 없으면 agentbox ca  →  certs/ 생성
+  ├── trust store 미등록이면  →  install_ca.sh (sudo)
+  ├── AGENTBOX_TRANSPARENT=1 이면
+  │     iptables_redirect.sh on  (uid-based 443→8080 REDIRECT)
+  │     HTTPS_PROXY 미설정
+  └── 아니면 (일반 모드)
+        export HTTPS_PROXY=http://127.0.0.1:8080
+  export NODE_EXTRA_CA_CERTS=certs/agentbox-ca.crt
+  nohup agentbox run &  →  .agentbox.pid 저장
+
+agentbox off  ← shell 함수 (source scripts/deactivate.sh)
+  ├── AGENTBOX_TRANSPARENT=1 이면  iptables_redirect.sh off
+  ├── .agentbox.pid  →  kill
+  └── unset HTTPS_PROXY, NODE_EXTRA_CA_CERTS
+```
+
+> **왜 shell 함수인가?**
+> 자식 프로세스는 부모 shell의 환경변수를 변경할 수 없다.
+> `source`로 현재 shell에서 직접 실행해야 `export`가 반영된다.
+
+---
+
+## 8. 핵심 용어
 
 | 용어 | 의미 |
 |------|------|
-| **MITM (Man-in-the-Middle)** | 두 통신 주체 사이에 끼어 트래픽을 투명하게 감청/조작하는 기법. 여기서는 보안 연구/감사 목적으로 로컬에서만 사용. |
-| **HITL (Human-In-The-Loop)** | 자동화된 흐름에 사람의 판단을 삽입하는 패턴. 요청이 AI를 거치기 전에 사람이 최종 승인/거부. |
-| **HTTPS_PROXY** | HTTP/HTTPS 클라이언트가 프록시 서버를 경유하도록 지정하는 환경변수. Node.js, curl, Python requests 등 대부분의 HTTP 클라이언트가 이를 인식. |
-| **NODE_EXTRA_CA_CERTS** | Node.js 전용 환경변수. 시스템 trust store에 없는 추가 CA 인증서를 지정. Claude Code(Node 기반)가 agentbox-ca.crt를 신뢰하게 만드는 핵심. |
-| **Root CA** | 다른 인증서를 서명할 수 있는 최상위 인증 기관 인증서. 한 번 trust store에 등록하면, 이 CA가 서명한 모든 인증서를 자동 신뢰. |
-| **Leaf Certificate** | 특정 도메인(예: api.anthropic.com)에 대해 발급된 최종 서버 인증서. Root CA가 서명. |
-| **asyncio.Future** | 아직 완료되지 않은 비동기 연산의 자리표시자. `fut.set_result(verdict)`로 완료, `await fut`으로 대기. HITLQueue의 핵심 메커니즘. |
-| **ASGI** | Asynchronous Server Gateway Interface. Python 비동기 웹 앱의 표준 인터페이스. FastAPI는 ASGI 프레임워크, uvicorn은 ASGI 서버. |
-| **Addon (mitmproxy)** | mitmproxy에 등록되는 Python 클래스. 훅 메서드(`request`, `response`, `tls_start` 등)를 구현해 트래픽을 조작. |
-| **DumpMaster** | mitmproxy의 비대화형 실행 모드. 터미널 UI 없이 addon만으로 동작하며 asyncio와 통합 가능. |
-| **WebSocket Broadcast** | 서버가 연결된 모든 WebSocket 클라이언트에게 동시에 메시지를 전송. WSHub가 연결 집합을 관리하고 이벤트 발생 시 일괄 송신. |
-| **aiosqlite** | SQLite를 asyncio로 감싼 드라이버. `await db.execute()`처럼 non-blocking으로 DB 쿼리 가능. |
-| **Verdict** | 사람이 내린 판정: `allow`(허용, forward) 또는 `block`(차단, 403 반환). |
-| **Pending** | HITL 큐에 들어갔으나 아직 verdict를 받지 못한 상태. 이 동안 요청은 upstream으로 가지 않고 멈춰 있음. |
-| **CONNECT 터널** | HTTPS 프록시의 동작 방식. 클라이언트가 `CONNECT api.anthropic.com:443`을 프록시에 보내면, 프록시가 TCP 터널을 생성하고 그 위에서 TLS 핸드셰이크가 진행됨. |
-
----
-
-## 6. 프로세스 토폴로지
-
-```
-단일 Python 프로세스
-└── asyncio.run(_main())
-    └── asyncio.gather(
-            start_master(addon, port=8080),   ← mitmproxy DumpMaster
-            uvicorn.Server(...).serve()        ← FastAPI :8000
-        )
-
-공유 객체 (같은 메모리, 같은 이벤트 루프):
-  HITLQueue  ← addon.hitl_queue == app.state.hitl_queue (동일 인스턴스)
-  WSHub      ← addon.ws_hub    == app.state.ws_hub      (동일 인스턴스)
-```
-
-mitmproxy와 uvicorn이 **같은 asyncio 이벤트 루프**에서 돌기 때문에 IPC(프로세스 간 통신) 없이 메모리 공유만으로 HITLQueue를 통해 결합된다.
-
----
-
-## 7. 활성화/비활성화 흐름
-
-```
-agentbox on  (shell 함수, ~/.bashrc에 등록됨)
-  └── source scripts/activate.sh
-        ├── CA 없으면 agentbox ca 실행 → certs/ 생성
-        ├── trust store에 CA 없으면 install_ca.sh 실행 (sudo)
-        ├── port 8080 미사용이면 nohup agentbox run & → .agentbox.pid 저장
-        ├── export HTTPS_PROXY=http://127.0.0.1:8080
-        └── export NODE_EXTRA_CA_CERTS=certs/agentbox-ca.crt
-
-agentbox off  (shell 함수)
-  └── source scripts/deactivate.sh
-        ├── .agentbox.pid 읽어서 kill
-        ├── unset HTTPS_PROXY
-        └── unset NODE_EXTRA_CA_CERTS
-```
-
-> **왜 shell 함수인가?**  
-> 자식 프로세스(`agentbox` 실행 파일)는 부모 shell의 환경변수를 변경할 수 없다.  
-> `source`는 현재 shell에서 직접 실행되므로 `export`가 부모 환경에 반영된다.  
-> `agentbox setup` 명령이 `~/.bashrc`에 이 shell 함수를 주입하는 이유가 이것이다.
+| **MITM** | 두 통신 주체 사이에 끼어 트래픽을 투명하게 감청/조작하는 기법. |
+| **iptables REDIRECT** | 커널 netfilter에서 특정 uid의 443 패킷을 로컬 포트로 강제 리다이렉트. |
+| **Root CA** | 다른 인증서를 서명할 수 있는 최상위 인증 기관. trust store 등록 시 하위 인증서 자동 신뢰. |
+| **mTLS** | Mutual TLS. 서버·클라이언트 양방향 인증서 검증. Endpoint ↔ EC2 gRPC에 적용. |
+| **gRPC** | Protocol Buffers 기반 고성능 RPC 프레임워크. `inspect.proto`로 서비스 정의. |
+| **Connection Pool** | gRPC 채널을 재사용해 매 요청마다 핸드쉐이크 오버헤드 제거. 최대 5채널. |
+| **SOPS** | Mozilla Secrets OPerationS. 파일을 KMS 키로 암호화. 암호화 파일 git 커밋 가능. |
+| **KMS CMK** | AWS Customer Managed Key. 키 정책으로 IAM별 Encrypt/Decrypt 권한 분리. |
+| **SSE-KMS** | S3 서버 측 KMS 암호화. SOPS 파일이 S3에 2중 암호화되어 저장됨. |
+| **Zero-fill** | 복호화 후 bytearray 버퍼를 0으로 덮어쓰는 보안 기법. `buf[:] = b'\x00' * len(buf)`. |
+| **Bedrock Agent** | System Prompt + Action Group(Lambda) + Knowledge Base로 구성된 AWS 완전관리형 AI 에이전트. |
+| **Action Group** | Bedrock Agent가 호출할 수 있는 Lambda 함수 집합. 함수 스펙을 JSON 스키마로 정의. |
+| **Knowledge Base** | Bedrock Agent가 참조하는 문서 저장소. S3 버킷 + 임베딩 인덱스. |
+| **KB Staging 버킷** | 검사 시점에만 복호화 코드를 임시 저장하는 S3 버킷. Bedrock Agent IAM만 읽기 가능. |
+| **MCP (Model Context Protocol)** | Anthropic 설계 AI 모델-도구 통신 표준. Lambda가 EC2 MCP Server를 호출하는 브릿지 역할. |
+| **Semantic Fallback** | Bedrock 장애 시 sentence-transformers 코사인 유사도 ≥ 0.85로 대체 판정. |
+| **DynamoDB GSI** | Global Secondary Index. 기본 키 외 속성(user_id-ts)으로 조회하기 위한 보조 인덱스. |
+| **DynamoDB Streams** | 테이블 변경(INSERT/MODIFY)을 이벤트로 발행. Lambda metrics-publisher 트리거에 사용. |
+| **EIP (Elastic IP)** | EC2에 고정 공인 IP 할당. 퍼블릭 서브넷 + IGW 조합으로 NAT Gateway 없이 외부 통신. |
+| **Terraform IaC** | AWS 리소스를 HCL 코드로 선언 관리. `terraform apply`로 실제 리소스 생성. |
