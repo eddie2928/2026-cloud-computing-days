@@ -398,7 +398,7 @@ pytest tests/aws -m aws -v
 
 ### Phase 3A — Terraform 코드 분리
 - [x] 3A-1 `infra/main.tf` private subnet 추가
-- [ ] 3A-2 `infra/ec2.tf` 두 인스턴스/SG/IAM 으로 분리
+- [x] 3A-2 `infra/ec2.tf` 두 인스턴스/SG/IAM 으로 분리
 - [ ] 3A-3 `infra/kms.tf` EC2Decrypt principal → mcp-role
 - [ ] 3A-4 `infra/s3.tf` 정책 mcp-role 한정
 - [ ] 3A-5 `infra/lambda.tf` VPC 진입 + private IP URL
