@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "bedrock_agent" {
 resource "aws_bedrockagent_agent" "inspector" {
   agent_name                 = "${var.project}-inspector"
   agent_resource_role_arn    = aws_iam_role.bedrock_agent.arn
-  foundation_model           = "anthropic.claude-haiku-20240307-v1:0"
+  foundation_model           = "us.anthropic.claude-sonnet-4-6"
   instruction                = file("${path.module}/bedrock_system_prompt.txt")
   prepare_agent              = true
   skip_resource_in_use_check = true

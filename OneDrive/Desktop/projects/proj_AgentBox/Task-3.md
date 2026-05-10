@@ -469,13 +469,17 @@ Lambda: VPC 외부, public 인터넷 경유
 - [x] **3G-1** **사전 조건**: us-east-1 에서 Bedrock model access (Anthropic Claude Haiku) 승인 완료. 미승인이면 `terraform apply` 가 `aws_bedrockagent_agent` 에서 실패. 사용자 확인 후 진행.
 - [x] **3G-2** `git status` 깨끗(이전 작업 잔여물 없음). 필요 시 `git stash`.
 - [x] **3G-3** `./scripts/deploy.sh -auto-approve` 실행. 정상 종료 확인. (MCP /healthz OK, gRPC :50051 OK — 3회 시도 후 성공)
-- [ ] **3G-4** `./scripts/test_lifecycle_45.sh` 실행. ALL PASSED 확인.
-- [ ] **3G-5** Endpoint 측 통합:
-  - `source .env.endpoint`
-  - WSL 에서 mitmproxy + addon 가동(Task-1 흐름) 후 `claude --print "..."` 실행.
-  - SaaS `${SAAS_URL}/audit` 에서 이벤트 row 확인.
+- [x] **3G-4** `./scripts/test_lifecycle_45.sh` 실행. ALL PASSED 확인.
+- [ ] **3G-5** Endpoint 측 통합: (부분 완료)
+  - `source .env.endpoint` ✅
+  - gRPC 직접 호출로 round-trip 검증 완료: `inspect()` → EC2 → Bedrock → Lambda/MCP → verdict ALLOW ✅
+  - `/audit` 엔드포인트 이벤트 row 확인 ✅
+  - **남은 작업**: 다음 배포 후 앱 EC2 `.env` 에 새 alias_id(`DL2FXR34CT`) + 새 MCP IP(`10.0.1.42`) 반영 필요
+  - **블로커 내역**: `anthropic.claude-haiku-20240307-v1:0` 잘못된 model ID → `us.anthropic.claude-sonnet-4-6` 로 교체
+  - **그 외 수정**: `app-role` IAM에 `bedrock:InvokeAgent` + `dynamodb:Scan` 추가, gRPC client SSL override 추가
 - [ ] **3G-6** 비용 가드 동작 확인:
   - DynamoDB `agentbox-settings` 테이블에 `bedrock_tokens_<YYYY-MM-DD>` 항목 존재 + `value > 0`.
+  - **남은 작업**: 3G-5 full round-trip 완료 후 검증 가능
 
 **Phase 3G Gate**: 라이프사이클 4-5 자동 테스트 + 1회 실 prompt 검사 round-trip + 토큰 카운터 동작.
 
@@ -600,9 +604,9 @@ pytest tests/aws -m aws -v
 - [x] 3G-1 Bedrock model access 승인 확인
 - [x] 3G-2 git status 깨끗
 - [x] 3G-3 deploy.sh 성공 (서비스 active, healthz OK)
-- [ ] 3G-4 test_lifecycle_45.sh ALL PASSED
-- [ ] 3G-5 Endpoint round-trip 1회
-- [ ] 3G-6 토큰 카운터 row 확인
+- [x] 3G-4 test_lifecycle_45.sh ALL PASSED
+- [ ] 3G-5 Endpoint round-trip (부분완료: gRPC→/audit OK, 재배포 후 full round-trip 재검증 필요)
+- [ ] 3G-6 토큰 카운터 row 확인 (3G-5 완료 후 검증)
 
 ---
 

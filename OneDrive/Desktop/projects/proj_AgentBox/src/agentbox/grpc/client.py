@@ -24,7 +24,9 @@ def _make_channel() -> grpc.Channel:
             private_key=private_key,
             certificate_chain=cert_chain,
         )
-        return grpc.secure_channel(target, creds)
+        # Server cert SAN is DNS:agentbox-ec2; override when connecting by IP
+        options = [("grpc.ssl_target_name_override", "agentbox-ec2")]
+        return grpc.secure_channel(target, creds, options=options)
     return grpc.insecure_channel(target)
 
 

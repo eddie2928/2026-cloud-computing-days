@@ -102,6 +102,7 @@ resource "aws_iam_role_policy" "app" {
         Effect = "Allow"
         Action = [
           "bedrock:InvokeModel",
+          "bedrock:InvokeAgent",
           "bedrock-agent-runtime:InvokeAgent",
           "bedrock-agent:UpdateAgent",
         ]
@@ -115,6 +116,7 @@ resource "aws_iam_role_policy" "app" {
           "dynamodb:Query",
           "dynamodb:GetItem",
           "dynamodb:UpdateItem",
+          "dynamodb:Scan",
         ]
         Resource = [
           aws_dynamodb_table.events.arn,
