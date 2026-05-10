@@ -45,11 +45,12 @@ resource "aws_iam_role_policy" "bedrock_agent" {
 
 # 3A-7: Bedrock Agent + Action Group + Alias (activated)
 resource "aws_bedrockagent_agent" "inspector" {
-  agent_name              = "${var.project}-inspector"
-  agent_resource_role_arn = aws_iam_role.bedrock_agent.arn
-  foundation_model        = "anthropic.claude-haiku-20240307-v1:0"
-  instruction             = file("${path.module}/bedrock_system_prompt.txt")
-  prepare_agent           = true
+  agent_name                 = "${var.project}-inspector"
+  agent_resource_role_arn    = aws_iam_role.bedrock_agent.arn
+  foundation_model           = "anthropic.claude-haiku-20240307-v1:0"
+  instruction                = file("${path.module}/bedrock_system_prompt.txt")
+  prepare_agent              = true
+  skip_resource_in_use_check = true
 }
 
 resource "aws_bedrockagent_agent_action_group" "decrypt_and_stage" {
