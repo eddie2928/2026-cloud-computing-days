@@ -17,7 +17,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "encrypted_code" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.sops.arn
+      kms_master_key_id = local.kms_key_arn
     }
   }
 }
@@ -42,7 +42,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "kb_staging" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.sops.arn
+      kms_master_key_id = local.kms_key_arn
     }
   }
 }
@@ -55,7 +55,27 @@ resource "aws_s3_bucket_public_access_block" "kb_staging" {
   restrict_public_buckets = true
 }
 
-# 1D-1: KB bucket policy - only Bedrock Agent IAM role can read
+# 3A-4: encrypted-code bucket policy - mcp-role GetObject only
+resource "aws_s3_bucket_policy" "encrypted_code" {
+  bucket = aws_s3_bucket.encrypted_code.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "MCPRoleGetObject"
+        Effect = "Allow"
+        Principal = { AWS = aws_iam_role.mcp.arn }
+        Action   = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [
+          aws_s3_bucket.encrypted_code.arn,
+          "${aws_s3_bucket.encrypted_code.arn}/*",
+        ]
+      },
+    ]
+  })
+}
+
+# 3A-4: KB staging bucket policy - bedrock-agent-role read + mcp-role full RW
 resource "aws_s3_bucket_policy" "kb_staging" {
   bucket = aws_s3_bucket.kb_staging.id
   policy = jsonencode({
@@ -66,6 +86,21 @@ resource "aws_s3_bucket_policy" "kb_staging" {
         Effect = "Allow"
         Principal = { AWS = aws_iam_role.bedrock_agent.arn }
         Action   = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [
+          aws_s3_bucket.kb_staging.arn,
+          "${aws_s3_bucket.kb_staging.arn}/*",
+        ]
+      },
+      {
+        Sid    = "MCPRoleFullRW"
+        Effect = "Allow"
+        Principal = { AWS = aws_iam_role.mcp.arn }
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:ListBucket",
+        ]
         Resource = [
           aws_s3_bucket.kb_staging.arn,
           "${aws_s3_bucket.kb_staging.arn}/*",

@@ -8,7 +8,7 @@ OUT="${1:-certs/grpc}"
 mkdir -p "$OUT"
 
 echo "[agentbox] Generating mTLS CA ..."
-python3 - <<'PYEOF'
+python3 - "$OUT" <<'PYEOF'
 import os, sys
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -81,4 +81,4 @@ _save_cert(ec2_cert, f"{OUT}/ec2.crt")
 print(f"Certificates written to {OUT}/")
 for f in ["agentbox-ca.crt", "endpoint.crt", "endpoint.key", "ec2.crt", "ec2.key"]:
     print(f"  {OUT}/{f}")
-PYEOF "$OUT"
+PYEOF

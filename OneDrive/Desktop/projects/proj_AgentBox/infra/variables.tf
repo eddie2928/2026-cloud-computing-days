@@ -36,3 +36,9 @@ variable "alert_email" {
   type        = string
   default     = ""
 }
+
+variable "existing_kms_key_arn" {
+  description = "ARN of pre-existing CMK to reuse (empty = create new key on first apply)"
+  type        = string
+  default     = ""
+}
