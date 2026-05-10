@@ -17,6 +17,11 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  role       = aws_iam_role.lambda_mcp.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_iam_role_policy" "lambda_mcp" {
   name = "${var.project}-lambda-mcp-policy"
   role = aws_iam_role.lambda_mcp.id
@@ -46,11 +51,16 @@ resource "aws_lambda_function" "mcp_bridge" {
   source_code_hash = data.archive_file.lambda_mcp.output_base64sha256
   timeout          = 60
 
+  vpc_config {
+    subnet_ids         = [aws_subnet.private.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+
   environment {
     variables = {
-      MCP_SERVER_URL      = "https://${aws_eip.main.public_ip}:8443"
-      KB_STAGING_BUCKET   = aws_s3_bucket.kb_staging.id
-      MCP_ADMIN_TOKEN     = var.admin_token
+      MCP_SERVER_URL  = "http://${aws_instance.mcp.private_ip}:8080"
+      KB_STAGING_BUCKET = aws_s3_bucket.kb_staging.id
+      MCP_ADMIN_TOKEN = var.admin_token
     }
   }
 

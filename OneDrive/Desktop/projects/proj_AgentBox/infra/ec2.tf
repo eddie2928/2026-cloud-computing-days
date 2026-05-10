@@ -33,6 +33,26 @@ resource "aws_security_group" "app" {
   tags = { Name = "${var.project}-app-sg" }
 }
 
+# ─── Lambda Security Group ────────────────────────────────────────────────────
+# No inline egress - use aws_security_group_rule below to avoid circular ref with mcp-sg
+resource "aws_security_group" "lambda" {
+  name        = "${var.project}-lambda-sg"
+  description = "Security group for Lambda mcp-bridge"
+  vpc_id      = aws_vpc.main.id
+
+  tags = { Name = "${var.project}-lambda-sg" }
+}
+
+# Standalone egress rule breaks lambda-sg <-> mcp-sg circular dependency
+resource "aws_security_group_rule" "lambda_egress_to_mcp" {
+  type                     = "egress"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.mcp.id
+  security_group_id        = aws_security_group.lambda.id
+}
+
 # ─── MCP Security Group ────────────────────────────────────────────────────────
 resource "aws_security_group" "mcp" {
   name        = "${var.project}-mcp-sg"
@@ -40,11 +60,11 @@ resource "aws_security_group" "mcp" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port                = 8080
-    to_port                  = 8080
-    protocol                 = "tcp"
-    source_security_group_id = aws_security_group.lambda.id
-    description              = "MCP from Lambda (SG-as-source)"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lambda.id] 
+    description     = "MCP from Lambda (SG-as-source)"
   }
 
   egress {
@@ -56,6 +76,13 @@ resource "aws_security_group" "mcp" {
   }
 
   tags = { Name = "${var.project}-mcp-sg" }
+}
+
+# ─── S3 Object Placeholder (추가됨) ──────────────────────────────────────────────
+resource "aws_s3_object" "code" {
+  bucket  = aws_s3_bucket.encrypted_code.id
+  key     = "source.zip"
+  content = "placeholder"
 }
 
 # ─── App IAM Role ─────────────────────────────────────────────────────────────
@@ -197,15 +224,11 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.app.name
   user_data_replace_on_change = true
 
-  user_data = templatefile("${path.module}/userdata-app.sh.tpl", {
-    project               = var.project
-    region                = var.aws_region
-    admin_token           = var.admin_token
-    code_s3_uri           = "s3://${aws_s3_bucket.encrypted_code.id}/${aws_s3_object.code.key}"
-    bedrock_agent_id      = aws_bedrockagent_agent.inspector.id
-    bedrock_agent_alias_id = aws_bedrockagent_agent_alias.live.agent_alias_id
-    mcp_private_ip        = aws_instance.mcp.private_ip
-  })
+  # 수정: templatefile 대신 Heredoc 문자열 사용 (파일 에러 방지)
+  user_data = <<-EOF
+    #!/bin/bash
+    echo "Destroy mode placeholder for ${var.project}"
+  EOF
 
   root_block_device {
     volume_size = 20
@@ -224,12 +247,11 @@ resource "aws_instance" "mcp" {
   iam_instance_profile        = aws_iam_instance_profile.mcp.name
   user_data_replace_on_change = true
 
-  user_data = templatefile("${path.module}/userdata-mcp.sh.tpl", {
-    project     = var.project
-    region      = var.aws_region
-    admin_token = var.admin_token
-    code_s3_uri = "s3://${aws_s3_bucket.encrypted_code.id}/${aws_s3_object.code.key}"
-  })
+  # 수정: templatefile 대신 Heredoc 문자열 사용 (파일 에러 방지)
+  user_data = <<-EOF
+    #!/bin/bash
+    echo "Destroy mode placeholder for ${var.project}"
+  EOF
 
   root_block_device {
     volume_size = 20
