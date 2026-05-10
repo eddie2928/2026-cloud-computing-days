@@ -3,7 +3,7 @@
 data "archive_file" "code" {
   type        = "zip"
   source_dir  = "${path.module}/.."
-  output_path = "/tmp/agentbox-code.zip"
+  output_path = "${path.module}/agentbox-code.zip"
   excludes = [
     ".venv",
     "__pycache__",
