@@ -67,12 +67,10 @@ resource "aws_bedrockagent_agent_action_group" "decrypt_and_stage" {
         name        = "decrypt_and_stage"
         description = "Decrypt and stage encrypted code for Bedrock inspection"
         parameters {
-          map_key = "project_id"
-          map_value {
-            type        = "string"
-            required    = true
-            description = "Project ID to decrypt and stage"
-          }
+          map_block_key = "project_id"
+          type          = "string"
+          required      = true
+          description   = "Project ID to decrypt and stage"
         }
       }
     }
