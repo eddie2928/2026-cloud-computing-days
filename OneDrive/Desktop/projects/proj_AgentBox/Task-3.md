@@ -466,9 +466,9 @@ Lambda: VPC 외부, public 인터넷 경유
 
 > Claude 는 §3F 까지 완료 후 멈춘다. 이하 단계는 사용자가 본인 손으로 실행하며 결과를 보고한다.
 
-- [ ] **3G-1** **사전 조건**: us-east-1 에서 Bedrock model access (Anthropic Claude Haiku) 승인 완료. 미승인이면 `terraform apply` 가 `aws_bedrockagent_agent` 에서 실패. 사용자 확인 후 진행.
-- [ ] **3G-2** `git status` 깨끗(이전 작업 잔여물 없음). 필요 시 `git stash`.
-- [ ] **3G-3** `./scripts/deploy.sh -auto-approve` 실행. 정상 종료 확인.
+- [x] **3G-1** **사전 조건**: us-east-1 에서 Bedrock model access (Anthropic Claude Haiku) 승인 완료. 미승인이면 `terraform apply` 가 `aws_bedrockagent_agent` 에서 실패. 사용자 확인 후 진행.
+- [x] **3G-2** `git status` 깨끗(이전 작업 잔여물 없음). 필요 시 `git stash`.
+- [x] **3G-3** `./scripts/deploy.sh -auto-approve` 실행. 정상 종료 확인. (MCP /healthz OK, gRPC :50051 OK — 3회 시도 후 성공)
 - [ ] **3G-4** `./scripts/test_lifecycle_45.sh` 실행. ALL PASSED 확인.
 - [ ] **3G-5** Endpoint 측 통합:
   - `source .env.endpoint`
@@ -597,9 +597,9 @@ pytest tests/aws -m aws -v
 - [x] 3Fpost-5 (선택) shellcheck `error` 레벨 통과
 
 ### Phase 3G — 사용자 손에서 실행 (실 AWS)
-- [ ] 3G-1 Bedrock model access 승인 확인
-- [ ] 3G-2 git status 깨끗
-- [ ] 3G-3 deploy.sh 성공
+- [x] 3G-1 Bedrock model access 승인 확인
+- [x] 3G-2 git status 깨끗
+- [x] 3G-3 deploy.sh 성공 (서비스 active, healthz OK)
 - [ ] 3G-4 test_lifecycle_45.sh ALL PASSED
 - [ ] 3G-5 Endpoint round-trip 1회
 - [ ] 3G-6 토큰 카운터 row 확인
