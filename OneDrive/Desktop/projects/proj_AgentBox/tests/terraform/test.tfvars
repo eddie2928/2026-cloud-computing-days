@@ -1,0 +1,5 @@
+endpoint_cidr        = "1.2.3.4/32"
+admin_cidr           = "1.2.3.4/32"
+admin_token          = "dummy-token"
+alert_email          = "test@example.com"
+existing_kms_key_arn = ""

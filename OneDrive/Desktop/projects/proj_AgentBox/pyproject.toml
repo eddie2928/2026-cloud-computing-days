@@ -29,3 +29,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "terraform: requires terraform CLI in PATH",
+    "aws: requires real AWS credentials",
+]
