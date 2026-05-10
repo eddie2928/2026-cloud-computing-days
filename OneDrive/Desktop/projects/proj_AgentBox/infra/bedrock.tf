@@ -43,13 +43,51 @@ resource "aws_iam_role_policy" "bedrock_agent" {
   })
 }
 
-# 2A-3: Bedrock Agent (populated in Phase 2A - placeholder IAM role created here)
-# Full Bedrock Agent resource requires AWS Console model access approval first (2A-1).
-# After terraform apply, create the agent via AWS Console or uncomment below:
-#
-# resource "aws_bedrockagent_agent" "inspector" {
-#   agent_name              = "${var.project}-inspector"
-#   agent_resource_role_arn = aws_iam_role.bedrock_agent.arn
-#   foundation_model        = "anthropic.claude-haiku-20240307-v1:0"
-#   instruction             = file("${path.module}/bedrock_system_prompt.txt")
-# }
+# 3A-7: Bedrock Agent + Action Group + Alias (activated)
+resource "aws_bedrockagent_agent" "inspector" {
+  agent_name              = "${var.project}-inspector"
+  agent_resource_role_arn = aws_iam_role.bedrock_agent.arn
+  foundation_model        = "anthropic.claude-haiku-20240307-v1:0"
+  instruction             = file("${path.module}/bedrock_system_prompt.txt")
+  prepare_agent           = true
+}
+
+resource "aws_bedrockagent_agent_action_group" "decrypt_and_stage" {
+  agent_id          = aws_bedrockagent_agent.inspector.id
+  agent_version     = "DRAFT"
+  action_group_name = "decrypt_and_stage"
+
+  action_group_executor {
+    lambda = aws_lambda_function.mcp_bridge.arn
+  }
+
+  function_schema {
+    member_functions {
+      functions {
+        name        = "decrypt_and_stage"
+        description = "Decrypt and stage encrypted code for Bedrock inspection"
+        parameters {
+          map_key = "project_id"
+          map_value {
+            type        = "string"
+            required    = true
+            description = "Project ID to decrypt and stage"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "aws_bedrockagent_agent_alias" "live" {
+  agent_id         = aws_bedrockagent_agent.inspector.id
+  agent_alias_name = "live"
+}
+
+output "bedrock_agent_id" {
+  value = aws_bedrockagent_agent.inspector.id
+}
+
+output "bedrock_agent_alias_id" {
+  value = aws_bedrockagent_agent_alias.live.agent_alias_id
+}
