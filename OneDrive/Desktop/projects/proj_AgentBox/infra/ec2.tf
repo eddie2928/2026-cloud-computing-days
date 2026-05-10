@@ -217,11 +217,15 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.app.name
   user_data_replace_on_change = true
 
-  # 수정: templatefile 대신 Heredoc 문자열 사용 (파일 에러 방지)
-  user_data = <<-EOF
-    #!/bin/bash
-    echo "Destroy mode placeholder for ${var.project}"
-  EOF
+  user_data = templatefile("${path.module}/userdata-app.sh.tpl", {
+    project                = var.project
+    region                 = var.aws_region
+    admin_token            = var.admin_token
+    code_s3_uri            = "s3://${aws_s3_bucket.encrypted_code.id}/${aws_s3_object.code.key}"
+    bedrock_agent_id       = aws_bedrockagent_agent.inspector.id
+    bedrock_agent_alias_id = aws_bedrockagent_agent_alias.live.agent_alias_id
+    mcp_private_ip         = aws_instance.mcp.private_ip
+  })
 
   root_block_device {
     volume_size = 20
@@ -240,11 +244,12 @@ resource "aws_instance" "mcp" {
   iam_instance_profile        = aws_iam_instance_profile.mcp.name
   user_data_replace_on_change = true
 
-  # 수정: templatefile 대신 Heredoc 문자열 사용 (파일 에러 방지)
-  user_data = <<-EOF
-    #!/bin/bash
-    echo "Destroy mode placeholder for ${var.project}"
-  EOF
+  user_data = templatefile("${path.module}/userdata-mcp.sh.tpl", {
+    project     = var.project
+    region      = var.aws_region
+    admin_token = var.admin_token
+    code_s3_uri = "s3://${aws_s3_bucket.encrypted_code.id}/${aws_s3_object.code.key}"
+  })
 
   root_block_device {
     volume_size = 20
