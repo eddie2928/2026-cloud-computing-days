@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 
 import boto3
 import grpc
+import requests
 import yaml
 from loguru import logger
 
@@ -76,10 +77,14 @@ def _invoke_bedrock_agent(prompt: str, session_id: str) -> tuple[str, list[str]]
         data = json.loads(full_text[start:end])
         verdict = data.get("verdict", "BLOCK").upper()
         reasons = data.get("reasons", [])
-        return verdict, reasons
     except Exception:
         logger.warning("bedrock_parse_error", raw=full_text[:200])
-        return "BLOCK", ["Bedrock 응답 파싱 실패"]
+        verdict, reasons = "BLOCK", ["Bedrock 응답 파싱 실패"]
+
+    tokens_used = sum(len(c) for c in chunks) // 4 + len(prompt) // 4
+    _increment_token_count(tokens_used)
+
+    return verdict, reasons
 
 
 def _record_event(event_id: str, user_id: str, prompt: str, verdict: str,
@@ -144,6 +149,15 @@ class InspectorServicer(inspect_pb2_grpc.InspectorServicer):
             verdict, reasons = "ALLOW", []
             if not _BEDROCK_AGENT_ID:
                 logger.warning("bedrock_not_configured", event_id=event_id)
+
+        try:
+            requests.delete(
+                f"{_MCP_SERVER_URL}/mcp/cleanup/{event_id}",
+                headers={"Authorization": f"Bearer {os.environ['ADMIN_TOKEN']}"},
+                timeout=5,
+            )
+        except Exception as exc:
+            logger.warning("mcp_cleanup_failed", event_id=event_id, error=str(exc))
 
         latency_ms = int((time.monotonic() - t0) * 1000)
         logger.info("inspect_done", event_id=event_id, verdict=verdict,

@@ -118,8 +118,14 @@ async def cleanup(session_id: str, token: str = Security(_verify_token)):
     return {"deleted": len(objects)}
 
 
+@app.get("/healthz")
+async def healthz():
+    """Health check endpoint - no auth required."""
+    return {"ok": True, "service": "mcp"}
+
+
 if __name__ == "__main__":
     from loguru import logger as _log
     _log.add("/opt/agentbox/logs/mcp-server.log", rotation="50 MB")
-    port = int(os.environ.get("MCP_PORT", "8443"))
+    port = int(os.environ.get("MCP_PORT", "8080"))
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
