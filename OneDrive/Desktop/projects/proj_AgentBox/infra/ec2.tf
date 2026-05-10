@@ -78,13 +78,6 @@ resource "aws_security_group" "mcp" {
   tags = { Name = "${var.project}-mcp-sg" }
 }
 
-# ─── S3 Object Placeholder (추가됨) ──────────────────────────────────────────────
-resource "aws_s3_object" "code" {
-  bucket  = aws_s3_bucket.encrypted_code.id
-  key     = "source.zip"
-  content = "placeholder"
-}
-
 # ─── App IAM Role ─────────────────────────────────────────────────────────────
 resource "aws_iam_role" "app" {
   name = "${var.project}-app-role"
