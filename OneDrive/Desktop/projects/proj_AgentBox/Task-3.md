@@ -13,7 +13,7 @@
 | Task ID | Task-3 |
 | 선행 조건 | Task-2 코드(`ec2/`, `lambda/`, `infra/`) 가 git 상에 존재. 현재 EC2 부트스트랩 실패 상태에서 시작 가능. |
 | 대상 OS | Endpoint: WSL2 Ubuntu 22.04 / App-EC2: Ubuntu 22.04 / MCP-EC2: Ubuntu 22.04 |
-| 핵심 변경 | ① MCP 서버 별도 EC2 분리(IAM·SG·VPC 격리), ② userdata `apt-get install sops` 실패 원인 제거 후 GitHub release binary 사용, ③ `ec2/` + `src/agentbox/grpc/` 코드를 S3 경유로 EC2 에 자동 배포, ④ Lambda 를 VPC 내부로 이동 후 MCP private IP 로 호출, ⑤ MCP 평문 HTTP + admin_token 으로 단순화, ⑥ 기존 누락 3건 수정(`/mcp/cleanup` 호출, Bedrock 토큰 카운터, Bedrock Agent 리소스 자동 생성), ⑦ moto 기반 단위/통합 테스트 자동화, ⑧ `deploy.sh` 에 post_deploy 통합. |
+| 핵심 변경 | ① MCP 서버 별도 EC2 분리(IAM·SG·VPC 격리), ② userdata `apt-get install sops` 실패 원인 제거 후 GitHub release binary 사용, ③ `ec2/` + `src/agentbox/grpc/` 코드를 S3 경유로 EC2 에 자동 배포, ④ Lambda 를 VPC 내부로 이동 후 MCP private IP 로 호출, ⑤ MCP 평문 HTTP + admin_token 으로 단순화, ⑥ 기존 누락 3건 수정(`/mcp/cleanup` 호출, Bedrock 토큰 카운터, Bedrock Agent 리소스 자동 생성), ⑦ moto 기반 단위/통합 테스트 자동화, ⑧ `deploy.sh` 에 post_deploy 통합, ⑨ **Terraform plan JSON 기반 TDD (Phase 3D-pre, $0)**, ⑩ **deploy.sh / destroy.sh DRY_RUN=1 검증 (Phase 3F-post, $0)**. |
 | Capex 변동 | 기존 t3.micro × 1 → app(t3.micro) + mcp(t3.small). 월 +$8.4 ~ +$8.5 (us-east-1 on-demand 추정). NAT/VPC Endpoint 추가 없음. |
 | 코드 수정 금지 | 본 문서 사용자 검토 및 "Task-3 시작" 명시 지시 전까지 일절 코드 변경 금지. |
 
@@ -120,7 +120,13 @@ Lambda: VPC 외부, public 인터넷 경유
 | `tests/integration/test_lambda_to_mcp.py` | **신규** | moto+responses. Lambda handler 를 직접 import 후 호출, 내부 urllib 가 정확한 URL/헤더로 호출하는지 검증. |
 | `tests/conftest.py` | 수정 | 공통 fixture(`mock_aws`, `tmp_kms_key`, `sops_yaml`, `admin_token` 등) 추가. |
 | `tests/aws/test_real_lifecycle.py` | **신규(선택)** | 실 AWS 통합 테스트. `@pytest.mark.aws` 로 분리. 기본은 skip, `pytest -m aws` 로만 실행. |
-| `requirements-dev.txt` 또는 `pyproject.toml [dev]` | 수정 | `moto[all]>=5`, `responses>=0.24`, `httpx`, `pytest-mock`, `aws-sam-cli` (선택) 추가. |
+| `tests/terraform/test.tfvars` | **신규** | Phase 3D-pre 용 fake var 파일. dummy IP/이메일/토큰. 실 AWS 호출 없이 plan 생성용. |
+| `tests/terraform/conftest.py` | **신규** | `tf_plan_json` session-scope fixture. terraform plan + show -json 1회 실행 캐싱. |
+| `tests/terraform/test_plan_resources.py` | **신규** | Phase 3D-pre 테스트 8개. 리소스 개수/속성/의존성/Zero-Knowledge IAM 분리 검증. `pytest -m terraform`. |
+| `tests/scripts/test_dry_run_deploy.py` | **신규** | Phase 3F-post 테스트. `DRY_RUN=1 deploy.sh` 가 0 exit + plan 출력 포함 확인. |
+| `tests/scripts/test_dry_run_destroy.py` | **신규** | 동일 패턴으로 destroy.sh 검증. |
+| `requirements-dev.txt` 또는 `pyproject.toml [dev]` | 수정 | `moto[all]>=5`, `responses>=0.24`, `httpx`, `pytest-mock`, `aws-sam-cli` (선택) 추가. Phase 3D-pre 는 표준 라이브러리만 사용(추가 의존성 없음). |
+| `pyproject.toml` (또는 `pytest.ini`) | 수정 | `[tool.pytest.ini_options]` 에 markers `terraform`, `aws` 등록. Phase 3D-pre/3F-post 가 marker 로 격리. |
 
 ---
 
@@ -161,8 +167,16 @@ Lambda: VPC 외부, public 인터넷 경유
   - `aws_bedrockagent_agent_alias.live`: agent_id = inspector.id, name = "live".
   - output `bedrock_agent_id`, `bedrock_agent_alias_id`.
 - [ ] **3A-8** `aws_instance.app` 의 user_data 에 `BEDROCK_AGENT_ID`, `BEDROCK_AGENT_ALIAS_ID` 환경변수 자동 주입(`templatefile` vars 추가). MCP-EC2 user_data 에는 미주입.
+- [ ] **3A-9** Placeholder 롤백 (3B 및 3A-6 완료 후 자동 처리)
+  - **배경**: Task-3 도중 `terraform destroy` 호환을 위해 `infra/ec2.tf` 에 다음 임시 placeholder 가 들어가 있음.
+    1. `aws_instance.app.user_data` 와 `aws_instance.mcp.user_data` 가 `<<-EOF ... EOF` heredoc 형태의 단순 echo 스크립트.
+    2. `aws_s3_object.code` 가 `content = "placeholder"`.
+    3. `aws_security_group.lambda` 가 `infra/ec2.tf` 에 위치(원래 §3A-5 plan 은 `lambda.tf` 에 둘 예정이었음). **결정: 현 위치 그대로 유지** — 이미 mcp-sg 가 그것을 ingress source 로 참조하므로 동일 파일 안에 두는 편이 관계 추적 쉬움.
+  - **롤백 1 (3B-1/3B-2 완료 직후)**: `aws_instance.app.user_data` 를 `templatefile("${path.module}/userdata-app.sh.tpl", {...})` 로 교체. `aws_instance.mcp.user_data` 도 동일 패턴으로 `userdata-mcp.sh.tpl` 사용.
+  - **롤백 2 (3A-6 완료 직후)**: `aws_s3_object.code` 의 `content = "placeholder"` 를 `source = data.archive_file.code.output_path` + `etag = filemd5(...)` 로 교체. key 도 `_dist/code-${data.archive_file.code.output_base64sha256}.zip` 로 교체.
+  - 검증: `terraform validate` + `terraform plan -refresh=false` 통과. plan 출력에 두 EC2 의 `user_data ~> ` (replace) 라인이 보일 것(`user_data_replace_on_change = true` 이므로 인스턴스 재생성).
 
-**Phase 3A Gate**: `terraform validate` + `terraform plan` 성공. 새 리소스 개수와 삭제 대상(기존 `aws_instance.main`, 기존 SG, 기존 IAM Role) 이 의도와 일치.
+**Phase 3A Gate**: `terraform validate` + `terraform plan -refresh=false` 성공. 새 리소스 개수(약 50+ 추가) 와 placeholder 잔재 없음(grep `"placeholder"` `infra/*.tf` → 0 hit) 확인.
 
 ---
 
@@ -254,6 +268,72 @@ Lambda: VPC 외부, public 인터넷 경유
 
 ---
 
+### Phase 3D-pre — Terraform TDD (plan JSON 기반, $0)
+
+> **목적**: 실 AWS 호출 없이 Terraform 코드의 정확성을 자동 검증. 3D(애플리케이션 unit 테스트) 진입 전 infra 코드의 회귀를 막는다.
+>
+> **전략**: `terraform plan -refresh=false -out=tf.plan` → `terraform show -json tf.plan > plan.json` → pytest 가 plan.json 을 파싱하여 리소스 개수/속성/의존성 assert. **refresh=false** 로 실 AWS state 조회 우회 + plan-only 라 리소스 생성 0건 → 비용 0원.
+>
+> **용어**:
+> - **plan JSON**: terraform plan 결과를 JSON 으로 직렬화한 출력. `resource_changes[]` 배열 안에 `address`, `change.actions`, `change.after.<attr>` 형태로 들어있음.
+> - **fake var 파일**: 실 IP/이메일 대신 더미 값을 담은 `.tfvars`. plan 단계는 검증만 하므로 dummy 가능.
+
+- [ ] **3Dpre-1** `tests/terraform/test.tfvars` 작성
+  - 내용:
+    ```hcl
+    endpoint_cidr        = "1.2.3.4/32"
+    admin_cidr           = "1.2.3.4/32"
+    admin_token          = "dummy-token"
+    alert_email          = "test@example.com"
+    existing_kms_key_arn = ""
+    ```
+  - 검증: `terraform -chdir=infra plan -refresh=false -var-file=../tests/terraform/test.tfvars` 가 0 exit + "Plan: N to add" 출력.
+
+- [ ] **3Dpre-2** `tests/terraform/conftest.py` 작성
+  - session-scope fixture `tf_plan_json`:
+    ```python
+    @pytest.fixture(scope="session")
+    def tf_plan_json(tmp_path_factory):
+        out = tmp_path_factory.mktemp("tf") / "tf.plan"
+        subprocess.run(["terraform","-chdir=infra","init","-upgrade=false","-backend=false"], check=True)
+        subprocess.run(["terraform","-chdir=infra","plan","-refresh=false",
+                        "-var-file=../tests/terraform/test.tfvars",
+                        f"-out={out}"], check=True)
+        raw = subprocess.check_output(["terraform","-chdir=infra","show","-json",str(out)])
+        return json.loads(raw)
+    ```
+  - helper 함수 `find_resource(plan, address)` → `resource_changes` 에서 address 매칭 항목 1개 반환(없으면 fail).
+
+- [ ] **3Dpre-3** `tests/terraform/test_plan_resources.py` 작성 (8개 assert)
+  - **test_resource_count_minimum**: `len(plan["resource_changes"]) >= 50`.
+  - **test_app_instance_present**: `find_resource(plan,"aws_instance.app")["change"]["after"]["instance_type"] == "t3.micro"`.
+  - **test_mcp_instance_present**: `find_resource(plan,"aws_instance.mcp")["change"]["after"]["instance_type"] == "t3.small"`.
+  - **test_mcp_sg_ingress_from_lambda_sg**: `aws_security_group.mcp` 의 `ingress[0].security_groups` 가 `aws_security_group.lambda.id` 참조.
+  - **test_app_role_no_kms** (Zero-Knowledge 핵심): `aws_iam_role_policy.app` 의 policy JSON 안에 `kms:Decrypt` 문자열 없음.
+  - **test_mcp_role_no_bedrock**: `aws_iam_role_policy.mcp` 의 policy JSON 안에 `bedrock:` 문자열 없음.
+  - **test_lambda_in_vpc** (3A-5 검증): `aws_lambda_function.mcp_bridge.vpc_config.subnet_ids` 가 `aws_subnet.private` 참조 (1개).
+  - **test_lambda_mcp_url_http_8080**: `aws_lambda_function.mcp_bridge.environment.variables.MCP_SERVER_URL` 이 `http://` 시작 + `:8080` 포함.
+
+- [ ] **3Dpre-4** `pyproject.toml` 또는 `setup.cfg` 에 marker 등록
+  ```toml
+  [tool.pytest.ini_options]
+  markers = [
+      "terraform: requires terraform CLI in PATH",
+      "aws: requires real AWS credentials",
+  ]
+  ```
+  - `tests/terraform/test_plan_resources.py` 상단에 `pytestmark = pytest.mark.terraform`.
+  - terraform CLI 미설치 환경에서 `pytest -m "not terraform"` 로 skip 가능.
+
+- [ ] **3Dpre-5** 의존성 변경 없음 (subprocess + json 표준 라이브러리만 사용).
+
+**Phase 3D-pre Gate**:
+- `pytest tests/terraform -m terraform -v` 100% PASS.
+- 비용: $0 (refresh=false → AWS API 호출 없음, plan-only → 리소스 생성 없음).
+- 위 8 테스트 중 하나라도 실패하면 3D 단위 테스트 진입 금지(infra 깨진 상태로 app 테스트 무의미).
+
+---
+
 ### Phase 3D — 단위 테스트 추가 (moto + pytest)
 
 > moto 5.x 의 `@mock_aws` 컨텍스트 매니저로 KMS/S3/DynamoDB 통합 mock.
@@ -326,6 +406,62 @@ Lambda: VPC 외부, public 인터넷 경유
 
 ---
 
+### Phase 3F-post — Script 동작 검증 (DRY_RUN=1, $0)
+
+> **목적**: `deploy.sh` / `destroy.sh` (그리고 3F-3 에서 삭제 직전인 `post_deploy.sh`) 가 syntax/논리 오류 없이 끝까지 진행 가능한지 자동 검증. **실 AWS apply 는 수행하지 않음** (KMS CMK 생성 시 $1/월 발생을 회피).
+>
+> **전략**: 모든 스크립트가 `DRY_RUN=1` 환경변수를 읽어 비용 발생 단계만 plan/echo 로 대체. `terraform state rm` 같은 mutation 은 그대로 실행되지만 비용 무관.
+>
+> **용어**:
+> - **DRY_RUN**: "실제 변경 없이 무엇을 할지만 출력" 을 의미하는 관용어. `if [[ "${DRY_RUN:-0}" == "1" ]]; then echo "..."; else 실제실행; fi` 패턴.
+> - **bash -n**: 실행 없이 syntax 만 파싱. `bash -n script.sh` 가 0 exit 이면 문법 OK.
+
+- [x] **3Fpost-1** 모든 스크립트 `bash -n` 통과
+  - `bash -n scripts/deploy.sh && bash -n scripts/destroy.sh && bash -n scripts/post_deploy.sh` 가 0 exit.
+  - `post_deploy.sh` 는 §3F-3 에서 삭제 예정이지만, 삭제 직전까지 syntax 가드.
+
+- [x] **3Fpost-2** `scripts/deploy.sh` 에 `DRY_RUN=1` 분기 도입
+  - 시작부 `: "${DRY_RUN:=0}"` 추가.
+  - `terraform apply "$@"` 호출부를:
+    ```sh
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo "[DRY_RUN] terraform apply 생략 → plan 으로 대체"
+        terraform plan -refresh=false -var-file="${TFVARS:-../terraform.tfvars}"
+    else
+        terraform apply "$@"
+    fi
+    ```
+  - 동일 패턴으로 SSM 등록 폴링/cert push/healthz curl 단계 모두 `if DRY_RUN ... echo skip ... else 실제 ... fi` 분기.
+  - 검증: `DRY_RUN=1 ./scripts/deploy.sh` 가 0 exit + stdout 에 "Plan: " 출력.
+
+- [x] **3Fpost-3** `scripts/destroy.sh` 에 `DRY_RUN=1` 분기 도입
+  - `terraform state rm` 은 그대로 (state 조작은 비용 무관, 실제 KMS 키는 안전).
+  - `terraform destroy "$@"` 를:
+    ```sh
+    if [[ "$DRY_RUN" == "1" ]]; then
+        terraform plan -destroy -refresh=false
+    else
+        terraform destroy "$@"
+    fi
+    ```
+  - 검증: `DRY_RUN=1 ./scripts/destroy.sh` 0 exit.
+
+- [x] **3Fpost-4** `tests/scripts/test_dry_run_deploy.py` (pytest)
+  - subprocess.run 으로 환경변수 `DRY_RUN=1`, `TF_VAR_endpoint_cidr=1.2.3.4/32`, ... 세팅 후 `bash scripts/deploy.sh` 실행.
+  - assertions: `returncode == 0`, `"Plan: " in stdout`, `"terraform apply" not in stdout` (skip 됐는지 확인).
+  - 동일 구조로 `test_dry_run_destroy.py` 작성.
+
+- [x] **3Fpost-5** (선택) `shellcheck scripts/*.sh` 실행
+  - shellcheck 미설치면 skip. 설치돼있으면 `error` 레벨만 fail (warning 은 무시).
+
+**Phase 3F-post Gate**:
+- `bash -n` 3개 스크립트 모두 0 exit.
+- `DRY_RUN=1 ./scripts/deploy.sh` 와 `DRY_RUN=1 ./scripts/destroy.sh` 모두 0 exit.
+- `pytest tests/scripts -v` PASS.
+- 비용 검증: `aws kms list-keys` 호출 횟수 비교(전/후 동일) → 새 CMK 생성 없음 확인.
+
+---
+
 ### Phase 3G — 배포 + 실 AWS 검증 (사용자 직접 실행 단계)
 
 > Claude 는 §3F 까지 완료 후 멈춘다. 이하 단계는 사용자가 본인 손으로 실행하며 결과를 보고한다.
@@ -374,17 +510,28 @@ Lambda: VPC 외부, public 인터넷 경유
 
 | 레벨 | 도구 | 대상 | 위치 |
 |---|---|---|---|
+| Terraform plan JSON | pytest + `terraform show -json` + 표준 lib | infra/ 전체 plan 결과 assert (리소스 개수/속성/의존성/Zero-Knowledge IAM 분리) | `tests/terraform/` (Phase 3D-pre) |
 | Unit | pytest, moto, responses, unittest.mock | grpc_server 내부 함수, mcp_server 핸들러, lambda handler, rules engine, semantic fallback | `tests/unit/` |
 | Integration (mock) | pytest, moto, FastAPI TestClient | MCP E2E (KMS+S3), Lambda↔MCP, grpc full flow | `tests/integration/` |
 | Integration (real) | pytest with `@pytest.mark.aws`, real boto3, real Lambda invoke | `test_lifecycle_45.sh` 와 동일 시나리오의 pytest 버전 | `tests/aws/` (선택) |
-| Bash | `bash -n`, shellcheck (선택) | deploy.sh, gen_mtls_certs.sh | CI 단계 |
-| Terraform | `terraform validate`, `terraform plan` | infra/ | local |
+| Bash | `bash -n`, shellcheck (선택) | deploy.sh, destroy.sh, gen_mtls_certs.sh | CI 단계 |
+| Bash DRY_RUN | pytest subprocess.run + DRY_RUN=1 | deploy.sh / destroy.sh 끝까지 진행 가능 검증 (실 apply 없음) | `tests/scripts/` (Phase 3F-post) |
+| Terraform | `terraform validate`, `terraform plan -refresh=false` | infra/ syntax/reference 검증 | local |
 
 CI 명령:
 ```bash
-pytest tests/unit tests/integration -m "not aws" -v --cov=ec2 --cov=lambda --cov-report=term-missing
+# 0. Terraform 정적 검증
 terraform -chdir=infra validate
-bash -n scripts/deploy.sh
+bash -n scripts/deploy.sh scripts/destroy.sh
+
+# 1. Phase 3D-pre — Terraform plan JSON 검증 (terraform CLI 필요)
+pytest tests/terraform -m terraform -v
+
+# 2. Phase 3D/3E — 애플리케이션 unit/integration
+pytest tests/unit tests/integration -m "not aws and not terraform" -v --cov=ec2 --cov=lambda --cov-report=term-missing
+
+# 3. Phase 3F-post — DRY_RUN 스크립트 검증
+pytest tests/scripts -v
 ```
 
 실 AWS 통합:
@@ -398,43 +545,58 @@ pytest tests/aws -m aws -v
 
 ### Phase 3A — Terraform 코드 분리
 - [x] 3A-1 `infra/main.tf` private subnet 추가
-- [x] 3A-2 `infra/ec2.tf` 두 인스턴스/SG/IAM 으로 분리
+- [x] 3A-2 `infra/ec2.tf` 두 인스턴스/SG/IAM 으로 분리 (사용자 placeholder 보정 포함)
 - [x] 3A-3 `infra/kms.tf` EC2Decrypt principal → mcp-role
-- [ ] 3A-4 `infra/s3.tf` 정책 mcp-role 한정
-- [ ] 3A-5 `infra/lambda.tf` VPC 진입 + private IP URL
-- [ ] 3A-6 `infra/code_dist.tf` 신설 (zip + S3 업로드)
-- [ ] 3A-7 `infra/bedrock.tf` Agent + ActionGroup + Alias 활성화
-- [ ] 3A-8 app userdata 에 BEDROCK_AGENT_ID/ALIAS_ID 주입
+- [x] 3A-4 `infra/s3.tf` 정책 mcp-role 한정 (working tree 에 변경 있음, 커밋 미완)
+- [x] 3A-5 `infra/lambda.tf` VPC 진입 + private IP URL + http://...:8080 + lambda IAM 에 `AWSLambdaVPCAccessExecutionRole`
+- [x] 3A-6 `infra/code_dist.tf` 신설 (archive_file + S3 업로드, output_path = `/tmp/agentbox-code.zip`)
+- [x] 3A-7 `infra/bedrock.tf` Agent + ActionGroup + Alias 활성화
+- [x] 3A-8 app userdata 에 BEDROCK_AGENT_ID/ALIAS_ID 주입
+- [x] 3A-9 placeholder 롤백: ec2.tf user_data heredoc → templatefile() (3B 의존), aws_s3_object.code "placeholder" → archive_file source (3A-6 의존)
 
 ### Phase 3B — Userdata 분리
-- [ ] 3B-1 `infra/userdata-app.sh.tpl` 작성 (sops 미포함)
-- [ ] 3B-2 `infra/userdata-mcp.sh.tpl` 작성 (sops GitHub release)
-- [ ] 3B-3 기존 `infra/userdata.sh.tpl` 삭제
+- [x] 3B-1 `infra/userdata-app.sh.tpl` 작성 (sops 미포함)
+- [x] 3B-2 `infra/userdata-mcp.sh.tpl` 작성 (sops GitHub release v3.12.2)
+- [x] 3B-3 기존 `infra/userdata.sh.tpl` 삭제
 
 ### Phase 3C — 코드 누락 수정
-- [ ] 3C-1 `_increment_token_count` 호출 추가
-- [ ] 3C-2 `/mcp/cleanup` 호출 추가
-- [ ] 3C-3 MCP 서버 포트 8080 + `/healthz`
+- [x] 3C-1 `_increment_token_count` 호출 추가 (grpc_server `_invoke_bedrock_agent` 끝)
+- [x] 3C-2 `/mcp/cleanup` 호출 추가 (grpc_server Inspect, verdict 결정 후)
+- [x] 3C-3 MCP 서버 포트 8080 + `/healthz`
+
+### Phase 3D-pre — Terraform TDD ($0)
+- [x] 3Dpre-1 `tests/terraform/test.tfvars` (fake var 파일)
+- [x] 3Dpre-2 `tests/terraform/conftest.py` (`tf_plan_json` session fixture)
+- [x] 3Dpre-3 `tests/terraform/test_plan_resources.py` (8 assert)
+- [x] 3Dpre-4 pytest marker `terraform`, `aws` 등록
+- [x] 3Dpre-5 (의존성 변경 없음 — 표준 라이브러리)
 
 ### Phase 3D — 단위 테스트
-- [ ] 3D-1 dev 의존성 (moto, responses) 추가
-- [ ] 3D-2 conftest fixtures
-- [ ] 3D-3 test_mcp_server.py
-- [ ] 3D-4 test_lambda_mcp_bridge.py
-- [ ] 3D-5 test_grpc_cleanup_call.py
-- [ ] 3D-6 test_token_counter.py
+- [x] 3D-1 dev 의존성 (moto, responses) 추가
+- [x] 3D-2 conftest fixtures (`aws_credentials_env`, `mock_aws_stack`)
+- [x] 3D-3 test_mcp_server.py (5 케이스)
+- [x] 3D-4 test_lambda_mcp_bridge.py
+- [x] 3D-5 test_grpc_cleanup_call.py
+- [x] 3D-6 test_token_counter.py
 
 ### Phase 3E — 통합 테스트
-- [ ] 3E-1 test_mcp_e2e.py (실 sops 바이너리)
-- [ ] 3E-2 test_lambda_to_mcp.py
-- [ ] 3E-3 test_grpc_full_flow.py
+- [x] 3E-1 test_mcp_e2e.py (실 sops 바이너리, 없으면 pytest.skip)
+- [x] 3E-2 test_lambda_to_mcp.py
+- [x] 3E-3 test_grpc_full_flow.py
 
 ### Phase 3F — deploy.sh 통합
-- [ ] 3F-1 deploy.sh 11단계 작성
-- [ ] 3F-2 실패 안내 분기
-- [ ] 3F-3 post_deploy.sh 삭제
+- [x] 3F-1 deploy.sh 11단계 작성
+- [x] 3F-2 실패 안내 분기
+- [x] 3F-3 post_deploy.sh 삭제
 
-### Phase 3G — 사용자 손에서 실행
+### Phase 3F-post — Script 동작 검증 ($0)
+- [x] 3Fpost-1 모든 스크립트 `bash -n` 통과
+- [x] 3Fpost-2 `scripts/deploy.sh` DRY_RUN=1 분기 도입
+- [x] 3Fpost-3 `scripts/destroy.sh` DRY_RUN=1 분기 도입
+- [x] 3Fpost-4 `tests/scripts/test_dry_run_*.py` (pytest)
+- [x] 3Fpost-5 (선택) shellcheck `error` 레벨 통과
+
+### Phase 3G — 사용자 손에서 실행 (실 AWS)
 - [ ] 3G-1 Bedrock model access 승인 확인
 - [ ] 3G-2 git status 깨끗
 - [ ] 3G-3 deploy.sh 성공
