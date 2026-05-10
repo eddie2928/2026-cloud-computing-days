@@ -55,7 +55,7 @@ resource "aws_s3_bucket_public_access_block" "kb_staging" {
   restrict_public_buckets = true
 }
 
-# 3A-4: encrypted-code bucket policy - mcp-role GetObject only
+# 3A-4: encrypted-code bucket policy - mcp-role full, app-role _dist/* only
 resource "aws_s3_bucket_policy" "encrypted_code" {
   bucket = aws_s3_bucket.encrypted_code.id
   policy = jsonencode({
@@ -70,6 +70,13 @@ resource "aws_s3_bucket_policy" "encrypted_code" {
           aws_s3_bucket.encrypted_code.arn,
           "${aws_s3_bucket.encrypted_code.arn}/*",
         ]
+      },
+      {
+        Sid    = "AppRoleDistOnly"
+        Effect = "Allow"
+        Principal = { AWS = aws_iam_role.app.arn }
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.encrypted_code.arn}/_dist/*"
       },
     ]
   })

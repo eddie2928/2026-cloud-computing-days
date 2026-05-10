@@ -19,10 +19,11 @@ data "archive_file" "code" {
 }
 
 resource "aws_s3_object" "code" {
-  bucket = aws_s3_bucket.encrypted_code.id
-  key    = "_dist/code-${data.archive_file.code.output_base64sha256}.zip"
-  source = data.archive_file.code.output_path
-  etag   = filemd5(data.archive_file.code.output_path)
+  bucket                 = aws_s3_bucket.encrypted_code.id
+  key                    = "_dist/code-${data.archive_file.code.output_base64sha256}.zip"
+  source                 = data.archive_file.code.output_path
+  etag                   = filemd5(data.archive_file.code.output_path)
+  server_side_encryption = "AES256"
 }
 
 output "code_zip_s3_uri" {

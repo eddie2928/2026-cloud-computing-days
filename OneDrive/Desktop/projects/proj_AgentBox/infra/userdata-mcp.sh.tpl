@@ -9,7 +9,7 @@ ADMIN_TOKEN="${admin_token}"
 CODE_S3_URI="${code_s3_uri}"
 
 apt-get update -qq
-apt-get install -y python3.11 python3.11-venv python3-pip git unzip awscli amazon-cloudwatch-agent
+apt-get install -y python3.11 python3.11-venv python3-pip git unzip awscli
 
 # sops via GitHub release binary (apt package unreliable)
 curl -fsSL https://github.com/getsops/sops/releases/download/v3.12.2/sops-v3.12.2.linux.amd64 \
@@ -51,9 +51,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 SVC
-
-amazon-cloudwatch-agent-ctl -a fetch-config \
-    -m ec2 -c ssm:/agentbox/cloudwatch-agent-config -s
 
 systemctl daemon-reload
 systemctl enable agentbox-mcp

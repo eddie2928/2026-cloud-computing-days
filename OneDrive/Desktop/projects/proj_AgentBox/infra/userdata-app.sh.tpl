@@ -12,7 +12,7 @@ BEDROCK_AGENT_ALIAS_ID="${bedrock_agent_alias_id}"
 MCP_PRIVATE_IP="${mcp_private_ip}"
 
 apt-get update -qq
-apt-get install -y python3.11 python3.11-venv python3-pip git unzip awscli amazon-cloudwatch-agent
+apt-get install -y python3.11 python3.11-venv python3-pip git unzip awscli
 
 mkdir -p /opt/agentbox/logs
 aws s3 cp "$CODE_S3_URI" /tmp/code.zip --region "$REGION"
@@ -23,8 +23,7 @@ cd /opt/agentbox
 python3.11 -m venv venv
 source venv/bin/activate
 pip install --quiet \
-    grpcio protobuf fastapi uvicorn boto3 pydantic loguru pyyaml \
-    sentence-transformers numpy requests
+    grpcio protobuf fastapi uvicorn boto3 pydantic loguru pyyaml requests
 
 cat > /opt/agentbox/.env <<ENVEOF
 AWS_REGION=$REGION
@@ -73,9 +72,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 SVC
-
-amazon-cloudwatch-agent-ctl -a fetch-config \
-    -m ec2 -c ssm:/agentbox/cloudwatch-agent-config -s
 
 systemctl daemon-reload
 systemctl enable agentbox-grpc agentbox-saas
