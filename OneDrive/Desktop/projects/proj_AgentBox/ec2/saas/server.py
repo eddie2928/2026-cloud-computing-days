@@ -64,7 +64,7 @@ async def index():
     return _serve_spa()
 
 
-@app.websocket("/pipeline/stream")
+@app.websocket("/api/pipeline/stream")
 async def pipeline_stream(websocket: WebSocket):
     """1C-5: Real-time DynamoDB poll -> WebSocket relay."""
     await websocket.accept()
@@ -145,7 +145,7 @@ class PromptSettings(BaseModel):
     system_prompt: str
 
 
-@app.put("/settings/prompt")
+@app.put("/api/settings/prompt")
 async def update_prompt(body: PromptSettings, _: str = Depends(_require_admin)):
     """1C-5: Update Bedrock Agent system prompt (stored in DynamoDB settings)."""
     table = _dynamo.Table(f"{_PROJECT}-settings")
@@ -162,7 +162,7 @@ class KBTTLSettings(BaseModel):
     ttl_minutes: int
 
 
-@app.put("/settings/kb-ttl")
+@app.put("/api/settings/kb-ttl")
 async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)):
     """1C-5: Update KB bucket object TTL (stored in DynamoDB settings)."""
     if body.ttl_minutes < 1 or body.ttl_minutes > 60:
