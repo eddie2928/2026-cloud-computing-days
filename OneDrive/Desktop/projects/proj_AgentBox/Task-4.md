@@ -739,12 +739,12 @@ pytest tests/scripts -v
 - [x] 4D-7 `tests/integration/test_terraform_plan_v2.py` 4개 assert
 
 ### Phase 4E — 단위 테스트
-- [ ] 4E-1 test_init_deps.py (5 케이스)
-- [ ] 4E-2 test_init_cmd.py (9 케이스)
-- [ ] 4E-3 test_mcp_list_files.py (5 케이스)
-- [ ] 4E-4 test_mcp_decrypt_chunked.py (6 케이스)
-- [ ] 4E-5 test_lambda_mcp_bridge_v2.py (4 케이스)
-- [ ] 4E-6 test_grpc_no_cleanup.py (cleanup 미호출 + 토큰카운터 1회)
+- [x] 4E-1 test_init_deps.py (5 케이스)
+- [x] 4E-2 test_init_cmd.py (9 케이스)
+- [x] 4E-3 test_mcp_list_files.py (5 케이스)
+- [x] 4E-4 test_mcp_decrypt_chunked.py (6 케이스)
+- [x] 4E-5 test_lambda_mcp_bridge_v2.py (4 케이스)
+- [x] 4E-6 test_grpc_no_cleanup.py (cleanup 미호출 + 토큰카운터 1회)
 
 ### Phase 4F — 통합 테스트
 - [ ] 4F-1 test_init_e2e.py (moto + monkeypatch)
