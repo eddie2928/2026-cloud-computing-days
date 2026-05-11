@@ -1,14 +1,16 @@
 """1C-5: EC2 SaaS Dashboard API - FastAPI with WebSocket pipeline stream."""
 import asyncio
 import json
+import mimetypes
 import os
+import pathlib
 from datetime import datetime, timezone
 
 import boto3
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.security import APIKeyHeader
 from loguru import logger
 from pydantic import BaseModel
@@ -39,16 +41,27 @@ async def healthz():
     return {"ok": True, "service": "saas"}
 
 
+_STATIC_DIR = pathlib.Path("/opt/agentbox/ec2/saas/static")
+_DASHBOARD_INDEX = _STATIC_DIR / "index.html"
+_FALLBACK_HTML = (
+    "<!doctype html><html><head><meta charset=utf-8>"
+    "<title>AgentBox Dashboard</title></head><body>"
+    "<div id=root></div>"
+    "<script>document.getElementById('root').innerHTML="
+    "'Dashboard not built. Run: cd dashboard && npm ci && npm run build';</script>"
+    "</body></html>"
+)
+
+
+def _serve_spa() -> HTMLResponse:
+    if _DASHBOARD_INDEX.exists():
+        return HTMLResponse(_DASHBOARD_INDEX.read_text(encoding="utf-8"))
+    return HTMLResponse(_FALLBACK_HTML)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    # Phase 2B adds the full React bundle; for now return a minimal placeholder
-    return """
-    <html><head><title>AgentBox Dashboard</title></head>
-    <body><h1>AgentBox SaaS Dashboard</h1>
-    <p>React UI bundle will be served here (Phase 2B).</p>
-    <p><a href="/docs">API Docs</a></p>
-    </body></html>
-    """
+    return _serve_spa()
 
 
 @app.websocket("/pipeline/stream")
@@ -77,22 +90,23 @@ async def pipeline_stream(websocket: WebSocket):
         pass
 
 
-_DASHBOARD_DIST = __import__("pathlib").Path("/opt/agentbox/dashboard/dist/index.html")
-_FALLBACK_HTML = (
-    "<!doctype html><html><head><meta charset=utf-8>"
-    "<title>AgentBox Audit</title></head><body>"
-    "<div id=root></div>"
-    "<script>document.getElementById('root').innerHTML="
-    "'Dashboard bundle not built. See README.';</script>"
-    "</body></html>"
-)
-
-
 @app.get("/audit", response_class=HTMLResponse)
 async def audit_page():
-    if _DASHBOARD_DIST.exists():
-        return _DASHBOARD_DIST.read_text(encoding="utf-8")
-    return _FALLBACK_HTML
+    return _serve_spa()
+
+
+@app.get("/assets/{path:path}")
+async def serve_asset(path: str):
+    file_path = (_STATIC_DIR / "assets" / path).resolve()
+    if not str(file_path).startswith(str((_STATIC_DIR / "assets").resolve())):
+        raise HTTPException(status_code=403)
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404)
+    content_type, _ = mimetypes.guess_type(str(file_path))
+    return Response(
+        content=file_path.read_bytes(),
+        media_type=content_type or "application/octet-stream",
+    )
 
 
 @app.get("/api/audit")
@@ -160,6 +174,11 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)):
         "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     return {"ok": True, "ttl_minutes": body.ttl_minutes}
+
+
+@app.get("/{full_path:path}", response_class=HTMLResponse)
+async def spa_catch_all(full_path: str):
+    return _serve_spa()
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ def test_audit_page_uses_dist_if_exists(client, tmp_path, monkeypatch):
     dist_file.write_text("<html><body>Dashboard</body></html>", encoding="utf-8")
 
     import ec2.saas.server as srv
-    monkeypatch.setattr(srv, "_DASHBOARD_DIST", dist_file)
+    monkeypatch.setattr(srv, "_DASHBOARD_INDEX", dist_file)
 
     resp = client.get("/audit")
     assert resp.status_code == 200

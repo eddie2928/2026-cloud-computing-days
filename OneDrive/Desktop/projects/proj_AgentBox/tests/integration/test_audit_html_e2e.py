@@ -61,7 +61,7 @@ def test_audit_html_serves_dist_when_present(client, tmp_path, monkeypatch):
     )
 
     import ec2.saas.server as srv
-    monkeypatch.setattr(srv, "_DASHBOARD_DIST", dist_file)
+    monkeypatch.setattr(srv, "_DASHBOARD_INDEX", dist_file)
 
     resp = client.get("/audit")
     assert resp.status_code == 200
