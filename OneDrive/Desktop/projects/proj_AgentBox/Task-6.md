@@ -1163,7 +1163,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase J Steps
 
-- [ ] **J-1. 기존 deploy_static.sh 동작 확인**
+- [x] **J-1. 기존 deploy_static.sh 동작 확인**
 
   ```bash
   cat scripts/deploy_static.sh | head -20
@@ -1171,7 +1171,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   현재 (`tar -czf /tmp/saas_update.tar.gz -C "$PROJ" ec2/saas/server.py ec2/saas/static`) 는 `ec2/saas/static/` 디렉토리를 그대로 묶음. → 빌드 산출물이 거기 있어야 함.
 
-- [ ] **J-2. dashboard 빌드 + EC2 static 디렉토리로 복사**
+- [x] **J-2. dashboard 빌드 + EC2 static 디렉토리로 복사**
 
   ```bash
   cd dashboard
@@ -1183,13 +1183,13 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   ls ec2/saas/static  # index.html, assets/ 확인
   ```
 
-- [ ] **J-3. AWS CLI 자격증명 다시 확인**
+- [x] **J-3. AWS CLI 자격증명 다시 확인**
 
   ```bash
   aws sts get-caller-identity --region us-east-1 | head -5
   ```
 
-- [ ] **J-4. deploy_static.sh 실행**
+- [x] **J-4. deploy_static.sh 실행**
 
   ```bash
   bash scripts/deploy_static.sh 2>&1 | tee logs/deploy_static_task6.log
@@ -1197,7 +1197,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: `[1/4] Creating archive...`, `[2/4] Uploading to s3://...`, `[3/4] Building SSM params...`, `[4/4] Sending SSM command to EC2...`, `SSM CommandId: ...`, 마지막에 `Status: Success` JSON. 약 30~60초 소요.
 
-- [ ] **J-5. EC2 적용 확인 (curl)**
+- [x] **J-5. EC2 적용 확인 (curl)**
 
   ```bash
   sleep 5
@@ -1210,7 +1210,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: `/healthz` 200, 나머지 401 (토큰 없음 → 정상). 만약 404 가 나오면 server.py 가 배포 안 된 것 → J-4 재실행.
 
-- [ ] **J-6. 커밋 (빌드 산출물 포함)**
+- [x] **J-6. 커밋 (빌드 산출물 포함)**
 
   ```bash
   git add ec2/saas/static
