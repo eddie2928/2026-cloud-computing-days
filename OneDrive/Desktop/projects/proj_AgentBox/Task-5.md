@@ -566,11 +566,11 @@ Endpoint(WSL2)                           AWS
 - [x] 5F-5: 기존 통합 테스트 회귀 PASS (179개 전체 PASS)
 
 ### Phase 5G — 실 환경 검증 + 배포
-- [ ] 5G-1: 로컬 WSL2 `agentbox set` 동작 확인
-- [ ] 5G-2: 로컬 `agentbox status` 출력 확인
+- [x] 5G-1: 로컬 WSL2 `agentbox set` 동작 확인 (4단계 정상, bashrc에 마커 2개 확인)
+- [x] 5G-2: 로컬 `agentbox status` 출력 확인 (6항목 + "Made by JeonMyeonghwan" 정상 출력)
 - [x] 5G-3: EC2 재배포 완료 (SSM → pre-signed URL → server.py 교체 → systemctl restart agentbox-saas → active)
 - [x] 5G-4: `GET /audit` → 200 HTML (무토큰) / `GET /api/audit` → 401 (무토큰) 확인
-- [ ] 5G-5: WSL 에서 `claude --print` round-trip 확인
+- [x] 5G-5: WSL 에서 `claude --print` round-trip 확인 (agentbox on → claude --print "Hello, test prompt" → 응답 수신)
 
 ### Phase 5H — 커밋
 - [x] 5H-1: `git status` 로 변경 파일 확인
