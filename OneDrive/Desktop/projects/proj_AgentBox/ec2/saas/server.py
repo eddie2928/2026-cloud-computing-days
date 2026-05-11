@@ -145,6 +145,24 @@ class PromptSettings(BaseModel):
     system_prompt: str
 
 
+@app.get("/api/settings/prompt-get")
+async def get_prompt(_: str = Depends(_require_admin)):
+    """현재 저장된 Bedrock system prompt 를 반환. 없으면 빈 문자열."""
+    table = _dynamo.Table(f"{_PROJECT}-settings")
+    resp = table.get_item(Key={"key": "bedrock_system_prompt"})
+    item = resp.get("Item") or {}
+    return {"system_prompt": item.get("value", "")}
+
+
+@app.get("/api/settings/kb-ttl-get")
+async def get_kb_ttl(_: str = Depends(_require_admin)):
+    """현재 저장된 KB TTL(분) 를 반환. 없으면 기본 5."""
+    table = _dynamo.Table(f"{_PROJECT}-settings")
+    resp = table.get_item(Key={"key": "kb_ttl_minutes"})
+    item = resp.get("Item") or {}
+    return {"ttl_minutes": int(item.get("value", 5))}
+
+
 @app.put("/api/settings/prompt")
 async def update_prompt(body: PromptSettings, _: str = Depends(_require_admin)):
     """1C-5: Update Bedrock Agent system prompt (stored in DynamoDB settings)."""

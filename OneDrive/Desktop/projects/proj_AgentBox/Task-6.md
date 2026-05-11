@@ -420,7 +420,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase C Steps
 
-- [ ] **C-1. 실패하는 단위 테스트 작성** (`tests/unit/test_saas_settings_get.py` 신규)
+- [x] **C-1. 실패하는 단위 테스트 작성** (`tests/unit/test_saas_settings_get.py` 신규)
 
   ```python
   """GET /api/settings/prompt-get, /api/settings/kb-ttl-get 단위 테스트."""
@@ -485,7 +485,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
       assert resp.json() == {"ttl_minutes": 5}  # default
   ```
 
-- [ ] **C-2. 테스트 FAIL 확인**
+- [x] **C-2. 테스트 FAIL 확인**
 
   ```bash
   pytest tests/unit/test_saas_settings_get.py -v 2>&1 | tail -20
@@ -493,7 +493,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 5개 모두 FAIL (404 — 핸들러 없음).
 
-- [ ] **C-3. `ec2/saas/server.py` 에 GET 핸들러 2개 추가**
+- [x] **C-3. `ec2/saas/server.py` 에 GET 핸들러 2개 추가**
 
   추가 위치: 기존 `update_prompt` 함수 바로 위 (line 148 직전).
 
@@ -516,7 +516,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
       return {"ttl_minutes": int(item.get("value", 5))}
   ```
 
-- [ ] **C-4. 테스트 PASS 확인**
+- [x] **C-4. 테스트 PASS 확인**
 
   ```bash
   pytest tests/unit/test_saas_settings_get.py -v 2>&1 | tail -20
@@ -524,7 +524,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 5개 모두 PASS.
 
-- [ ] **C-5. 전체 단위 테스트 회귀 확인**
+- [x] **C-5. 전체 단위 테스트 회귀 확인**
 
   ```bash
   pytest tests/unit -x -q 2>&1 | tail -20
@@ -532,7 +532,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 0 failed.
 
-- [ ] **C-6. 커밋**
+- [x] **C-6. 커밋**
 
   ```bash
   git add ec2/saas/server.py tests/unit/test_saas_settings_get.py
