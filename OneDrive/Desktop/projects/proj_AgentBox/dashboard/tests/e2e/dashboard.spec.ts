@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 
 test("Pipeline Stream: page loads and shows table", async ({ page }) => {
   await page.goto("/pipeline");
-  await expect(page.locator("h2")).toContainText("Pipeline Stream");
+  await expect(page.getByRole("heading", { name: "Pipeline Stream" })).toBeVisible();
   await expect(page.locator("table")).toBeVisible();
 });
 

@@ -1225,14 +1225,14 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase K Steps
 
-- [ ] **K-1. ADMIN_TOKEN 환경변수 설정**
+- [x] **K-1. ADMIN_TOKEN 환경변수 설정**
 
   ```bash
   # ADMIN_TOKEN 은 EC2 환경변수와 동일해야 함. infra/terraform.tfvars 또는 1Password 등에서 확인.
   export ADMIN_TOKEN="<your-admin-token>"
   ```
 
-- [ ] **K-2. pytest 라이브 통합 테스트 실행**
+- [x] **K-2. pytest 라이브 통합 테스트 실행**
 
   ```bash
   pytest tests/integration/test_saas_api_live.py -v 2>&1 | tail -30
@@ -1240,7 +1240,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 7개 모두 PASS. 실패 케이스가 있으면 어떤 라우트가 안 되는지 stdout 확인 후 Phase J 재시도.
 
-- [ ] **K-3. Playwright e2e 실행 (라이브 EC2 대상)**
+- [x] **K-3. Playwright e2e 실행 (라이브 EC2 대상)**
 
   `dashboard/playwright.config.ts` 의 baseURL 이 `http://localhost:5173` 이면 라이브 URL 로 임시 override.
 
@@ -1258,7 +1258,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: dashboard.spec.ts (4) + audit_tailing.spec.ts (2) + page_descriptions.spec.ts (5) 모두 PASS.
 
-- [ ] **K-4. 결과 기록 + 커밋 (필요 시)**
+- [x] **K-4. 결과 기록 + 커밋 (필요 시)**
 
   ```bash
   # playwright-report/ 는 .gitignore 대상이면 커밋 X

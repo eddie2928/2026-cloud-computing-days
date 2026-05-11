@@ -32,7 +32,7 @@ cd /opt/agentbox
 python3.11 -m venv venv
 source venv/bin/activate
 pip install --quiet \
-    grpcio protobuf fastapi uvicorn boto3 pydantic loguru pyyaml requests
+    grpcio protobuf fastapi uvicorn wsproto boto3 pydantic loguru pyyaml requests
 
 cat > /opt/agentbox/.env <<ENVEOF
 AWS_REGION=$REGION

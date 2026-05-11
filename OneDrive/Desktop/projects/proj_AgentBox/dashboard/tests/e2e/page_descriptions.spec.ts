@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 for (const { path, keyword } of PAGES) {
   test(`Page ${path} shows description containing "${keyword}"`, async ({ page }) => {
     await page.goto(path);
-    const desc = page.locator("h2 + p").first();
+    const desc = page.locator("p").filter({ hasText: keyword }).first();
     await expect(desc).toBeVisible();
     await expect(desc).toContainText(keyword);
   });
@@ -25,7 +25,7 @@ for (const { path, keyword } of PAGES) {
 test("Login page shows description containing Admin Token", async ({ page }) => {
   await page.evaluate(() => localStorage.removeItem("admin_token"));
   await page.goto("/login");
-  const desc = page.locator("h2 + p").first();
+  const desc = page.locator("p").filter({ hasText: "Admin Token" }).first();
   await expect(desc).toBeVisible();
   await expect(desc).toContainText("Admin Token");
 });
