@@ -118,6 +118,13 @@ resource "aws_bedrockagent_agent_action_group" "list_project_files" {
 resource "aws_bedrockagent_agent_alias" "live" {
   agent_id         = aws_bedrockagent_agent.inspector.id
   agent_alias_name = "live"
+
+  # Alias must be created AFTER action groups are set up (each triggers a re-prepare).
+  # Without this, the alias may route to a version that predates the action groups.
+  depends_on = [
+    aws_bedrockagent_agent_action_group.decrypt_and_stage,
+    aws_bedrockagent_agent_action_group.list_project_files,
+  ]
 }
 
 output "bedrock_agent_id" {

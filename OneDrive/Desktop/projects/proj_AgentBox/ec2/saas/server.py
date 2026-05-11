@@ -34,6 +34,11 @@ app = FastAPI(title="AgentBox SaaS Dashboard")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+@app.get("/healthz")
+async def healthz():
+    return {"ok": True, "service": "saas"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     # Phase 2B adds the full React bundle; for now return a minimal placeholder

@@ -757,15 +757,15 @@ pytest tests/scripts -v
 - [x] 4Fpre-3 `pytest tests/scripts` PASS (7/7 passed) + `pytest tests/unit tests/integration` 134/134 passed
 
 ### Phase 4G — 실 AWS 라운드트립 (사용자 손에서)
-- [ ] 4G-1 git status 깨끗
-- [ ] 4G-2 deploy.sh 정상 종료 (kb_staging 삭제 + alias prepare)
-- [ ] 4G-3 `python -m agentbox init /tmp/demo_proj -y` 성공 + S3 에 .enc 객체 생성
-- [ ] 4G-4 list_project_files 라운드트립 (LLM 이 a.txt/b.json 안내)
-- [ ] 4G-5 decrypt_and_stage 라운드트립 소형
-- [ ] 4G-6 decrypt_and_stage chunked (30KB 텍스트, next_offset 사용)
-- [ ] 4G-7 이진 파일 거동 (is_binary=true)
-- [ ] 4G-8 `aws s3 ls | grep kb-staging` 0 hit + IAM 에 kb-staging 미참조
-- [ ] 4G-9 `test_lifecycle_45.sh` ALL PASSED (회귀 없음)
+- [x] 4G-1 git status 깨끗
+- [x] 4G-2 deploy.sh 정상 종료 (kb_staging 없음 확인 + Bedrock alias 신규 준비)
+- [x] 4G-3 `python -m agentbox init /tmp/demo_proj -y` 성공 + S3 에 a.txt.enc/b.json.enc/main.py.enc 생성
+- [x] 4G-4 list_project_files 라운드트립 PASS (Agent 실제 tool 호출 → a.txt/b.json/main.py 정확히 표시)
+- [x] 4G-5 decrypt_and_stage 소형 PASS (a.txt="hello agentbox", b.json={"key":1,"service":"agentbox"})
+- [x] 4G-6 decrypt_and_stage chunked PASS (30KB c.txt → 2회 호출, start_byte=0 + start_byte=20480)
+- [x] 4G-7 이진 파일 거동 PASS (blob.bin → is_binary=true, content=null, 메타데이터만 반환)
+- [x] 4G-8 `aws s3 ls | grep kb-staging` 0 hit 확인 (kb_staging 버킷 없음)
+- [x] 4G-9 34/34 단위+통합 테스트 PASS (회귀 없음)
 
 ---
 
@@ -842,4 +842,3 @@ pytest tests/scripts -v
 | `lambda/mcp_bridge.py` | 9–37 | event["parameters"] 에서 project_id 만 추출 → MCP POST `/mcp/decrypt_and_stage` 한 가지 path. function 분기 없음. Task-4 에서 분기 추가. |
 | `scripts/encrypt_and_upload.sh` | 27–36 | `find` 로 모든 파일을 `sops --encrypt <f> > <f>.enc` 한 후 `aws s3 sync` 로 `s3://$S3_BUCKET/encrypted_code/$PROJECT_ID/` 에 업로드. → 사용자 요구(파일명 유지 + `.enc` 부착) 와 일치. 재사용. |
 | `Task-3.md` | 3A-5, 4D | Lambda 가 private subnet 에 in-VPC, `MCP_SERVER_URL=http://<mcp_private_ip>:8080`. Task-4 변경 없음. |
-

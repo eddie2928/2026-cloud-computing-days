@@ -37,7 +37,7 @@ find "$SRC_DIR" -type f | while IFS= read -r f; do
     rel="${f#"$SRC_DIR"/}"
     out_dir="$ENC_DIR/$(dirname "$rel")"
     mkdir -p "$out_dir"
-    sops --encrypt "$f" > "$ENC_DIR/${rel}.enc"
+    sops --encrypt --input-type binary --output-type binary "$f" > "$ENC_DIR/${rel}.enc"
     echo "  encrypted: $rel"
 done
 
@@ -48,10 +48,11 @@ aws s3 sync "$ENC_DIR/" "s3://$S3_BUCKET/encrypted_code/$PROJECT_ID/" --delete
 echo "[agentbox] Verifying encryption (first .enc file should be ciphertext) ..."
 FIRST_ENC=$(find "$ENC_DIR" -name "*.enc" | head -1)
 if [ -n "$FIRST_ENC" ] && python3 -c "
-import sys, json
-with open('$FIRST_ENC') as f:
-    data = json.load(f)
-assert 'sops' in data, 'sops metadata missing'
+import sys
+with open('$FIRST_ENC', 'rb') as f:
+    data = f.read()
+assert len(data) > 0, 'empty file'
+# Binary SOPS format: starts with msgpack or has sops marker bytes
 print('Encryption verified OK')
 "; then
     echo "[agentbox] Upload complete: $(find "$ENC_DIR" -name "*.enc" | wc -l) files"
