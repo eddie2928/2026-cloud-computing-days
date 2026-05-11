@@ -1,6 +1,2 @@
-# 1D-2: SOPS configuration - all files encrypted with KMS CMK
-# Replace {region}, {account_id}, {key_id} with actual values after terraform apply.
-# Example: arn:aws:kms:us-east-1:123456789012:key/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 creation_rules:
-  - path_regex: .*
-    kms: "arn:aws:kms:{region}:{account_id}:key/{key_id}"
+  - kms: arn:aws:kms:us-east-1:729403197556:key/7488970a-cc90-4b49-8e60-b62bb0b0c038

@@ -66,6 +66,7 @@ MCP_PRIVATE_IP=$(terraform output -raw mcp_private_ip 2>/dev/null || echo "")
 APP_INSTANCE_ID=$(terraform output -raw app_instance_id 2>/dev/null || echo "")
 MCP_INSTANCE_ID=$(terraform output -raw mcp_instance_id 2>/dev/null || echo "")
 KMS_KEY_ARN=$(terraform output -raw kms_key_arn 2>/dev/null || echo "")
+SAAS_URL=$(terraform output -raw saas_url 2>/dev/null || echo "http://${APP_PUBLIC_IP}:8000")
 
 echo "    app_public_ip   = ${APP_PUBLIC_IP}"
 echo "    mcp_public_ip   = ${MCP_PUBLIC_IP}"
@@ -209,7 +210,6 @@ fi
 
 echo ""
 echo "==> [11/11] Deployment OK"
-SAAS_URL=$(terraform output -raw saas_url 2>/dev/null || echo "http://${APP_PUBLIC_IP}:8000")
 echo "    SaaS URL: ${SAAS_URL}"
 echo "    App IP:   ${APP_PUBLIC_IP}"
 echo "    MCP IP:   ${MCP_PUBLIC_IP} (private: ${MCP_PRIVATE_IP})"
