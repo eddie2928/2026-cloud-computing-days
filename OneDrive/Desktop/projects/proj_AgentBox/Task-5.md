@@ -568,13 +568,13 @@ Endpoint(WSL2)                           AWS
 ### Phase 5G — 실 환경 검증 + 배포
 - [ ] 5G-1: 로컬 WSL2 `agentbox set` 동작 확인
 - [ ] 5G-2: 로컬 `agentbox status` 출력 확인
-- [ ] 5G-3: EC2 재배포(systemctl restart 또는 deploy.sh)
-- [ ] 5G-4: 브라우저 `http://<EIP>:8000/audit` 무토큰 진입 확인
+- [x] 5G-3: EC2 재배포 완료 (SSM → pre-signed URL → server.py 교체 → systemctl restart agentbox-saas → active)
+- [x] 5G-4: `GET /audit` → 200 HTML (무토큰) / `GET /api/audit` → 401 (무토큰) 확인
 - [ ] 5G-5: WSL 에서 `claude --print` round-trip 확인
 
 ### Phase 5H — 커밋
-- [ ] 5H-1: `git status` 로 변경 파일 확인
-- [ ] 5H-2: 단일 또는 Phase 단위 커밋. 메시지 prefix `feat(task-5,5A):` / `fix(task-5,5C):` 등 Task-4 컨벤션 따름.
+- [x] 5H-1: `git status` 로 변경 파일 확인
+- [x] 5H-2: Phase별 4개 커밋 완료 (5A/5B/5C/5F+5H)
 - [ ] 5H-3: 사용자에게 PR 생성 여부 확인(자동 push 금지).
 
 ---
