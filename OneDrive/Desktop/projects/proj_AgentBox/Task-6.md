@@ -923,7 +923,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase G Steps
 
-- [ ] **G-1. `dashboard/tests/e2e/audit_tailing.spec.ts` 신규**
+- [x] **G-1. `dashboard/tests/e2e/audit_tailing.spec.ts` 신규**
 
   ```ts
   import { test, expect } from "@playwright/test";
@@ -956,7 +956,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   });
   ```
 
-- [ ] **G-2. `dashboard/tests/e2e/page_descriptions.spec.ts` 신규**
+- [x] **G-2. `dashboard/tests/e2e/page_descriptions.spec.ts` 신규**
 
   ```ts
   import { test, expect } from "@playwright/test";
@@ -992,7 +992,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   });
   ```
 
-- [ ] **G-3. 컴파일/문법 확인 (라이브 실행은 Phase K)**
+- [x] **G-3. 컴파일/문법 확인 (라이브 실행은 Phase K)**
 
   ```bash
   cd dashboard
@@ -1003,7 +1003,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 신규 케이스 7개(이상) 목록에 나타남.
 
-- [ ] **G-4. 커밋**
+- [x] **G-4. 커밋**
 
   ```bash
   git add dashboard/tests/e2e/audit_tailing.spec.ts dashboard/tests/e2e/page_descriptions.spec.ts
