@@ -57,6 +57,8 @@ if [ "${AGENTBOX_TRANSPARENT:-0}" = "1" ]; then
     echo ""
 else
     export HTTPS_PROXY=http://127.0.0.1:8080
+    export NO_PROXY="169.254.169.254,*.amazonaws.com,*.aws.amazon.com"
+    export no_proxy="$NO_PROXY"
     export NODE_EXTRA_CA_CERTS="$_AB_CERT"
     echo ""
     echo "  AgentBox activated (HTTPS_PROXY mode)"

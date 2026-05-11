@@ -21,6 +21,8 @@ if [ -f "$_AB_PID" ]; then
 fi
 
 unset HTTPS_PROXY
+unset NO_PROXY
+unset no_proxy
 unset NODE_EXTRA_CA_CERTS
 
 echo "[agentbox] Deactivated. claude will connect directly to Anthropic."
