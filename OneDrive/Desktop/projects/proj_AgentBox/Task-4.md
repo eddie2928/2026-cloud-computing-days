@@ -719,11 +719,11 @@ pytest tests/scripts -v
 - [x] 4A-5 `scripts/encrypt_and_upload.sh` PROJECT_ID 출력 + 50MB 경고
 
 ### Phase 4B — MCP Server tool 2종
-- [ ] 4B-1 `_KB_STAGING_BUCKET` 및 cleanup 엔드포인트 전부 삭제
-- [ ] 4B-2 `_is_binary_bytes` 헬퍼 추가
-- [ ] 4B-3 `GET /mcp/list_files/{project_id}` Markdown 응답 신설
-- [ ] 4B-4 `POST /mcp/decrypt_and_stage` 시그니처 전면 변경 (files / start_byte / max_bytes / chunked 응답)
-- [ ] 4B-5 `MCP_PORT=8080` 및 `/healthz` 유지 확인
+- [x] 4B-1 `_KB_STAGING_BUCKET` 및 cleanup 엔드포인트 전부 삭제
+- [x] 4B-2 `_is_binary_bytes` 헬퍼 추가
+- [x] 4B-3 `GET /mcp/list_files/{project_id}` Markdown 응답 신설
+- [x] 4B-4 `POST /mcp/decrypt_and_stage` 시그니처 전면 변경 (files / start_byte / max_bytes / chunked 응답)
+- [x] 4B-5 `MCP_PORT=8080` 및 `/healthz` 유지 확인
 
 ### Phase 4C — Lambda + grpc cleanup 제거
 - [ ] 4C-1 `lambda/mcp_bridge.py` function 분기 (list_project_files / decrypt_and_stage)
