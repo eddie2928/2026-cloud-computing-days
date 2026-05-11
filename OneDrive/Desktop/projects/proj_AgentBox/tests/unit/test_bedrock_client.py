@@ -17,18 +17,21 @@ def _make_streaming_response(verdict: str, reasons: list):
 
 
 @patch("ec2.grpc_server.server._BEDROCK_AGENT_ID", "test-agent-id")
+@patch("ec2.grpc_server.server._increment_token_count")
 @patch("ec2.grpc_server.server._bedrock_runtime")
-def test_invoke_agent_allow(mock_bedrock):
+def test_invoke_agent_allow(mock_bedrock, mock_token):
     mock_bedrock.invoke_agent.return_value = _make_streaming_response("ALLOW", [])
     from ec2.grpc_server.server import _invoke_bedrock_agent
     verdict, reasons = _invoke_bedrock_agent("Hello world", "sess-1")
     assert verdict == "ALLOW"
     assert reasons == []
+    mock_token.assert_called_once()
 
 
 @patch("ec2.grpc_server.server._BEDROCK_AGENT_ID", "test-agent-id")
+@patch("ec2.grpc_server.server._increment_token_count")
 @patch("ec2.grpc_server.server._bedrock_runtime")
-def test_invoke_agent_block(mock_bedrock):
+def test_invoke_agent_block(mock_bedrock, mock_token):
     mock_bedrock.invoke_agent.return_value = _make_streaming_response(
         "BLOCK", ["내부 코드 유출 탐지"]
     )
@@ -36,11 +39,13 @@ def test_invoke_agent_block(mock_bedrock):
     verdict, reasons = _invoke_bedrock_agent("def secret_func():", "sess-2")
     assert verdict == "BLOCK"
     assert "내부 코드 유출 탐지" in reasons
+    mock_token.assert_called_once()
 
 
 @patch("ec2.grpc_server.server._BEDROCK_AGENT_ID", "test-agent-id")
+@patch("ec2.grpc_server.server._increment_token_count")
 @patch("ec2.grpc_server.server._bedrock_runtime")
-def test_invoke_agent_parse_failure_fallback(mock_bedrock):
+def test_invoke_agent_parse_failure_fallback(mock_bedrock, mock_token):
     """If Bedrock response is not JSON -> BLOCK fallback."""
     class _BadStream:
         def __iter__(self):
@@ -50,6 +55,7 @@ def test_invoke_agent_parse_failure_fallback(mock_bedrock):
     from ec2.grpc_server.server import _invoke_bedrock_agent
     verdict, _ = _invoke_bedrock_agent("test", "sess-3")
     assert verdict == "BLOCK"
+    mock_token.assert_called_once()
 
 
 def test_cost_guard_token_cap():
