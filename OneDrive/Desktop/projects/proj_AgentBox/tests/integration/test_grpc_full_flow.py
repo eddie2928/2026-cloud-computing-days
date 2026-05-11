@@ -1,12 +1,12 @@
-"""Integration test: full gRPC Inspect flow with mocked MCP + Bedrock."""
-import os
+"""Integration test: gRPC full flow - no cleanup, token counter works (Task-4)."""
+import importlib
+from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
+
+import boto3
 import pytest
 import responses as resp_lib
-from unittest.mock import patch, MagicMock
 from moto import mock_aws
-import boto3
-from datetime import datetime, timezone
-
 
 PROJECT = "agentbox"
 REGION = "us-east-1"
@@ -27,8 +27,7 @@ def set_env(monkeypatch):
 @mock_aws
 @resp_lib.activate
 def test_grpc_full_flow_allow(monkeypatch):
-    """ALLOW verdict -> cleanup called -> token counter incremented."""
-    import importlib
+    """ALLOW verdict -> no cleanup -> token counter incremented."""
     import ec2.grpc_server.server as srv
     importlib.reload(srv)
 
@@ -45,18 +44,9 @@ def test_grpc_full_flow_allow(monkeypatch):
         AttributeDefinitions=[{"AttributeName": "event_id", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
-
     importlib.reload(srv)
 
-    resp_lib.add(
-        resp_lib.DELETE,
-        f"{MCP_URL}/mcp/cleanup/",
-        match_querystring=False,
-        status=200,
-        json={"deleted": 1},
-    )
-
-    fake_chunks = ["verdict: ALLOW context analysis shows no issues"]
+    fake_chunks = ['{"verdict": "ALLOW", "reasons": []}']
 
     def fake_bedrock(*args, **kwargs):
         return {
@@ -70,9 +60,9 @@ def test_grpc_full_flow_allow(monkeypatch):
         request.user_id = "int-test-user"
         result = servicer.Inspect(request, MagicMock())
 
-    # Cleanup was called
+    # Task-4: cleanup NOT called
     delete_calls = [c for c in resp_lib.calls if c.request.method == "DELETE"]
-    assert len(delete_calls) == 1, "MCP cleanup should be called once"
+    assert len(delete_calls) == 0, "MCP cleanup must NOT be called in Task-4"
 
     # Token counter was incremented
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

@@ -1,12 +1,11 @@
-"""Integration test: MCP server end-to-end with real sops binary (if available)."""
-import os
-import shutil
-import pytest
-from unittest.mock import patch
-from moto import mock_aws
-import boto3
-from fastapi.testclient import TestClient
+"""Integration test: MCP server e2e with new Task-4 API (chunked, no kb_staging)."""
+import importlib
+from unittest.mock import MagicMock, patch
 
+import boto3
+import pytest
+from fastapi.testclient import TestClient
+from moto import mock_aws
 
 PROJECT = "agentbox"
 REGION = "us-east-1"
@@ -22,9 +21,7 @@ def mcp_e2e_client(monkeypatch):
     with mock_aws():
         s3 = boto3.client("s3", region_name=REGION)
         s3.create_bucket(Bucket=f"{PROJECT}-encrypted-code")
-        s3.create_bucket(Bucket=f"{PROJECT}-kb-staging")
 
-        import importlib
         import ec2.mcp_server.server as mcp_module
         importlib.reload(mcp_module)
 
@@ -38,44 +35,8 @@ def test_healthz(mcp_e2e_client):
     assert resp.json() == {"ok": True, "service": "mcp"}
 
 
-def test_decrypt_stage_and_cleanup_flow(mcp_e2e_client):
-    """Full flow: upload encrypted file -> decrypt_and_stage -> cleanup -> verify empty."""
-    client, s3 = mcp_e2e_client
-
-    sops_available = shutil.which("sops") is not None
-
-    s3.put_object(
-        Bucket=f"{PROJECT}-encrypted-code",
-        Key="encrypted_code/default/main.py.enc",
-        Body=b"fake-sops-encrypted",
-    )
-
-    if sops_available:
-        resp = client.post(
-            "/mcp/decrypt_and_stage",
-            json={"project_id": "default", "session_id": "e2e-sess"},
-            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
-        )
-    else:
-        pytest.skip("sops binary not available - skipping real decrypt test")
-
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["prefix"].startswith("staging/e2e-sess/")
-
-    cleanup = client.delete(
-        "/mcp/cleanup/e2e-sess",
-        headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
-    )
-    assert cleanup.status_code == 200
-    assert cleanup.json()["deleted"] >= 1
-
-    objs = s3.list_objects_v2(Bucket=f"{PROJECT}-kb-staging", Prefix="staging/e2e-sess/")
-    assert len(objs.get("Contents", [])) == 0
-
-
-def test_decrypt_stage_with_mocked_sops(mcp_e2e_client):
-    """Full flow with mocked sops: verify cleanup leaves kb-staging empty."""
+def test_list_and_decrypt_flow(mcp_e2e_client):
+    """list_files then decrypt_and_stage returns inline content."""
     client, s3 = mcp_e2e_client
 
     s3.put_object(
@@ -84,23 +45,37 @@ def test_decrypt_stage_with_mocked_sops(mcp_e2e_client):
         Body=b"sops-encrypted-content",
     )
 
+    # List files
+    resp = client.get(
+        "/mcp/list_files/testproj",
+        headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+    )
+    assert resp.status_code == 200
+    assert "app.py" in resp.text
+
+    # Decrypt
+    plaintext = b"decrypted_code = True"
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = b"decrypted_code = True"
+        mock_run.return_value.stdout = plaintext
 
         resp = client.post(
             "/mcp/decrypt_and_stage",
-            json={"project_id": "testproj", "session_id": "int-sess-1"},
+            json={"project_id": "testproj", "files": ["app.py"]},
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
 
     assert resp.status_code == 200
+    data = resp.json()
+    assert data["files"][0]["content"] == "decrypted_code = True"
+    assert data["files"][0]["is_binary"] is False
 
-    cleanup = client.delete(
-        "/mcp/cleanup/int-sess-1",
+
+def test_no_cleanup_endpoint(mcp_e2e_client):
+    """Verify /mcp/cleanup endpoint is gone in Task-4."""
+    client, _ = mcp_e2e_client
+    resp = client.delete(
+        "/mcp/cleanup/some-session",
         headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
     )
-    assert cleanup.json()["deleted"] == 1
-
-    objs = s3.list_objects_v2(Bucket=f"{PROJECT}-kb-staging", Prefix="staging/int-sess-1/")
-    assert len(objs.get("Contents", [])) == 0
+    assert resp.status_code == 404

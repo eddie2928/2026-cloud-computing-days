@@ -1,9 +1,9 @@
-"""Unit tests verifying that grpc Inspect calls MCP cleanup after verdict."""
-import os
-import pytest
-import responses as resp_lib
+"""Task-4: verify grpc Inspect no longer calls MCP cleanup (cleanup removed)."""
+import importlib
 from unittest.mock import MagicMock, patch
 
+import pytest
+import responses as resp_lib
 
 MCP_URL = "http://mcp-test:8080"
 ADMIN_TOKEN = "grpc-test-token"
@@ -20,62 +20,43 @@ def set_env(monkeypatch):
 
 
 @resp_lib.activate
-def test_inspect_calls_mcp_cleanup(monkeypatch):
-    import importlib
+def test_inspect_does_not_call_mcp_cleanup(monkeypatch):
+    """Task-4: cleanup endpoint removed, Inspect must not call DELETE /mcp/cleanup."""
     import ec2.grpc_server.server as srv
     importlib.reload(srv)
 
-    # Register the cleanup endpoint
-    resp_lib.add(
-        resp_lib.DELETE,
-        f"{MCP_URL}/mcp/cleanup/",
-        match_querystring=False,
-        status=200,
-        json={"deleted": 0},
-    )
+    with patch.object(srv, "_invoke_bedrock_agent", return_value=("ALLOW", [])), \
+         patch.object(srv, "_record_event"), \
+         patch.object(srv, "_daily_token_count", return_value=0), \
+         patch.object(srv, "_increment_token_count"):
 
-    # Mock Bedrock agent call
-    with patch.object(srv, "_invoke_bedrock_agent", return_value=("ALLOW", [])):
-        with patch.object(srv, "_record_event"):
-            with patch.object(srv, "_daily_token_count", return_value=0):
-                servicer = srv.InspectorServicer()
-                request = MagicMock()
-                request.prompt = "is this code safe?"
-                request.user_id = "test-user"
-                context = MagicMock()
-                result = servicer.Inspect(request, context)
+        servicer = srv.InspectorServicer()
+        request = MagicMock()
+        request.prompt = "is this code safe?"
+        request.user_id = "test-user"
+        result = servicer.Inspect(request, MagicMock())
 
     assert result.verdict == "ALLOW"
-    # Verify cleanup was called
     delete_calls = [c for c in resp_lib.calls if c.request.method == "DELETE"]
-    assert len(delete_calls) == 1
-    assert "/mcp/cleanup/" in delete_calls[0].request.url
+    assert len(delete_calls) == 0, "cleanup must not be called in Task-4"
 
 
 @resp_lib.activate
-def test_cleanup_auth_header(monkeypatch):
-    import importlib
+def test_no_cleanup_on_block(monkeypatch):
+    """Task-4: BLOCK verdict also must not trigger cleanup."""
     import ec2.grpc_server.server as srv
     importlib.reload(srv)
 
-    resp_lib.add(
-        resp_lib.DELETE,
-        f"{MCP_URL}/mcp/cleanup/",
-        match_querystring=False,
-        status=200,
-        json={"deleted": 0},
-    )
+    with patch.object(srv, "_invoke_bedrock_agent", return_value=("BLOCK", ["bad"])), \
+         patch.object(srv, "_record_event"), \
+         patch.object(srv, "_daily_token_count", return_value=0), \
+         patch.object(srv, "_increment_token_count"):
 
-    with patch.object(srv, "_invoke_bedrock_agent", return_value=("BLOCK", ["test"])):
-        with patch.object(srv, "_record_event"):
-            with patch.object(srv, "_daily_token_count", return_value=0):
-                servicer = srv.InspectorServicer()
-                request = MagicMock()
-                request.prompt = "bad prompt"
-                request.user_id = "u"
-                result = servicer.Inspect(request, MagicMock())
+        servicer = srv.InspectorServicer()
+        request = MagicMock()
+        request.prompt = "bad prompt"
+        request.user_id = "u"
+        result = servicer.Inspect(request, MagicMock())
 
     delete_calls = [c for c in resp_lib.calls if c.request.method == "DELETE"]
-    assert len(delete_calls) == 1
-    auth = delete_calls[0].request.headers.get("Authorization", "")
-    assert auth == f"Bearer {ADMIN_TOKEN}"
+    assert len(delete_calls) == 0

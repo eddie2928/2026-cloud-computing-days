@@ -752,9 +752,9 @@ pytest tests/scripts -v
 - [x] 4F-3 test_grpc_full_flow_v2.py (cleanup 없음 회귀)
 
 ### Phase 4F-pre — Script 회귀
-- [ ] 4Fpre-1 `bash -n` 3개 스크립트 통과
-- [ ] 4Fpre-2 `DRY_RUN=1 ./scripts/deploy.sh` PASS
-- [ ] 4Fpre-3 `pytest tests/scripts` PASS
+- [x] 4Fpre-1 `bash -n` 3개 스크립트 통과 (encrypt_and_upload.sh 문법 정상, deploy.sh/destroy.sh 미변경)
+- [ ] 4Fpre-2 `DRY_RUN=1 ./scripts/deploy.sh` PASS (사용자 환경에서 실행 필요)
+- [ ] 4Fpre-3 `pytest tests/scripts` PASS (사용자 환경에서 실행 필요)
 
 ### Phase 4G — 실 AWS 라운드트립 (사용자 손에서)
 - [ ] 4G-1 git status 깨끗
