@@ -1016,7 +1016,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 **목표:** Phase B~G 변경 후 모든 단위 테스트가 깨끗하게 PASS 하는지 최종 회귀 확인.
 
-- [ ] **H-1. 전체 pytest 단위 테스트 실행**
+- [x] **H-1. 전체 pytest 단위 테스트 실행**
 
   ```bash
   pytest tests/unit -v 2>&1 | tail -40
@@ -1024,7 +1024,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 모든 테스트 PASS. 신규 9개(B 4개 + C 5개) 포함.
 
-- [ ] **H-2. TypeScript 전체 빌드 확인 (소스 + 테스트)**
+- [x] **H-2. TypeScript 전체 빌드 확인 (소스 + 테스트)**
 
   ```bash
   cd dashboard
@@ -1033,7 +1033,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: `dist/` 생성, 에러 0건.
 
-- [ ] **H-3. 커밋 (필요 시 lockfile/lint 변경)**
+- [x] **H-3. 커밋 (필요 시 lockfile/lint 변경)**
 
   ```bash
   git status
