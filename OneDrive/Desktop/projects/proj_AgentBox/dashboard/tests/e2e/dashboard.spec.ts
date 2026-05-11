@@ -19,7 +19,7 @@ test("Prompt Editor: save button triggers PUT request", async ({ page }) => {
   await expect(page.locator("[data-testid='prompt-textarea']")).toBeVisible();
 
   const [req] = await Promise.all([
-    page.waitForRequest((r) => r.method() === "PUT" && r.url().includes("/settings/prompt")),
+    page.waitForRequest((r) => r.method() === "PUT" && r.url().includes("/api/settings/prompt")),
     page.locator("[data-testid='save-prompt-btn']").click(),
   ]);
   expect(req.method()).toBe("PUT");
@@ -31,20 +31,23 @@ test("KB Settings: TTL input and save", async ({ page }) => {
   await page.fill("[data-testid='kb-ttl-input']", "10");
 
   const [req] = await Promise.all([
-    page.waitForRequest((r) => r.method() === "PUT" && r.url().includes("/settings/kb-ttl")),
+    page.waitForRequest((r) => r.method() === "PUT" && r.url().includes("/api/settings/kb-ttl")),
     page.locator("[data-testid='save-kb-btn']").click(),
   ]);
   const body = JSON.parse(req.postData()!);
   expect(body.ttl_minutes).toBe(10);
 });
 
-test("Audit: query button triggers GET request", async ({ page }) => {
+test("Audit: page mount triggers auto query and Pause toggle works", async ({ page }) => {
+  const reqs: string[] = [];
+  page.on("request", (r) => { if (r.url().includes("/api/audit")) reqs.push(r.url()); });
   await page.goto("/audit");
-  await expect(page.locator("[data-testid='audit-query-btn']")).toBeVisible();
-
-  const [req] = await Promise.all([
-    page.waitForRequest((r) => r.url().includes("/audit")),
-    page.locator("[data-testid='audit-query-btn']").click(),
-  ]);
-  expect(req.url()).toContain("/audit");
+  // wait for auto-query on mount
+  await page.waitForRequest((r) => r.url().includes("/api/audit"));
+  expect(reqs.length).toBeGreaterThanOrEqual(1);
+  // pause toggle
+  const toggle = page.locator("[data-testid='audit-tail-toggle']");
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(toggle).toContainText("Resume");
 });

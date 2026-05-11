@@ -857,7 +857,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase F Steps
 
-- [ ] **F-1. dashboard.spec.ts 갱신**
+- [x] **F-1. dashboard.spec.ts 갱신**
 
   변경 위치 1 (PromptEditor 테스트, line 21~):
 
@@ -895,7 +895,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   });
   ```
 
-- [ ] **F-2. e2e 테스트 실행 환경 준비**
+- [x] **F-2. e2e 테스트 실행 환경 준비**
 
   e2e 는 EC2 라이브 대상 실행이 어렵기 때문에(빌드 후 deploy_static.sh 필요) **Phase K 의 라이브 단계로 미룬다.** 지금은 컴파일/문법만 확인.
 
@@ -908,7 +908,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 에러 0건, 테스트 목록에 갱신된 케이스가 나타남.
 
-- [ ] **F-3. 커밋**
+- [x] **F-3. 커밋**
 
   ```bash
   git add dashboard/tests/e2e/dashboard.spec.ts
