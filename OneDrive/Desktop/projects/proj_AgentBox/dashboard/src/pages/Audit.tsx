@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth, apiHeaders } from "../components/AuthProvider";
 
 interface AuditRow {
@@ -11,6 +11,9 @@ interface AuditRow {
   prompt_hash?: string;
 }
 
+const POLL_MS = 3000;
+const MAX_ROWS = 200;
+
 export function Audit() {
   const { token } = useAuth();
   const [from, setFrom] = useState("");
@@ -18,17 +21,50 @@ export function Audit() {
   const [verdict, setVerdict] = useState("");
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [tailing, setTailing] = useState(true);
+  const rowsRef = useRef<AuditRow[]>([]);
 
-  async function query() {
-    setLoading(true);
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
+
+  const query = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const params = new URLSearchParams({ limit: "100" });
     if (from) params.set("from_ts", from);
     if (to) params.set("to_ts", to);
     if (verdict) params.set("verdict", verdict);
     const res = await fetch(`/api/audit?${params}`, { headers: apiHeaders(token) });
-    if (res.ok) setRows(await res.json());
-    setLoading(false);
-  }
+    if (res.ok) {
+      const fresh: AuditRow[] = await res.json();
+      if (silent) {
+        // tailing: prepend only new event_ids
+        const existing = new Set(rowsRef.current.map((r) => r.event_id));
+        const newOnes = fresh.filter((r) => !existing.has(r.event_id));
+        if (newOnes.length > 0) {
+          setRows((prev) => [...newOnes, ...prev].slice(0, MAX_ROWS));
+        }
+      } else {
+        setRows(fresh.slice(0, MAX_ROWS));
+      }
+    }
+    if (!silent) setLoading(false);
+  }, [from, to, verdict, token]);
+
+  // Auto-query on mount
+  useEffect(() => {
+    query(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Polling
+  useEffect(() => {
+    if (!tailing) return;
+    const id = setInterval(() => {
+      query(true);
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [tailing, query]);
 
   function exportCSV() {
     const headers = ["event_id", "ts", "user_id", "verdict", "latency_ms", "reasons"];
@@ -43,8 +79,20 @@ export function Audit() {
 
   return (
     <div>
-      <h2>Audit Log</h2>
-      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ margin: 0 }}>Audit Log</h2>
+        <button
+          onClick={() => setTailing((t) => !t)}
+          style={{
+            ...btnStyle,
+            background: tailing ? "#999" : "#2e7d32",
+          }}
+          data-testid="audit-tail-toggle"
+        >
+          {tailing ? "Pause" : "Resume"}
+        </button>
+      </div>
+      <p style={{ color: "#666", fontSize: 13, marginTop: "0.3rem", marginBottom: "1rem", lineHeight: 1.5 }}>
         DynamoDB 에 영구 저장된 ALLOW/BLOCK 판정 이력입니다. 페이지 진입 시 최근 100건을 자동 조회하고,
         3초마다 새 이벤트를 상단에 추가합니다. 우상단 Pause 버튼으로 폴링을 일시 중지할 수 있습니다.
         From/To/Verdict 로 과거 구간을 검색하거나 CSV 로 내보낼 수 있습니다.
@@ -60,7 +108,7 @@ export function Audit() {
             <option value="BLOCK">BLOCK</option>
           </select>
         </label>
-        <button onClick={query} style={btnStyle} data-testid="audit-query-btn">Query</button>
+        <button onClick={() => query(false)} style={btnStyle} data-testid="audit-query-btn">Query</button>
         {rows.length > 0 && (
           <button onClick={exportCSV} style={{ ...btnStyle, background: "#2e7d32" }} data-testid="audit-export-btn">
             Export CSV

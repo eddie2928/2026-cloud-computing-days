@@ -666,7 +666,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase E Steps
 
-- [ ] **E-1. Audit.tsx 의 import / state / 로직 갱신**
+- [x] **E-1. Audit.tsx 의 import / state / 로직 갱신**
 
   편집 대상: `dashboard/src/pages/Audit.tsx` 전체. 아래 코드로 교체(description 은 Phase D 의 것 유지).
 
@@ -832,7 +832,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   const td: React.CSSProperties = { padding: "0.3rem 0.4rem", border: "1px solid #ddd" };
   ```
 
-- [ ] **E-2. TypeScript 컴파일 확인**
+- [x] **E-2. TypeScript 컴파일 확인**
 
   ```bash
   cd dashboard
@@ -842,7 +842,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 출력 없음.
 
-- [ ] **E-3. 커밋**
+- [x] **E-3. 커밋**
 
   ```bash
   git add dashboard/src/pages/Audit.tsx
