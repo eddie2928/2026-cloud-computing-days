@@ -77,7 +77,25 @@ async def pipeline_stream(websocket: WebSocket):
         pass
 
 
-@app.get("/audit")
+_DASHBOARD_DIST = __import__("pathlib").Path("/opt/agentbox/dashboard/dist/index.html")
+_FALLBACK_HTML = (
+    "<!doctype html><html><head><meta charset=utf-8>"
+    "<title>AgentBox Audit</title></head><body>"
+    "<div id=root></div>"
+    "<script>document.getElementById('root').innerHTML="
+    "'Dashboard bundle not built. See README.';</script>"
+    "</body></html>"
+)
+
+
+@app.get("/audit", response_class=HTMLResponse)
+async def audit_page():
+    if _DASHBOARD_DIST.exists():
+        return _DASHBOARD_DIST.read_text(encoding="utf-8")
+    return _FALLBACK_HTML
+
+
+@app.get("/api/audit")
 async def audit(
     from_ts: str | None = None,
     to_ts: str | None = None,

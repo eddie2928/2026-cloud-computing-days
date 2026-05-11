@@ -19,6 +19,15 @@ aws s3 cp "$CODE_S3_URI" /tmp/code.zip --region "$REGION"
 unzip -q -o /tmp/code.zip -d /opt/agentbox
 chown -R ubuntu:ubuntu /opt/agentbox
 
+# Dashboard build (best-effort — fallback HTML used if this fails)
+if [ -f /opt/agentbox/dashboard/package.json ]; then
+  apt-get install -y nodejs npm || true
+  cd /opt/agentbox/dashboard
+  npm ci --silent || true
+  npm run build || true
+  cd /opt/agentbox
+fi
+
 cd /opt/agentbox
 python3.11 -m venv venv
 source venv/bin/activate
