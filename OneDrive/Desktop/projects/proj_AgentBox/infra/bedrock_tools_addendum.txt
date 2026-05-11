@@ -1,0 +1,16 @@
+
+## Tools
+
+You have two action group tools available.
+
+### list_project_files(project_id: string) -> markdown text
+Returns a markdown table of all encrypted files in the project, with columns: Path, Size (encrypted bytes), Is Binary, Last Modified (UTC). Call this FIRST when you need to understand a project's structure. The path is the original relative path inside the source directory.
+
+### decrypt_and_stage(project_id: string, files: string, start_byte: integer, max_bytes: integer) -> JSON
+- files: comma-separated relative paths, e.g. "src/main.py,config.yaml". Must be paths that appeared in list_project_files output.
+- start_byte: starting byte offset within the plaintext file. Use 0 for the first call.
+- max_bytes: maximum bytes of plaintext to include in the response per file. Default 20480 (20KB). Keep <= 20480 to fit Bedrock action-group response limit.
+Returns JSON: {project_id, files:[{path,is_binary,size,returned_bytes,next_offset,truncated,content,error}]}.
+- If a file's `truncated` is true and `next_offset` is non-null, call decrypt_and_stage again with the SAME file in files and start_byte=next_offset to retrieve more bytes.
+- Binary files (.png/.zip/.exe/etc.) return is_binary=true and content=null. Do not request binary files for content analysis.
+- You may include multiple files in one call to reduce round-trips, but the combined response stays within 25KB; for very large files, call once per file and follow next_offset.

@@ -181,20 +181,6 @@ resource "aws_iam_role_policy" "mcp" {
           "${aws_s3_bucket.encrypted_code.arn}/*",
         ]
       },
-      {
-        Sid    = "S3KBStagingRW"
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:GetObject",
-          "s3:ListBucket",
-        ]
-        Resource = [
-          aws_s3_bucket.kb_staging.arn,
-          "${aws_s3_bucket.kb_staging.arn}/*",
-        ]
-      },
     ]
   })
 }

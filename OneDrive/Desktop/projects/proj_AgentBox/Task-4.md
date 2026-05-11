@@ -730,13 +730,13 @@ pytest tests/scripts -v
 - [x] 4C-2 `ec2/grpc_server/server.py` 의 `requests.delete(... /mcp/cleanup ...)` 삭제
 
 ### Phase 4D — Bedrock + kb_staging 인프라
-- [ ] 4D-1 `infra/bedrock_tools_addendum.txt` 신규 (UTF-8, LF)
-- [ ] 4D-2 `aws_bedrockagent_agent.instruction` 을 두 파일 join 으로 변경
-- [ ] 4D-3 `decrypt_and_stage` action_group 시그니처 변경 (project_id, files, start_byte, max_bytes)
-- [ ] 4D-4 `list_project_files` action_group 신규 (project_id)
-- [ ] 4D-5 `aws_lambda_permission` 가 양쪽 action_group 허용하는지 검증/수정
-- [ ] 4D-6 kb_staging 관련 모든 인프라 리소스 + IAM statement 삭제 (force_destroy=true 사전 부착)
-- [ ] 4D-7 `tests/integration/test_terraform_plan_v2.py` 4개 assert
+- [x] 4D-1 `infra/bedrock_tools_addendum.txt` 신규 (UTF-8, LF)
+- [x] 4D-2 `aws_bedrockagent_agent.instruction` 을 두 파일 join 으로 변경
+- [x] 4D-3 `decrypt_and_stage` action_group 시그니처 변경 (project_id, files, start_byte, max_bytes)
+- [x] 4D-4 `list_project_files` action_group 신규 (project_id)
+- [x] 4D-5 `aws_lambda_permission` 가 양쪽 action_group 허용하는지 검증/수정 (principal=bedrock.amazonaws.com, source_arn 없음 → OK)
+- [x] 4D-6 kb_staging 관련 모든 인프라 리소스 + IAM statement 삭제 (force_destroy=true 사전 부착)
+- [x] 4D-7 `tests/integration/test_terraform_plan_v2.py` 4개 assert
 
 ### Phase 4E — 단위 테스트
 - [ ] 4E-1 test_init_deps.py (5 케이스)
