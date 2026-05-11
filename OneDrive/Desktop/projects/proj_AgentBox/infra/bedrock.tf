@@ -52,6 +52,10 @@ resource "aws_bedrockagent_agent_action_group" "decrypt_and_stage" {
   agent_version     = "DRAFT"
   action_group_name = "decrypt_and_stage"
 
+  # list_project_files must finish (including its PrepareAgent call) before
+  # decrypt_and_stage starts, to avoid concurrent PrepareAgent conflict.
+  depends_on = [aws_bedrockagent_agent_action_group.list_project_files]
+
   action_group_executor {
     lambda = aws_lambda_function.mcp_bridge.arn
   }

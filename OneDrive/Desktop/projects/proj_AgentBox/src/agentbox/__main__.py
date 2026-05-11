@@ -101,16 +101,110 @@ agentbox() {{
 
 def main() -> None:
     import argparse
-    parser = argparse.ArgumentParser(prog="agentbox", description="AgentBox local MITM sandbox")
-    sub = parser.add_subparsers(dest="cmd")
-    sub.add_parser("run", help="Start proxy + API server")
-    sub.add_parser("ca", help="Ensure CA certificate exists")
-    sub.add_parser("setup", help="Install agentbox on/off shell integration into ~/.bashrc")
-    p_init = sub.add_parser("init", help="Encrypt+upload a project, verify EC2, print dashboard URL")
-    p_init.add_argument("dir")
-    p_init.add_argument("--project-id", default=None)
-    p_init.add_argument("--skip-deps", action="store_true")
-    p_init.add_argument("-y", "--yes", action="store_true", help="자동 설치 prompt 건너뛰고 동의")
+
+    parser = argparse.ArgumentParser(
+        prog="agentbox",
+        description=(
+            "AgentBox -- local MITM sandbox that intercepts AI agent traffic,\n"
+            "inspects prompts via Bedrock, and enforces zero-knowledge code access."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  agentbox run                        # start proxy (port 8080) + web UI (port 8000)\n"
+            "  agentbox ca                         # generate/verify CA certificate\n"
+            "  agentbox setup                      # install shell on/off helpers into ~/.bashrc\n"
+            "  agentbox init ./myrepo              # encrypt & upload myrepo, verify EC2\n"
+            "  agentbox init ./myrepo -y           # same, auto-accept dependency installs\n"
+            "  agentbox init ./myrepo --project-id proj42\n"
+            "\n"
+            "After 'agentbox setup', reload your shell and use:\n"
+            "  agentbox on   # activate proxy (sets http_proxy / https_proxy)\n"
+            "  agentbox off  # deactivate proxy"
+        ),
+    )
+
+    sub = parser.add_subparsers(dest="cmd", metavar="<command>")
+
+    sub.add_parser(
+        "run",
+        help="Start proxy + web UI server",
+        description=(
+            "Start the mitmproxy MITM proxy and the FastAPI web UI server.\n\n"
+            "  Proxy  listens on http://127.0.0.1:<PROXY_PORT>  (default 8080)\n"
+            "  Web UI listens on http://localhost:<API_PORT>     (default 8000)\n\n"
+            "Set HTTPS_PROXY=http://127.0.0.1:8080 (or run 'agentbox on') to\n"
+            "route AI agent traffic through the sandbox."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    sub.add_parser(
+        "ca",
+        help="Generate / verify the local CA certificate",
+        description=(
+            "Ensure the AgentBox CA certificate exists in the configured CA_DIR.\n\n"
+            "Run scripts/install_ca.sh afterwards to register the certificate in\n"
+            "the system trust store so TLS interception works without warnings."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    sub.add_parser(
+        "setup",
+        help="Install agentbox on/off shell helpers into ~/.bashrc",
+        description=(
+            "Append shell functions to ~/.bashrc that let you type:\n\n"
+            "  agentbox on   -- set http_proxy / https_proxy to route through the proxy\n"
+            "  agentbox off  -- unset those variables\n\n"
+            "This is a one-time operation; re-running it is safe (idempotent).\n"
+            "Remember to run 'source ~/.bashrc' or open a new terminal afterwards."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    p_init = sub.add_parser(
+        "init",
+        help="Encrypt + upload a project, verify EC2, print dashboard URL",
+        description=(
+            "Prepare a local project directory for zero-knowledge inspection:\n\n"
+            "  1. Check required tools (sops, aws CLI) and Python packages\n"
+            "  2. Detect AWS credentials / Terraform outputs\n"
+            "  3. Encrypt source files with SOPS and upload to S3\n"
+            "  4. Verify the MCP server health endpoint on EC2\n"
+            "  5. Verify gRPC connectivity to the Bedrock inspector\n"
+            "  6. Print the AgentBox dashboard URL\n\n"
+            "Logs are written to logs/agentbox-init-<timestamp>.log."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  agentbox init ./myrepo\n"
+            "  agentbox init ./myrepo --project-id proj42 -y\n"
+            "  agentbox init ./myrepo --skip-deps"
+        ),
+    )
+    p_init.add_argument(
+        "dir",
+        metavar="DIR",
+        help="Path to the project directory to encrypt and upload",
+    )
+    p_init.add_argument(
+        "--project-id",
+        metavar="ID",
+        default=None,
+        help="Override the project identifier (default: directory name)",
+    )
+    p_init.add_argument(
+        "--skip-deps",
+        action="store_true",
+        help="Skip dependency checks (sops, aws CLI, Python packages)",
+    )
+    p_init.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        help="Auto-accept all dependency install prompts without asking",
+    )
     args = parser.parse_args()
 
     if args.cmd == "run":
