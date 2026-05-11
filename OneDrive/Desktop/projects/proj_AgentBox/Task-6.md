@@ -1273,7 +1273,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase L Steps
 
-- [ ] **L-1. `scripts/redeploy_idempotency.sh` 신규 작성**
+- [x] **L-1. `scripts/redeploy_idempotency.sh` 신규 작성**
 
   ```bash
   #!/usr/bin/env bash
@@ -1409,14 +1409,14 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   log "  SaaS URL: $SAAS_URL"
   ```
 
-- [ ] **L-2. 실행 권한 부여 + 문법 확인**
+- [x] **L-2. 실행 권한 부여 + 문법 확인**
 
   ```bash
   chmod +x scripts/redeploy_idempotency.sh
   bash -n scripts/redeploy_idempotency.sh && echo "syntax OK"
   ```
 
-- [ ] **L-3. DRY_RUN 테스트 (실제 destroy 안 함)**
+- [x] **L-3. DRY_RUN 테스트 (실제 destroy 안 함)**
 
   ```bash
   DRY_RUN=1 bash scripts/redeploy_idempotency.sh 2>&1 | tee logs/redeploy_dryrun.log | tail -40
@@ -1424,7 +1424,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: `[1/5] destroy.sh` → plan -destroy 출력, `[2/5] deploy.sh` → plan 출력, "DRY_RUN 종료" 메시지로 health check 없이 종료.
 
-- [ ] **L-4. `tests/scripts/test_redeploy_idempotency.py` 신규 (dry-run 단위 검증)**
+- [x] **L-4. `tests/scripts/test_redeploy_idempotency.py` 신규 (dry-run 단위 검증)**
 
   ```python
   """redeploy_idempotency.sh dry-run 출력 검증."""
@@ -1468,7 +1468,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
       assert result.returncode == 0, result.stderr
   ```
 
-- [ ] **L-5. dry-run 단위 테스트 PASS**
+- [x] **L-5. dry-run 단위 테스트 PASS**
 
   ```bash
   pytest tests/scripts/test_redeploy_idempotency.py -v 2>&1 | tail -15
@@ -1476,7 +1476,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 2개 PASS.
 
-- [ ] **L-6. 커밋**
+- [x] **L-6. 커밋**
 
   ```bash
   git add scripts/redeploy_idempotency.sh tests/scripts/test_redeploy_idempotency.py
@@ -1585,18 +1585,18 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 > 본 체크리스트는 Phase 별 첫 step 만 모아둔 인덱스. 실제 step 들은 §4 참고. 재시작 시 가장 최근 `- [ ]` 부터 진입.
 
-- [ ] Phase A. 사전 환경 점검 (A-1 ~ A-8)
-- [ ] Phase B. server.py /api prefix 일관화 (B-1 ~ B-6)
-- [ ] Phase C. GET 설정 조회 엔드포인트 신설 (C-1 ~ C-6)
-- [ ] Phase D. 페이지 description 하드코딩 (D-1 ~ D-7)
-- [ ] Phase E. Audit 자동 tailing + Pause/Resume (E-1 ~ E-3)
-- [ ] Phase F. 기존 e2e 테스트 갱신 (F-1 ~ F-3)
-- [ ] Phase G. 신규 e2e 테스트 작성 (G-1 ~ G-4)
-- [ ] Phase H. 전체 단위 테스트 회귀 PASS (H-1 ~ H-3)
-- [ ] Phase I. 라이브 통합 테스트 파일 작성 (I-1 ~ I-4)
-- [ ] Phase J. dashboard 빌드 + deploy_static.sh (J-1 ~ J-6)
-- [ ] Phase K. 라이브 통합 테스트 실행 (K-1 ~ K-4)
-- [ ] Phase L. redeploy_idempotency.sh 작성 (L-1 ~ L-6)
+- [x] Phase A. 사전 환경 점검 (A-1 ~ A-8)
+- [x] Phase B. server.py /api prefix 일관화 (B-1 ~ B-6)
+- [x] Phase C. GET 설정 조회 엔드포인트 신설 (C-1 ~ C-6)
+- [x] Phase D. 페이지 description 하드코딩 (D-1 ~ D-7)
+- [x] Phase E. Audit 자동 tailing + Pause/Resume (E-1 ~ E-3)
+- [x] Phase F. 기존 e2e 테스트 갱신 (F-1 ~ F-3)
+- [x] Phase G. 신규 e2e 테스트 작성 (G-1 ~ G-4)
+- [x] Phase H. 전체 단위 테스트 회귀 PASS (H-1 ~ H-3)
+- [x] Phase I. 라이브 통합 테스트 파일 작성 (I-1 ~ I-4)
+- [x] Phase J. dashboard 빌드 + deploy_static.sh (J-1 ~ J-6)
+- [x] Phase K. 라이브 통합 테스트 실행 (K-1 ~ K-4)
+- [x] Phase L. redeploy_idempotency.sh 작성 (L-1 ~ L-6)
 - [ ] Phase M. 실제 멱등성 검증 실행 (M-1 ~ M-9)
 
 ---
