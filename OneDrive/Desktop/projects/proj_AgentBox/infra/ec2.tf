@@ -41,6 +41,10 @@ resource "aws_security_group" "lambda" {
   vpc_id      = aws_vpc.main.id
 
   tags = { Name = "${var.project}-lambda-sg" }
+
+  timeouts {
+    delete = "40m"
+  }
 }
 
 # Standalone egress rule breaks lambda-sg <-> mcp-sg circular dependency

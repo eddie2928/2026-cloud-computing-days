@@ -17,6 +17,25 @@ terraform state rm 'aws_kms_key.sops[0]'   2>/dev/null && echo "    Removed aws_
 terraform state rm 'aws_kms_alias.sops[0]' 2>/dev/null && echo "    Removed aws_kms_alias.sops[0]" || echo "    aws_kms_alias.sops[0] not in state (skipping)"
 
 echo ""
+echo "==> Pre-destroy: Lambda function cleanup (unblock VPC ENI)"
+# Lambda VPC Hyperplane ENI는 함수 삭제 후 10~20분간 in-use 상태 유지.
+# terraform destroy 전에 미리 삭제해 ENI 정리 시간을 최대한 확보한다.
+LAMBDA_ARN=$(terraform output -raw lambda_function_arn 2>/dev/null || true)
+if [[ -n "$LAMBDA_ARN" && "$LAMBDA_ARN" != *"No outputs"* ]]; then
+    LAMBDA_NAME="${LAMBDA_ARN##*:}"
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo "    [DRY_RUN] aws lambda delete-function --function-name ${LAMBDA_NAME} (skipped)"
+    else
+        echo "    Deleting Lambda function ${LAMBDA_NAME} …"
+        aws lambda delete-function --function-name "$LAMBDA_NAME" 2>/dev/null \
+            && echo "    Lambda deletion initiated" \
+            || echo "    Lambda not found or already deleted (skipping)"
+    fi
+else
+    echo "    No lambda_function_arn output found (skipping)"
+fi
+
+echo ""
 echo "==> Pre-destroy: Bedrock Agent cleanup (skip-resource-in-use-check)"
 # Terraform cannot delete an ENABLED action group; pre-delete the agent to avoid
 # the deadlock: bedrockagent blocks lambda -> lambda blocks mcp-EC2 -> mcp-EC2

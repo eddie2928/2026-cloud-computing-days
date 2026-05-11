@@ -51,6 +51,10 @@ resource "aws_subnet" "private" {
   cidr_block        = "10.0.2.0/24"
   availability_zone = "${var.aws_region}a"
   tags = { Name = "${var.project}-private" }
+
+  timeouts {
+    delete = "40m"
+  }
 }
 
 resource "aws_route_table" "private" {
