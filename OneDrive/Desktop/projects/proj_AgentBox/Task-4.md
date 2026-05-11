@@ -726,8 +726,8 @@ pytest tests/scripts -v
 - [x] 4B-5 `MCP_PORT=8080` 및 `/healthz` 유지 확인
 
 ### Phase 4C — Lambda + grpc cleanup 제거
-- [ ] 4C-1 `lambda/mcp_bridge.py` function 분기 (list_project_files / decrypt_and_stage)
-- [ ] 4C-2 `ec2/grpc_server/server.py` 의 `requests.delete(... /mcp/cleanup ...)` 삭제
+- [x] 4C-1 `lambda/mcp_bridge.py` function 분기 (list_project_files / decrypt_and_stage)
+- [x] 4C-2 `ec2/grpc_server/server.py` 의 `requests.delete(... /mcp/cleanup ...)` 삭제
 
 ### Phase 4D — Bedrock + kb_staging 인프라
 - [ ] 4D-1 `infra/bedrock_tools_addendum.txt` 신규 (UTF-8, LF)

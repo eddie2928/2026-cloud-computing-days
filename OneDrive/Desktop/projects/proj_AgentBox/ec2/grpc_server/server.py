@@ -10,7 +10,6 @@ from datetime import datetime, timezone, timedelta
 
 import boto3
 import grpc
-import requests
 import yaml
 from loguru import logger
 
@@ -149,15 +148,6 @@ class InspectorServicer(inspect_pb2_grpc.InspectorServicer):
             verdict, reasons = "ALLOW", []
             if not _BEDROCK_AGENT_ID:
                 logger.warning("bedrock_not_configured", event_id=event_id)
-
-        try:
-            requests.delete(
-                f"{_MCP_SERVER_URL}/mcp/cleanup/{event_id}",
-                headers={"Authorization": f"Bearer {os.environ['ADMIN_TOKEN']}"},
-                timeout=5,
-            )
-        except Exception as exc:
-            logger.warning("mcp_cleanup_failed", event_id=event_id, error=str(exc))
 
         latency_ms = int((time.monotonic() - t0) * 1000)
         logger.info("inspect_done", event_id=event_id, verdict=verdict,
