@@ -29,7 +29,10 @@ export function PromptEditor() {
   return (
     <div>
       <h2>Bedrock System Prompt Editor</h2>
-      <p style={{ color: "#666" }}>Edit the security inspection prompt used by Bedrock Agent.</p>
+      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+        Bedrock Agent 가 보안 검사 시 사용하는 시스템 프롬프트를 편집합니다. 저장 즉시 다음 검사 요청부터 적용됩니다.
+        변경 전 백업을 권장합니다.
+      </p>
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}

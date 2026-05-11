@@ -33,7 +33,10 @@ export function PipelineStream() {
   return (
     <div>
       <h2>Pipeline Stream</h2>
-      <p style={{ color: "#666" }}>Real-time events via WebSocket</p>
+      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+        mitmproxy → gRPC → Bedrock Agent 흐름으로 들어오는 모든 보안 검사 이벤트를 WebSocket 으로 실시간 표시합니다.
+        페이지에 머무는 동안만 수집되며, 닫으면 사라집니다. 영구 보관 기록은 Audit 페이지에서 확인하세요.
+      </p>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ background: "#1a1a2e", color: "#fff" }}>

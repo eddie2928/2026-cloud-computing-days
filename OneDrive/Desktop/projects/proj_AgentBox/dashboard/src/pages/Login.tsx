@@ -25,6 +25,10 @@ export function Login() {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#1a1a2e" }}>
       <form onSubmit={submit} style={{ background: "#fff", padding: "2rem", borderRadius: 8, minWidth: 300 }}>
         <h2 style={{ marginTop: 0 }}>AgentBox Login</h2>
+        <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+          AgentBox 관리 콘솔에 접근하려면 Admin Token 을 입력하세요. 토큰은 EC2 환경변수 <code>ADMIN_TOKEN</code> 으로 설정되며,
+          브라우저 localStorage 에 저장됩니다.
+        </p>
         <input
           type="password"
           placeholder="Admin Token"

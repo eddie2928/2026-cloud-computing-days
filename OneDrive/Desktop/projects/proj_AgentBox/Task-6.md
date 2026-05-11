@@ -557,7 +557,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase D Steps
 
-- [ ] **D-1. PipelineStream.tsx 수정**
+- [x] **D-1. PipelineStream.tsx 수정**
 
   편집 위치: 기존 `<h2>Pipeline Stream</h2>` 바로 아래.
 
@@ -578,7 +578,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   기존 `<p>Real-time events via WebSocket</p>` 는 새 description 으로 대체(삭제).
 
-- [ ] **D-2. Audit.tsx 수정** — description 만 추가 (tailing 로직은 Phase E 에서)
+- [x] **D-2. Audit.tsx 수정** — description 만 추가 (tailing 로직은 Phase E 에서)
 
   편집 위치: 기존 `<h2>Audit Log</h2>` 바로 아래.
 
@@ -592,7 +592,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   </p>
   ```
 
-- [ ] **D-3. PromptEditor.tsx 수정**
+- [x] **D-3. PromptEditor.tsx 수정**
 
   Before (line 31-32 근방):
   ```tsx
@@ -609,7 +609,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   </p>
   ```
 
-- [ ] **D-4. KBSettings.tsx 수정**
+- [x] **D-4. KBSettings.tsx 수정**
 
   Before (line 29-30 근방):
   ```tsx
@@ -626,7 +626,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   </p>
   ```
 
-- [ ] **D-5. Login.tsx 수정**
+- [x] **D-5. Login.tsx 수정**
 
   편집 위치: `<h2 style={{ marginTop: 0 }}>AgentBox Login</h2>` 바로 아래.
 
@@ -639,7 +639,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
   </p>
   ```
 
-- [ ] **D-6. TypeScript 컴파일 통과 확인**
+- [x] **D-6. TypeScript 컴파일 통과 확인**
 
   ```bash
   cd dashboard
@@ -649,7 +649,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 출력 없음 (에러 0건).
 
-- [ ] **D-7. 커밋**
+- [x] **D-7. 커밋**
 
   ```bash
   git add dashboard/src/pages/PipelineStream.tsx dashboard/src/pages/Audit.tsx \

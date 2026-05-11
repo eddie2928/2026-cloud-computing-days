@@ -27,7 +27,10 @@ export function KBSettings() {
   return (
     <div>
       <h2>KB Staging Bucket Settings</h2>
-      <p style={{ color: "#666" }}>Set how long decrypted code stays in the KB staging bucket before deletion.</p>
+      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+        복호화된 코드가 KB Staging 버킷에 머무는 최대 시간(분) 을 설정합니다. 1~60 분 범위.
+        Zero-Knowledge 보장을 위해 검사 완료 후 또는 TTL 만료 시 즉시 삭제됩니다.
+      </p>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
         TTL (minutes): 1–60
       </label>

@@ -44,6 +44,11 @@ export function Audit() {
   return (
     <div>
       <h2>Audit Log</h2>
+      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "1rem", lineHeight: 1.5 }}>
+        DynamoDB 에 영구 저장된 ALLOW/BLOCK 판정 이력입니다. 페이지 진입 시 최근 100건을 자동 조회하고,
+        3초마다 새 이벤트를 상단에 추가합니다. 우상단 Pause 버튼으로 폴링을 일시 중지할 수 있습니다.
+        From/To/Verdict 로 과거 구간을 검색하거나 CSV 로 내보낼 수 있습니다.
+      </p>
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
         <label>From: <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label>To: <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} /></label>
