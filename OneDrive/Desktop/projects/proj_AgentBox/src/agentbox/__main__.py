@@ -163,6 +163,35 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    p_set = sub.add_parser(
+        "set",
+        help="Unified environment setup (deps + CA + env + bashrc integration)",
+        description=(
+            "Pre-check the environment before using agentbox.\n\n"
+            "Steps performed (idempotent):\n"
+            "  1. Check sops, aws CLI, boto3, pyyaml — auto-install on prompt\n"
+            "  2. Check AWS_REGION / PROJECT_NAME — add to ~/.bashrc if missing\n"
+            "  3. Generate CA cert if missing (calls 'agentbox ca' internally)\n"
+            "  4. Register 'agentbox on/off' shell helpers in ~/.bashrc\n\n"
+            "Activation stays manual: run 'agentbox on' in each shell where\n"
+            "you want the proxy enabled."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_set.add_argument("-y", "--yes", action="store_true", help="Auto-accept all prompts")
+    p_set.add_argument("--skip-deps-install", action="store_true", help="Check deps but don't install")
+
+    p_status = sub.add_parser(
+        "status",
+        help="Print current AgentBox runtime state (URL, deps, proxy, last init, connectivity)",
+        description=(
+            "Read-only diagnostic. Prints 5 status lines and a 'Made by' footer.\n"
+            "Use --json for machine-readable output."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_status.add_argument("--json", action="store_true", help="Output as JSON")
+
     p_init = sub.add_parser(
         "init",
         help="Encrypt + upload a project, verify EC2, print dashboard URL",
@@ -213,6 +242,12 @@ def main() -> None:
         _ca_install()
     elif args.cmd == "setup":
         _setup_shell()
+    elif args.cmd == "set":
+        from agentbox.set_cmd import run_set
+        sys.exit(run_set(args))
+    elif args.cmd == "status":
+        from agentbox.status_cmd import run_status
+        sys.exit(run_status(args))
     elif args.cmd == "init":
         from agentbox.init_cmd import init
         sys.exit(init(args.dir, args.project_id, args.skip_deps, args.yes))
