@@ -1048,7 +1048,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
 #### Phase I Steps
 
-- [ ] **I-1. `tests/integration/test_saas_api_live.py` 신규**
+- [x] **I-1. `tests/integration/test_saas_api_live.py` 신규**
 
   ```python
   """라이브 EC2 SaaS (/api/*) 통합 테스트. SKIP_LIVE=1 환경변수로 건너뛸 수 있음."""
@@ -1131,14 +1131,14 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   > **의존성 메모:** `websockets` 가 requirements-dev.txt 에 있는지 확인. 없으면 `pip install websockets` (호환 11.x 이상).
 
-- [ ] **I-2. requirements-dev.txt 에 websockets 추가 확인**
+- [x] **I-2. requirements-dev.txt 에 websockets 추가 확인**
 
   ```bash
   grep -i websockets requirements-dev.txt || echo "websockets>=11.0" >> requirements-dev.txt
   pip install -r requirements-dev.txt
   ```
 
-- [ ] **I-3. SKIP_LIVE=1 일 때 skip 동작 확인**
+- [x] **I-3. SKIP_LIVE=1 일 때 skip 동작 확인**
 
   ```bash
   SKIP_LIVE=1 pytest tests/integration/test_saas_api_live.py -v 2>&1 | tail -10
@@ -1146,7 +1146,7 @@ async def update_kb_ttl(body: KBTTLSettings, _: str = Depends(_require_admin)): 
 
   Expected: 7개 모두 SKIPPED.
 
-- [ ] **I-4. 커밋**
+- [x] **I-4. 커밋**
 
   ```bash
   git add tests/integration/test_saas_api_live.py requirements-dev.txt
