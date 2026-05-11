@@ -747,9 +747,9 @@ pytest tests/scripts -v
 - [x] 4E-6 test_grpc_no_cleanup.py (cleanup 미호출 + 토큰카운터 1회)
 
 ### Phase 4F — 통합 테스트
-- [ ] 4F-1 test_init_e2e.py (moto + monkeypatch)
-- [ ] 4F-2 test_mcp_full_flow_v2.py (실 sops 바이너리, 없으면 skip)
-- [ ] 4F-3 test_grpc_full_flow_v2.py (cleanup 없음 회귀)
+- [x] 4F-1 test_init_e2e.py (moto + monkeypatch)
+- [x] 4F-2 test_mcp_full_flow_v2.py (실 sops 바이너리, 없으면 skip)
+- [x] 4F-3 test_grpc_full_flow_v2.py (cleanup 없음 회귀)
 
 ### Phase 4F-pre — Script 회귀
 - [ ] 4Fpre-1 `bash -n` 3개 스크립트 통과
