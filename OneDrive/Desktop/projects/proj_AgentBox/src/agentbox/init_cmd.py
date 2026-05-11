@@ -4,11 +4,12 @@ import os
 import platform
 import socket
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 
+from agentbox import last_init as _last_init
 from agentbox.init_deps import DEPS, PYTHON_PACKAGES, check_dep, check_python_pkg, try_auto_install
 
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -201,5 +202,13 @@ def init(
         return 7
 
     # Step 6 — Success
+    s3_bucket = env["PROJECT_S3_BUCKET"]
+    _last_init.write({
+        "project_id": pid,
+        "src_path": str(src),
+        "s3_uri": f"s3://{s3_bucket}/encrypted_code/{pid}/",
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "saas_url": saas_url,
+    })
     _log(f"[agentbox] init OK. 대시보드: {saas_url}")
     return 0
