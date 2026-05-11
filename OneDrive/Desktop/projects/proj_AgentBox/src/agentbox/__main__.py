@@ -106,6 +106,11 @@ def main() -> None:
     sub.add_parser("run", help="Start proxy + API server")
     sub.add_parser("ca", help="Ensure CA certificate exists")
     sub.add_parser("setup", help="Install agentbox on/off shell integration into ~/.bashrc")
+    p_init = sub.add_parser("init", help="Encrypt+upload a project, verify EC2, print dashboard URL")
+    p_init.add_argument("dir")
+    p_init.add_argument("--project-id", default=None)
+    p_init.add_argument("--skip-deps", action="store_true")
+    p_init.add_argument("-y", "--yes", action="store_true", help="자동 설치 prompt 건너뛰고 동의")
     args = parser.parse_args()
 
     if args.cmd == "run":
@@ -114,6 +119,9 @@ def main() -> None:
         _ca_install()
     elif args.cmd == "setup":
         _setup_shell()
+    elif args.cmd == "init":
+        from agentbox.init_cmd import init
+        sys.exit(init(args.dir, args.project_id, args.skip_deps, args.yes))
     else:
         parser.print_help()
         sys.exit(0)

@@ -9,6 +9,15 @@ ENC_DIR="./encrypted"
 S3_BUCKET="${PROJECT_S3_BUCKET:?set PROJECT_S3_BUCKET env var}"
 PROJECT_ID="${PROJECT_ID:-$(basename "$SRC_DIR")}"
 
+echo "[agentbox] PROJECT_ID=$PROJECT_ID"
+
+# Warn on files > 50MB
+large=$(find "$SRC_DIR" -type f -size +50M 2>/dev/null)
+if [ -n "$large" ]; then
+    echo "[agentbox] WARNING: files >50MB detected (will be encrypted but upload may be slow):" >&2
+    echo "$large" | head -5 >&2
+fi
+
 # Verify sops is installed
 if ! command -v sops &> /dev/null; then
     echo "[agentbox] ERROR: sops not found. Install: https://github.com/getsops/sops/releases" >&2
