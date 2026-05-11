@@ -1,14 +1,14 @@
-"""Integration test: Lambda handler -> MCP server (FastAPI in-process)."""
+"""Integration test: Lambda handler -> MCP server (FastAPI in-process) - Task-4 API."""
+import importlib
 import importlib.util
 import json
-import os
 import pathlib
-import pytest
-from unittest.mock import patch, MagicMock
-from moto import mock_aws
-import boto3
-from fastapi.testclient import TestClient
+from unittest.mock import MagicMock, patch
 
+import boto3
+import pytest
+from fastapi.testclient import TestClient
+from moto import mock_aws
 
 PROJECT = "agentbox"
 REGION = "us-east-1"
@@ -35,24 +35,18 @@ def lambda_mcp_stack(monkeypatch):
     with mock_aws():
         s3 = boto3.client("s3", region_name=REGION)
         s3.create_bucket(Bucket=f"{PROJECT}-encrypted-code")
-        s3.create_bucket(Bucket=f"{PROJECT}-kb-staging")
 
-        import importlib
         import ec2.mcp_server.server as mcp_module
         importlib.reload(mcp_module)
         mcp_test_client = TestClient(mcp_module.app)
 
-        # Point lambda at the in-process MCP TestClient URL
         monkeypatch.setenv("MCP_SERVER_URL", "http://testserver")
 
-        yield {
-            "s3": s3,
-            "mcp_client": mcp_test_client,
-        }
+        yield {"s3": s3, "mcp_client": mcp_test_client}
 
 
 def test_lambda_to_mcp_decrypt_flow(lambda_mcp_stack, monkeypatch):
-    """Lambda receives Bedrock event and calls MCP decrypt_and_stage."""
+    """Lambda decrypt_and_stage -> MCP returns chunked FileChunk response."""
     s3 = lambda_mcp_stack["s3"]
     mcp_client = lambda_mcp_stack["mcp_client"]
 
@@ -66,45 +60,82 @@ def test_lambda_to_mcp_decrypt_flow(lambda_mcp_stack, monkeypatch):
         "actionGroup": "decrypt_and_stage",
         "function": "decrypt_and_stage",
         "sessionId": "lambda-int-sess",
-        "parameters": [{"name": "project_id", "value": "default"}],
+        "parameters": [
+            {"name": "project_id", "value": "default"},
+            {"name": "files", "value": "code.py"},
+            {"name": "start_byte", "value": "0"},
+            {"name": "max_bytes", "value": "20480"},
+        ],
     }
 
-    with patch("subprocess.run") as mock_sops:
-        mock_sops.return_value.returncode = 0
-        mock_sops.return_value.stdout = b"plaintext"
+    def fake_urlopen(req, timeout=None):
+        path = req.get_full_url().replace("http://testserver", "")
+        method = req.get_method()
+        headers = dict(req.headers)
 
-        # Intercept urllib.request.urlopen and route to the TestClient
-        def fake_urlopen(req, timeout=None):
-            path = req.get_full_url().replace("http://testserver", "")
-            method = req.get_method()
-            body = req.data
-            headers = dict(req.headers)
-
-            if method == "POST":
+        if method == "POST":
+            with patch("subprocess.run") as mock_sops:
+                mock_sops.return_value.returncode = 0
+                mock_sops.return_value.stdout = b"plaintext_code = True"
                 response = mcp_client.post(
-                    path,
-                    content=body,
+                    path, content=req.data,
                     headers={k: v for k, v in headers.items()},
                 )
-            else:
-                response = mcp_client.request(method, path, headers=headers)
+        else:
+            response = mcp_client.request(method, path, headers=headers)
 
-            mock_resp = MagicMock()
-            mock_resp.read.return_value = json.dumps(response.json()).encode()
-            mock_resp.__enter__ = lambda s: s
-            mock_resp.__exit__ = MagicMock(return_value=False)
-            return mock_resp
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = response.content
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        return mock_resp
 
-        handler = _load_lambda_handler()
-
-        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            result = handler(event, None)
+    handler = _load_lambda_handler()
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        result = handler(event, None)
 
     assert "response" in result
     body_str = result["response"]["functionResponse"]["responseBody"]["TEXT"]["body"]
     body = json.loads(body_str)
-    assert "kb_bucket" in body
-    assert body["kb_bucket"] == f"{PROJECT}-kb-staging"
+    assert "files" in body
+    assert body["project_id"] == "default"
+    assert body["files"][0]["content"] == "plaintext_code = True"
+
+
+def test_lambda_to_mcp_list_files_flow(lambda_mcp_stack):
+    """Lambda list_project_files -> MCP returns Markdown."""
+    s3 = lambda_mcp_stack["s3"]
+    mcp_client = lambda_mcp_stack["mcp_client"]
+
+    s3.put_object(
+        Bucket=f"{PROJECT}-encrypted-code",
+        Key="encrypted_code/myproj/app.py.enc",
+        Body=b"enc",
+    )
+
+    event = {
+        "actionGroup": "list_project_files",
+        "function": "list_project_files",
+        "parameters": [{"name": "project_id", "value": "myproj"}],
+    }
+
+    def fake_urlopen(req, timeout=None):
+        path = req.get_full_url().replace("http://testserver", "")
+        headers = dict(req.headers)
+        response = mcp_client.get(path, headers={k: v for k, v in headers.items()})
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = response.content
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        return mock_resp
+
+    handler = _load_lambda_handler()
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        result = handler(event, None)
+
+    body_str = result["response"]["functionResponse"]["responseBody"]["TEXT"]["body"]
+    assert "app.py" in body_str
+    assert "# Project files: myproj" in body_str
 
 
 def test_bedrock_response_format(lambda_mcp_stack):
@@ -112,11 +143,13 @@ def test_bedrock_response_format(lambda_mcp_stack):
     event = {
         "actionGroup": "decrypt_and_stage",
         "function": "decrypt_and_stage",
-        "sessionId": "sess-format",
-        "parameters": [{"name": "project_id", "value": "default"}],
+        "parameters": [
+            {"name": "project_id", "value": "default"},
+            {"name": "files", "value": "a.py"},
+        ],
     }
 
-    mock_mcp_response = {"kb_bucket": "agentbox-kb-staging", "prefix": "staging/x/"}
+    mock_mcp_response = {"project_id": "default", "files": []}
 
     handler = _load_lambda_handler()
 
