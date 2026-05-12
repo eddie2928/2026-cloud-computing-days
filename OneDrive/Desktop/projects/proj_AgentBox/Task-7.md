@@ -522,17 +522,17 @@ responses>=0.25
 
 ### Phase B — set 흐름 재구성
 
-- [ ] **B1**: `src/agentbox/proxy/ca.py`에 mTLS 인증서 생성 함수 추가
+- [x] **B1**: `src/agentbox/proxy/ca.py`에 mTLS 인증서 생성 함수 추가
   - verify: `pytest tests/unit/test_ca.py -x`
-- [ ] **B2**: `src/agentbox/set_cmd.py` 7단계화 (ensure_layout → deps → env → CA/mTLS → proto → shell → run+health+gRPC)
+- [x] **B2**: `src/agentbox/set_cmd.py` 7단계화 (ensure_layout → deps → env → CA/mTLS → proto → shell → run+health+gRPC)
   - verify: `pytest tests/unit/test_set_cmd_v2.py -x`
-- [ ] **B3**: health-check polling + 실패 시 로그 출력
+- [x] **B3**: health-check polling + 실패 시 로그 출력
   - verify: `pytest tests/unit/test_set_cmd_v2.py::test_run_log_dump -x`
-- [ ] **B4**: gRPC TCP connect 검증(7b) + 가이드 메시지
+- [x] **B4**: gRPC TCP connect 검증(7b) + 가이드 메시지
   - verify: `pytest tests/unit/test_set_cmd_v2.py::test_grpc_connect_fail -x`
-- [ ] **B5**: `src/agentbox/grpc/handshake.py` 신규 (`verify_mtls_handshake`)
+- [x] **B5**: `src/agentbox/grpc/handshake.py` 신규 (`verify_mtls_handshake`)
   - verify: `pytest tests/unit/test_handshake.py -x`
-- [ ] **B6**: set Step 7c에서 `verify_mtls_handshake` 호출 + exit 7 분기
+- [x] **B6**: set Step 7c에서 `verify_mtls_handshake` 호출 + exit 7 분기
   - verify: `pytest tests/unit/test_set_cmd_v2.py::test_mtls_handshake_fail -x`
 
 ### Phase C — on/off Python 포팅

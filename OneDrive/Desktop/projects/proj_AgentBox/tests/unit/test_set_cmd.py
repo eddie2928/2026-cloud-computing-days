@@ -125,8 +125,13 @@ def test_no_auto_activation_added(tmp_home, monkeypatch):
     monkeypatch.delenv("PROJECT_NAME", raising=False)
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
+    monkeypatch.setenv("AGENTBOX_HOME", str(tmp_home / "global"))
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
+    with patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0), \
+         patch("agentbox.set_cmd._ensure_proto_stub", return_value=0), \
+         patch("agentbox.set_cmd._start_and_health_check", return_value=0), \
+         patch("agentbox.set_cmd._check_grpc_tcp", return_value=0), \
+         patch("agentbox.set_cmd._check_mtls_handshake", return_value=0), \
          patch("agentbox.set_cmd.platform.system", return_value="Linux"):
         rc = run_set(FakeArgs(yes=True, skip_deps_install=True))
 

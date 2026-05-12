@@ -14,6 +14,8 @@ def ensure_ca(ca_dir: Path) -> tuple[Path, Path]:
     pem_path = ca_dir / "mitmproxy-ca.pem"
 
     if crt_path.exists() and key_path.exists():
+        if not pem_path.exists():
+            pem_path.write_bytes(key_path.read_bytes() + crt_path.read_bytes())
         return crt_path, key_path
 
     key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
@@ -61,3 +63,53 @@ def ensure_ca(ca_dir: Path) -> tuple[Path, Path]:
     pem_path.write_bytes(key_pem + cert_pem)
 
     return crt_path, key_path
+
+
+def gen_mtls_certs(certs_dir: Path) -> tuple[Path, Path, Path, Path]:
+    """Ensure CA + mTLS client cert/key exist in certs_dir.
+
+    Returns:
+        (ca_crt, ca_key, endpoint_crt, endpoint_key)
+    """
+    ca_crt, ca_key = ensure_ca(certs_dir)
+
+    endpoint_crt_path = certs_dir / "endpoint.crt"
+    endpoint_key_path = certs_dir / "endpoint.key"
+
+    if endpoint_crt_path.exists() and endpoint_key_path.exists():
+        return ca_crt, ca_key, endpoint_crt_path, endpoint_key_path
+
+    # Load CA for signing
+    ca_cert_obj = x509.load_pem_x509_certificate(ca_crt.read_bytes())
+    ca_private_key = serialization.load_pem_private_key(ca_key.read_bytes(), password=None)
+
+    # Generate client key + cert signed by CA
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([
+        x509.NameAttribute(NameOID.COMMON_NAME, "AgentBox mTLS Client"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AgentBox"),
+    ])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(ca_cert_obj.subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=365))
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .sign(ca_private_key, hashes.SHA256())
+    )
+
+    key_pem = key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.TraditionalOpenSSL,
+        serialization.NoEncryption(),
+    )
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+
+    endpoint_key_path.write_bytes(key_pem)
+    endpoint_crt_path.write_bytes(cert_pem)
+
+    return ca_crt, ca_key, endpoint_crt_path, endpoint_key_path
