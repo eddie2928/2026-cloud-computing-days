@@ -143,16 +143,30 @@ def _check_ca_mtls_step(layout) -> int:
 # ── Step 5: proto stub ────────────────────────────────────────────────────────
 
 def _ensure_proto_stub() -> int:
-    """Step 5: Check proto stub availability; generate if missing."""
+    """Step 5: Check proto stub availability; generate/regenerate if missing or version mismatch."""
     import importlib
+    import sys
+
+    stub_ok = False
+    regen_reason = ""
     try:
+        # Invalidate any cached (broken) module before import
+        for mod in list(sys.modules.keys()):
+            if "inspect_pb2" in mod:
+                del sys.modules[mod]
         importlib.import_module("agentbox.grpc.inspect_pb2")
+        stub_ok = True
+    except ImportError:
+        regen_reason = "stub 없음"
+    except Exception as exc:
+        # VersionError: gencode/runtime protobuf major version mismatch
+        regen_reason = f"버전 불일치 ({exc.__class__.__name__}: {exc})"
+
+    if stub_ok:
         _log("[agentbox] proto stub: OK")
         return 0
-    except ImportError:
-        pass
 
-    _log("[agentbox] proto stub 없음. grpc_tools.protoc 실행 중...", "warning")
+    _log(f"[agentbox] proto stub 재생성 필요 ({regen_reason}). grpc_tools.protoc 실행 중...", "warning")
     proto_file = _PROJ_ROOT / "grpc" / "inspect.proto"
     if not proto_file.exists():
         _log(f"[agentbox] ERROR: proto file not found: {proto_file}", "error")
@@ -160,7 +174,7 @@ def _ensure_proto_stub() -> int:
 
     result = subprocess.run(
         [
-            "python", "-m", "grpc_tools.protoc",
+            sys.executable, "-m", "grpc_tools.protoc",
             f"-I{proto_file.parent}",
             f"--python_out={_PROJ_ROOT / 'src'}",
             f"--grpc_python_out={_PROJ_ROOT / 'src'}",
@@ -169,10 +183,21 @@ def _ensure_proto_stub() -> int:
         capture_output=True,
     )
     if result.returncode != 0:
-        _log(f"[agentbox] ERROR: protoc 실패 (exit {result.returncode})", "error")
+        stderr = result.stderr.decode(errors="replace")
+        _log(f"[agentbox] ERROR: protoc 실패 (exit {result.returncode})\n  {stderr[:200]}", "error")
         return 6
 
-    _log("[agentbox] proto stub 생성 완료")
+    # Re-verify after generation
+    try:
+        for mod in list(sys.modules.keys()):
+            if "inspect_pb2" in mod:
+                del sys.modules[mod]
+        importlib.import_module("agentbox.grpc.inspect_pb2")
+        _log("[agentbox] proto stub 재생성 완료 + import OK")
+    except Exception as exc:
+        _log(f"[agentbox] ERROR: 재생성 후에도 import 실패: {exc}", "error")
+        return 6
+
     return 0
 
 
