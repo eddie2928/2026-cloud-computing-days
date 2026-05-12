@@ -79,13 +79,26 @@ def try_auto_install(dep: Dep) -> bool:
     return ok
 
 
+def _pipx_app_name() -> str | None:
+    """Return pipx app name if running inside a pipx venv, else None."""
+    import re
+    m = re.search(r"pipx/venvs/([^/]+)/", sys.executable)
+    return m.group(1) if m else None
+
+
 def try_auto_install_pkg(name: str) -> bool:
-    """Install a Python package via pip into the current interpreter's environment."""
+    """Install a Python package into the current interpreter's environment.
+
+    Detects pipx-managed venvs and uses 'pipx inject <app> <pkg>' instead of
+    'pip install' (pipx venvs do not ship pip by default).
+    """
     try:
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "--quiet", name],
-            timeout=120,
-        )
+        app = _pipx_app_name()
+        if app:
+            cmd = ["pipx", "inject", app, name]
+        else:
+            cmd = [sys.executable, "-m", "pip", "install", "--quiet", name]
+        result = subprocess.run(cmd, timeout=120)
         return result.returncode == 0 and check_python_pkg(name)
     except Exception:
         return False
