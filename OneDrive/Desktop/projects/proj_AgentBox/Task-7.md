@@ -581,21 +581,21 @@ responses>=0.25
 
 ### Phase I — 정합성 검사 스크립트
 
-- [ ] **I1**: `scripts/verify_consistency.py` 신규
+- [x] **I1**: `scripts/verify_consistency.py` 신규
   - verify: `pytest tests/unit/test_verify_consistency.py -x`
-- [ ] **I2**: `--check`/`--fix`/`--fix -y` 세 동작 모두 테스트 통과
+- [x] **I2**: `--check`/`--fix`/`--fix -y` 세 동작 모두 테스트 통과
 
 ### Phase N — `agentbox doctor` + help 갱신
 
-- [ ] **N1**: `src/agentbox/doctor_cmd.py` 신규 (D1~D9 함수형 분리)
+- [x] **N1**: `src/agentbox/doctor_cmd.py` 신규 (D1~D9 함수형 분리)
   - verify: `pytest tests/unit/test_doctor_cmd.py -x`
-- [ ] **N2**: `src/agentbox/__main__.py`에 `doctor` 서브커맨드 등록 (`--json`, `--fix` 옵션)
+- [x] **N2**: `src/agentbox/__main__.py`에 `doctor` 서브커맨드 등록 (`--json`, `--fix` 옵션)
   - verify: `agentbox doctor --help` 출력 확인
-- [ ] **N3**: `__main__.py`의 최상위 epilog "일반적인 사용 흐름"을 3.9 표대로 갱신
-- [ ] **N4**: `on`/`off` 서브커맨드를 정식 노출(현재 hidden), `_on`/`_off`는 SUPPRESS
-- [ ] **N5**: `ca`/`setup` 서브커맨드 제거 (set에 흡수됨을 description으로 안내)
-- [ ] **N6**: `set` 서브커맨드 description에 "7a/b/c (LISTEN, gRPC TCP, mTLS handshake)" 명시
-- [ ] **N7**: `status` description 끝에 "전체 점검은 agentbox doctor 참고" 추가
+- [x] **N3**: `__main__.py`의 최상위 epilog "일반적인 사용 흐름"을 3.9 표대로 갱신
+- [x] **N4**: `on`/`off` 서브커맨드를 정식 노출(현재 hidden), `_on`/`_off`는 SUPPRESS
+- [x] **N5**: `ca`/`setup` 서브커맨드 제거 (set에 흡수됨을 description으로 안내)
+- [x] **N6**: `set` 서브커맨드 description에 "7a/b/c (LISTEN, gRPC TCP, mTLS handshake)" 명시
+- [x] **N7**: `status` description 끝에 "전체 점검은 agentbox doctor 참고" 추가
   - verify (N3~N7 통합): `pytest tests/unit/test_help_text.py -x`
 
 ### Phase J — 통합 테스트

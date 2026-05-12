@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import sys
 from pathlib import Path
@@ -7,8 +8,6 @@ import uvicorn
 from agentbox.config import cfg
 from agentbox.logging_setup import setup as setup_logging
 
-# Resolve relative config paths to the project root (parent of src/).
-# Works for editable installs (pip install -e).
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
@@ -39,8 +38,8 @@ def _reset() -> None:
     if result.returncode == 0:
         print(f"[agentbox] 기존 프로세스 종료 (:{port}). 재시작 중...")
         time.sleep(0.5)
-    log_file = _PROJ_ROOT / "logs" / "agentbox-run.log"
-    (_PROJ_ROOT / "logs").mkdir(parents=True, exist_ok=True)
+    log_file = _PROJ_ROOT / ".agentbox" / "logs" / "agentbox-run.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
     with open(log_file, "w") as lf:
         proc = subprocess.Popen(
             ["agentbox", "run"],
@@ -48,7 +47,7 @@ def _reset() -> None:
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-    (_PROJ_ROOT / ".agentbox.pid").write_text(str(proc.pid))
+    (_PROJ_ROOT / ".agentbox" / "pid").write_text(str(proc.pid))
     print(f"[agentbox] 프록시 백그라운드 재시작 완료 (pid {proc.pid})")
     print(f"[agentbox] 로그: {log_file}")
 
@@ -76,67 +75,23 @@ def _run() -> None:
     print(f"  Proxy : http://127.0.0.1:{cfg.PROXY_PORT}")
     print(f"  Web UI: http://localhost:{cfg.API_PORT}")
     print(f"  CA    : {cfg.CA_DIR}/agentbox-ca.crt")
-    print(f"  To activate in a shell: source {_PROJ_ROOT}/scripts/activate.sh")
     print()
 
     async def _main() -> None:
-        server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning"))
+        server = uvicorn.Server(
+            uvicorn.Config(app, host="0.0.0.0", port=cfg.API_PORT, log_level="warning")
+        )
         tasks = [
             start_master(addon, cfg.PROXY_PORT),
             server.serve(),
         ]
-        if cfg.TRANSPARENT_MODE:
-            from agentbox.proxy.ebpf_stats import run_stats_loop
-            stats_log = cfg.EBPF_STATS_LOG
-            if not Path(stats_log).is_absolute():
-                stats_log = str(_PROJ_ROOT / stats_log)
-            tasks.append(run_stats_loop(stats_log))
         await asyncio.gather(*tasks)
 
     asyncio.run(_main())
 
 
-def _ca_install() -> None:
-    _resolve_paths()
-    from agentbox.proxy.ca import ensure_ca
-    ca_crt, _ = ensure_ca(Path(cfg.CA_DIR))
-    print(f"CA certificate ready: {ca_crt}")
-    print("Run scripts/install_ca.sh to register in system trust store.")
-
-
-def _setup_shell() -> None:
-    _resolve_paths()
-    scripts_dir = _PROJ_ROOT / "scripts"
-    bashrc = Path.home() / ".bashrc"
-
-    marker = "# AgentBox shell integration"
-    integration = f"""
-{marker}
-unalias agentbox 2>/dev/null
-agentbox() {{
-    case "$1" in
-        on)  source {scripts_dir}/activate.sh ;;
-        off) source {scripts_dir}/deactivate.sh ;;
-        *)   command agentbox "$@" ;;
-    esac
-}}
-"""
-    content = bashrc.read_text() if bashrc.exists() else ""
-    if marker in content:
-        print("Shell integration already installed in ~/.bashrc")
-        return
-    with open(bashrc, "a") as f:
-        f.write(integration)
-    print("Shell integration added to ~/.bashrc")
-    print("Run:  source ~/.bashrc")
-    print("Then: agentbox on   # activate proxy")
-    print("      agentbox off  # deactivate proxy")
-
-
 def main() -> None:
-    import argparse
-
-    _FOOTER = "\nMade by JeonMyeongHwan"
+    _SEP = "─" * 60
 
     parser = argparse.ArgumentParser(
         prog="agentbox",
@@ -146,38 +101,39 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "────────────────────────────────────────────────────────────\n"
+            f"{_SEP}\n"
             "일반적인 사용 흐름\n"
-            "────────────────────────────────────────────────────────────\n"
-            "  # 1. 최초 셋업 (한 번만)\n"
-            "  agentbox set [-y]\n\n"
-            "  # 2. 프로젝트 암호화 및 S3 등록 (프로젝트마다)\n"
-            "  agentbox init ./myrepo [-y]\n\n"
-            "  # 3. shell 에서 프록시 활성화 (새 터미널마다, source 필요)\n"
-            "  agentbox on\n"
-            "  agentbox off\n\n"
-            "  # 4. 프록시 관리\n"
-            "  agentbox reset    # 기존 프로세스 종료 후 재시작\n"
-            "  agentbox destroy  # 프로세스 종료만\n"
-            "  agentbox status   # 현재 상태 진단\n"
-            "────────────────────────────────────────────────────────────\n"
-            + _FOOTER
+            f"{_SEP}\n"
+            "  # 1. 인프라 배포 (한 번)         ./scripts/deploy.sh\n"
+            "  # 2. 로컬 셋업 (한 번)            agentbox set [-y]\n"
+            "  # 3. 프로젝트 등록 (프로젝트마다) agentbox init ./myrepo [-y]\n"
+            "  # 4. 셸 활성화 (새 터미널마다)    agentbox on  /  agentbox off\n"
+            "  # 5. 상태 점검                    agentbox status   (요약)\n"
+            "                                  agentbox doctor   (전체 점검)\n"
+            "  # 6. 프록시 관리                  agentbox reset / agentbox destroy\n"
+            "  # 7. 인프라 정리                  ./scripts/destroy.sh\n"
+            f"{_SEP}\n"
+            "\nMade by JeonMyeongHwan"
         ),
     )
 
     sub = parser.add_subparsers(dest="cmd", metavar="<command>")
 
-    # ── set ──────────────────────────────────────────────────────────
+    # ── set ──────────────────────────────────────────────────────────────────
     p_set = sub.add_parser(
         "set",
-        help="[최초 셋업] deps + CA + shell 통합 + 프록시 백그라운드 시작 (통합 명령)",
+        help="[최초 셋업] 7단계 통합 셋업 (deps + env + CA/mTLS + proto + shell + run + health)",
         description=(
-            "최초 1회 실행하는 통합 셋업 명령. 아래 5단계를 순서대로 수행하며 모두 idempotent.\n\n"
-            "  1. 의존성 점검  : sops, aws CLI, boto3, pyyaml — 누락 시 자동 설치\n"
-            "  2. 환경변수 점검: AWS_REGION, PROJECT_NAME — 미설정 시 ~/.bashrc 에 추가\n"
-            "  3. CA 인증서    : certs/agentbox-ca.crt + mitmproxy-ca.pem 생성 (없을 때만)\n"
-            "  4. Shell 통합   : agentbox on/off 함수를 ~/.bashrc 에 등록\n"
-            "  5. 프록시 시작  : agentbox run 을 백그라운드로 실행 (이미 실행 중이면 생략)\n\n"
+            "최초 1회 실행하는 통합 셋업 명령. 7단계를 순서대로 수행하며 모두 idempotent.\n\n"
+            "  1. 레이아웃 초기화 (~/.agentbox/ + <repo>/.agentbox/)\n"
+            "  2. 의존성 점검 : sops, aws CLI, boto3, pyyaml\n"
+            "  3. 환경변수 점검: AWS_REGION, PROJECT_NAME\n"
+            "  4. CA + mTLS 인증서 보장\n"
+            "  5. proto stub 점검 (없으면 grpc_tools.protoc 실행)\n"
+            "  6. Shell 통합 (~/.bashrc 에 eval 패턴 등록)\n"
+            "  7a. background run + LISTEN health-check\n"
+            "  7b. gRPC TCP connect 검증\n"
+            "  7c. mTLS handshake 검증\n\n"
             "완료 후 대시보드: http://localhost:8000"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -186,7 +142,7 @@ def main() -> None:
     p_set.add_argument("-y", "--yes", action="store_true", help="모든 확인 프롬프트 자동 수락")
     p_set.add_argument("--skip-deps-install", action="store_true", help="의존성 확인은 하되 설치는 생략")
 
-    # ── init ─────────────────────────────────────────────────────────
+    # ── init ─────────────────────────────────────────────────────────────────
     p_init = sub.add_parser(
         "init",
         help="[프로젝트 등록] 소스 암호화 → S3 업로드 → EC2/gRPC 연결 확인",
@@ -198,7 +154,7 @@ def main() -> None:
             "  4. MCP EC2 health 엔드포인트 확인\n"
             "  5. Bedrock 인스펙터 gRPC 연결 확인\n"
             "  6. AgentBox 대시보드 URL 출력\n\n"
-            "로그: logs/agentbox-init-<timestamp>.log"
+            "로그: <repo>/.agentbox/logs/agentbox-init-<timestamp>.log"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
@@ -217,7 +173,7 @@ def main() -> None:
     p_init.add_argument("-y", "--yes", action="store_true",
                         help="의존성 설치 확인 프롬프트 자동 수락")
 
-    # ── run ──────────────────────────────────────────────────────────
+    # ── run ──────────────────────────────────────────────────────────────────
     sub.add_parser(
         "run",
         help="[프록시 실행] mitmproxy + 대시보드 서버를 포그라운드로 시작",
@@ -233,20 +189,20 @@ def main() -> None:
         epilog="Made by JeonMyeongHwan",
     )
 
-    # ── reset ─────────────────────────────────────────────────────────
+    # ── reset ─────────────────────────────────────────────────────────────────
     sub.add_parser(
         "reset",
         help="[재시작] 기존 agentbox 프로세스를 종료하고 run 을 다시 실행",
         description=(
             "PROXY_PORT(기본 8080)에서 실행 중인 agentbox 프로세스를 fuser 로 종료한 뒤\n"
-            "agentbox run 을 포그라운드로 다시 실행합니다.\n\n"
+            "agentbox run 을 백그라운드로 다시 실행합니다.\n\n"
             "  실행 중인 프로세스가 없으면 바로 run 을 시작합니다."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
     )
 
-    # ── destroy ───────────────────────────────────────────────────────
+    # ── destroy ───────────────────────────────────────────────────────────────
     sub.add_parser(
         "destroy",
         help="[프로세스 종료] 실행 중인 agentbox 프록시 프로세스만 종료 (재시작 없음)",
@@ -259,42 +215,13 @@ def main() -> None:
         epilog="Made by JeonMyeongHwan",
     )
 
-    # ── ca ────────────────────────────────────────────────────────────
-    sub.add_parser(
-        "ca",
-        help="[CA 관리] 로컬 CA 인증서 생성 또는 확인",
-        description=(
-            "CA_DIR 에 AgentBox CA 인증서(agentbox-ca.crt, mitmproxy-ca.pem)가\n"
-            "없으면 생성하고, 있으면 경로만 출력합니다.\n\n"
-            "시스템 trust store 등록은 별도로 필요합니다:\n"
-            "  bash scripts/install_ca.sh"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Made by JeonMyeongHwan",
-    )
-
-    # ── setup ─────────────────────────────────────────────────────────
-    sub.add_parser(
-        "setup",
-        help="[Shell 통합] agentbox on/off 함수를 ~/.bashrc 에 등록",
-        description=(
-            "~/.bashrc 에 agentbox on/off shell 함수를 추가합니다 (idempotent).\n\n"
-            "  agentbox on  -- HTTPS_PROXY 설정, 프록시 미실행 시 백그라운드 자동 시작\n"
-            "  agentbox off -- HTTPS_PROXY 해제, 백그라운드 프록시 종료\n\n"
-            "실행 후 반드시 shell 을 재로드하세요:\n"
-            "  source ~/.bashrc"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Made by JeonMyeongHwan",
-    )
-
-    # ── status ────────────────────────────────────────────────────────
-    # on / off (public shell wrappers)
+    # ── on / off (public, eval wrappers) ─────────────────────────────────────
     sub.add_parser(
         "on",
         help="[shell] HTTPS_PROXY 설정 (eval 패턴, ~/.bashrc 함수에서 호출)",
         description=(
-            "HTTPS_PROXY 및 NODE_EXTRA_CA_CERTS 를 현재 shell 에 설정합니다.",
+            "[shell] HTTPS_PROXY 설정/해제 (eval 패턴, ~/.bashrc 함수에서 호출)\n\n"
+            "  ~/.bashrc 의 agentbox() 함수를 통해 eval \"$(command agentbox _on)\" 으로 호출됩니다."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
@@ -303,34 +230,65 @@ def main() -> None:
         "off",
         help="[shell] HTTPS_PROXY 해제 (eval 패턴, ~/.bashrc 함수에서 호출)",
         description=(
-            "HTTPS_PROXY 및 NODE_EXTRA_CA_CERTS 를 현재 shell 에서 해제합니다.",
+            "[shell] HTTPS_PROXY 해제 (eval 패턴, ~/.bashrc 함수에서 호출)\n\n"
+            "  ~/.bashrc 의 agentbox() 함수를 통해 eval \"$(command agentbox _off)\" 으로 호출됩니다."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
     )
+
+    # ── _on / _off (hidden, eval targets) ────────────────────────────────────
     sub.add_parser(
         "_on",
         help=argparse.SUPPRESS,
-        description="eval "" 으로 호출됨",
+        description='eval "$(command agentbox _on)" 으로 호출됨 — stdout 에 export 문 출력',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub.add_parser(
         "_off",
         help=argparse.SUPPRESS,
-        description="eval "" 으로 호출됨",
+        description='eval "$(command agentbox _off)" 으로 호출됨 — stdout 에 unset 문 출력',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    # ── doctor ────────────────────────────────────────────────────────────────
+    p_doctor = sub.add_parser(
+        "doctor",
+        help="[진단] 수동 테스트 직전 단일 read-only 점검 (D1~D9, 종료코드 0/1)",
+        description=(
+            "[진단] 수동 테스트 직전 단일 read-only 점검 (D1~D9, 종료코드 0/1)\n\n"
+            "  D1. .agentbox/ 레이아웃 존재\n"
+            "  D2. deps 5개 (sops, aws, boto3, pyyaml, grpcio)\n"
+            "  D3. mTLS 인증서 4개 존재 + 만료 ≥ 7일\n"
+            "  D4. proto stub import 가능\n"
+            "  D5. 프록시 :8080 LISTEN + dashboard :8000 LISTEN\n"
+            "  D6. gRPC TCP connect (GRPC_HOST:GRPC_PORT)\n"
+            "  D7. mTLS handshake 검증\n"
+            "  D8. SaaS /healthz HTTP 200\n"
+            "  D9. verify_consistency.py --check 통과\n\n"
+            "예시:\n"
+            "  agentbox doctor          # 표 출력, 종료코드 0/1\n"
+            "  agentbox doctor --json   # JSON 출력 (CI용)\n"
+            "  agentbox doctor --fix    # 자동 복구 가능 항목 수정\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Made by JeonMyeongHwan",
+    )
+    p_doctor.add_argument("--json", action="store_true", help="JSON 형식으로 출력")
+    p_doctor.add_argument("--fix", action="store_true", help="자동 복구 가능 항목 수정")
+
+    # ── status ────────────────────────────────────────────────────────────────
     p_status = sub.add_parser(
         "status",
-        help="[진단] 현재 AgentBox 런타임 상태 출력",
+        help="[진단] 현재 AgentBox 런타임 상태 요약 출력 (전체 점검은 agentbox doctor 참고)",
         description=(
             "읽기 전용 진단 명령. 아래 항목을 출력합니다:\n\n"
             "  - 대시보드 URL 및 프록시 포트\n"
             "  - 의존성(sops, aws CLI) 설치 여부\n"
             "  - 프록시 활성화 여부 (HTTPS_PROXY 환경변수)\n"
             "  - 마지막 agentbox init 정보\n"
-            "  - EC2/gRPC 연결 상태"
+            "  - EC2/gRPC 연결 상태\n\n"
+            "전체 점검은 agentbox doctor 참고"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
@@ -357,10 +315,12 @@ def main() -> None:
     elif args.cmd in ("off", "_off"):
         from agentbox._activate import off_command
         sys.exit(off_command())
-    elif args.cmd == "ca":
-        _ca_install()
-    elif args.cmd == "setup":
-        _setup_shell()
+    elif args.cmd == "doctor":
+        from agentbox.doctor_cmd import run_doctor
+        sys.exit(run_doctor(
+            output_json=getattr(args, "json", False),
+            fix=getattr(args, "fix", False),
+        ))
     elif args.cmd == "status":
         from agentbox.status_cmd import run_status
         sys.exit(run_status(args))
