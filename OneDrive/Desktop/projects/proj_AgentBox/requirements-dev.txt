@@ -6,5 +6,5 @@ pytest-cov>=5
 respx>=0.21
 websockets>=12
 moto[all]>=5,<6
-responses>=0.24
+responses>=0.25
 pytest-mock>=3

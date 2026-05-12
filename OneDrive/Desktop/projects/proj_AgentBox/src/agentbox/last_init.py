@@ -1,11 +1,12 @@
-"""Read/write ~/.agentbox/last_init.json for agentbox init metadata persistence."""
+"""Read/write <repo>/.agentbox/last_init.json for agentbox init metadata persistence."""
 import json
 import logging
 from pathlib import Path
 
 logger = logging.getLogger("agentbox.last_init")
 
-_DEFAULT_PATH = Path.home() / ".agentbox" / "last_init.json"
+_PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_PATH = _PROJ_ROOT / ".agentbox" / "last_init.json"
 
 
 def write(meta: dict, path: Path | None = None) -> None:
