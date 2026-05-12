@@ -10,6 +10,7 @@ from pathlib import Path
 import requests
 
 from agentbox import last_init as _last_init
+from agentbox.encrypt import encrypt_and_upload
 from agentbox.init_deps import DEPS, PYTHON_PACKAGES, check_dep, check_python_pkg, try_auto_install
 
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -77,23 +78,24 @@ def init(
     _log(f"[agentbox] PROJECT_ID={pid}")
 
     # Step 2 — Config validation
-    sops_yaml = _PROJ_ROOT / ".sops.yaml"
+    from agentbox.dotagentbox import _global_home
+    sops_yaml = _global_home() / "sops.yaml"
     if not sops_yaml.exists():
         _log(
-            "[agentbox] ERROR: .sops.yaml not found in project root.\n"
-            "  Run: terraform -chdir=infra apply",
+            "[agentbox] ERROR: ~/.agentbox/sops.yaml not found.\n"
+            "  Run: terraform -chdir=infra apply && agentbox set",
             "error",
         )
         return 3
     if "{region}" in sops_yaml.read_text():
         _log(
-            "[agentbox] ERROR: .sops.yaml has placeholder KMS ARN.\n"
+            "[agentbox] ERROR: sops.yaml has placeholder KMS ARN.\n"
             "  Run: terraform -chdir=infra apply",
             "error",
         )
         return 3
 
-    env_file = _PROJ_ROOT / ".env.endpoint"
+    env_file = _global_home() / "endpoint"
     env_vars = _read_env_file(env_file)
     if "EC2_GRPC_HOST" not in env_vars:
         _log(
@@ -136,35 +138,14 @@ def init(
             _log(f"[agentbox] python package {pkg}: {'OK' if ok else 'MISSING'}")
 
     # Step 4 — Encrypt + Upload
-    env = os.environ.copy()
     project_name = os.environ.get("PROJECT_NAME", "agentbox")
-    env["PROJECT_S3_BUCKET"] = f"{project_name}-encrypted-code"
-    env["PROJECT_ID"] = pid
-
-    script_path = str(_PROJ_ROOT / "scripts" / "encrypt_and_upload.sh")
-    is_windows = platform.system() == "Windows"
-
-    if is_windows:
-        try:
-            subprocess.run(["wsl", "echo", "ok"], capture_output=True, timeout=5, check=True)
-            cmd = ["wsl", "bash", script_path, str(src)]
-        except Exception:
-            _log(
-                "[agentbox] ERROR: WSL not found. Install WSL2 or run in WSL terminal:\n"
-                "  bash scripts/encrypt_and_upload.sh <dir>",
-                "error",
-            )
-            return 5
-    else:
-        cmd = ["bash", script_path, str(src)]
+    s3_bucket = f"{project_name}-encrypted-code"
 
     _log(f"[agentbox] Encrypting and uploading {src} ...")
-    result = subprocess.run(cmd, env=env, cwd=str(_PROJ_ROOT))
-    if result.returncode != 0:
-        _log(
-            f"[agentbox] ERROR: Encryption/upload failed (exit {result.returncode}).",
-            "error",
-        )
+    try:
+        encrypt_and_upload(src, s3_bucket, pid, sops_yaml=sops_yaml)
+    except Exception as exc:
+        _log(f"[agentbox] ERROR: Encryption/upload failed: {exc}", "error")
         return 5
 
     # Step 5 — EC2 Connectivity
@@ -202,7 +183,6 @@ def init(
         return 7
 
     # Step 6 — Success
-    s3_bucket = env["PROJECT_S3_BUCKET"]
     _last_init.write({
         "project_id": pid,
         "src_path": str(src),

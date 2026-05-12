@@ -545,12 +545,12 @@ responses>=0.25
 
 ### Phase D — init/encrypt Python 포팅
 
-- [ ] **D1**: `src/agentbox/encrypt.py` 신규 (boto3 + sops CLI 래퍼)
+- [x] **D1**: `src/agentbox/encrypt.py` 신규 (boto3 + sops CLI 래퍼)
   - verify: `pytest tests/unit/test_encrypt_module.py -x`
-- [ ] **D2**: `src/agentbox/init_cmd.py`에서 `encrypt_and_upload.sh` 호출 제거, `encrypt.encrypt_and_upload()` 호출로 교체
+- [x] **D2**: `src/agentbox/init_cmd.py`에서 `encrypt_and_upload.sh` 호출 제거, `encrypt.encrypt_and_upload()` 호출로 교체
   - verify: `pytest tests/unit/test_init_cmd.py tests/integration/test_init_e2e_v2.py -x`
-- [ ] **D3**: `init_cmd.py`의 `.sops.yaml` 경로를 `~/.agentbox/sops.yaml`로
-- [ ] **D4**: `scripts/encrypt_and_upload.sh` 삭제
+- [x] **D3**: `init_cmd.py`의 `.sops.yaml` 경로를 `~/.agentbox/sops.yaml`로
+- [x] **D4**: `scripts/encrypt_and_upload.sh` 삭제
 
 ### Phase E — CA install Python 포팅
 

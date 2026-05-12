@@ -12,7 +12,6 @@ from agentbox.init_cmd import init
 
 @pytest.fixture(autouse=True)
 def reset_logger():
-    """Clear logger handlers before each test so _setup_file_logger runs fresh."""
     import logging
     logger = logging.getLogger("agentbox.init")
     logger.handlers.clear()
@@ -22,13 +21,15 @@ def reset_logger():
 
 @pytest.fixture
 def fake_proj_root(tmp_path, monkeypatch):
-    """Fake project root with required config files."""
+    """Fake project root with config at AGENTBOX_HOME (new layout)."""
     monkeypatch.setattr(init_module, "_PROJ_ROOT", tmp_path)
-    (tmp_path / ".sops.yaml").write_text("arn:aws:kms:us-east-1:123456:key/abc-real")
-    (tmp_path / ".env.endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    (scripts / "encrypt_and_upload.sh").write_text("#!/bin/bash\nexit 0\n")
+    # Set AGENTBOX_HOME so _global_home() returns a temp dir
+    global_home = tmp_path / "global"
+    global_home.mkdir()
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    # Create required config files
+    (global_home / "sops.yaml").write_text("arn:aws:kms:us-east-1:123456:key/abc-real")
+    (global_home / "endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
     (tmp_path / "logs").mkdir()
     return tmp_path
 
@@ -50,8 +51,11 @@ def test_init_invalid_dir(fake_proj_root):
 
 def test_init_missing_sops_yaml(tmp_path, monkeypatch):
     monkeypatch.setattr(init_module, "_PROJ_ROOT", tmp_path)
-    # No .sops.yaml in proj root
-    (tmp_path / ".env.endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
+    global_home = tmp_path / "global"
+    global_home.mkdir()
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    # No sops.yaml in global home
+    (global_home / "endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
     src = tmp_path / "proj"
     src.mkdir()
     result = init(str(src))
@@ -60,8 +64,11 @@ def test_init_missing_sops_yaml(tmp_path, monkeypatch):
 
 def test_init_sops_yaml_placeholder(tmp_path, monkeypatch):
     monkeypatch.setattr(init_module, "_PROJ_ROOT", tmp_path)
-    (tmp_path / ".sops.yaml").write_text("arn:aws:kms:{region}:123456:key/abc")
-    (tmp_path / ".env.endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
+    global_home = tmp_path / "global"
+    global_home.mkdir()
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    (global_home / "sops.yaml").write_text("arn:aws:kms:{region}:123456:key/abc")
+    (global_home / "endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
     src = tmp_path / "proj"
     src.mkdir()
     result = init(str(src))
@@ -70,8 +77,11 @@ def test_init_sops_yaml_placeholder(tmp_path, monkeypatch):
 
 def test_init_missing_env_endpoint(tmp_path, monkeypatch):
     monkeypatch.setattr(init_module, "_PROJ_ROOT", tmp_path)
-    (tmp_path / ".sops.yaml").write_text("valid-arn")
-    # No .env.endpoint
+    global_home = tmp_path / "global"
+    global_home.mkdir()
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    (global_home / "sops.yaml").write_text("valid-arn")
+    # No endpoint file
     src = tmp_path / "proj"
     src.mkdir()
     result = init(str(src))
@@ -91,14 +101,11 @@ def test_init_deps_missing_accept(fake_proj_root, fake_src, monkeypatch):
     monkeypatch.setattr(init_module, "try_auto_install", lambda dep: True)
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    mock_run = MagicMock()
-    mock_run.return_value.returncode = 0
-
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
     with patch("builtins.input", return_value="y"), \
-         patch("agentbox.init_cmd.subprocess.run", return_value=mock_run.return_value), \
+         patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection"):
         result = init(str(fake_src))
@@ -107,11 +114,10 @@ def test_init_deps_missing_accept(fake_proj_root, fake_src, monkeypatch):
 
 def test_init_encrypt_failure(fake_proj_root, fake_src, monkeypatch):
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
+    import subprocess
 
-    mock_result = MagicMock()
-    mock_result.returncode = 1
-
-    with patch("agentbox.init_cmd.subprocess.run", return_value=mock_result):
+    with patch("agentbox.init_cmd.encrypt_and_upload",
+               side_effect=subprocess.CalledProcessError(5, "sops", stderr="KMS error")):
         result = init(str(fake_src), skip_deps=True)
     assert result == 5
 
@@ -119,10 +125,7 @@ def test_init_encrypt_failure(fake_proj_root, fake_src, monkeypatch):
 def test_init_healthz_fail(fake_proj_root, fake_src, monkeypatch):
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-
-    with patch("agentbox.init_cmd.subprocess.run", return_value=mock_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", side_effect=req_lib.ConnectionError("refused")):
         result = init(str(fake_src), skip_deps=True)
     assert result == 6
@@ -131,12 +134,10 @@ def test_init_healthz_fail(fake_proj_root, fake_src, monkeypatch):
 def test_init_tcp_fail(fake_proj_root, fake_src, monkeypatch, capsys):
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    mock_result = MagicMock()
-    mock_result.returncode = 0
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
-    with patch("agentbox.init_cmd.subprocess.run", return_value=mock_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection", side_effect=OSError("refused")):
         result = init(str(fake_src), skip_deps=True)
@@ -147,12 +148,10 @@ def test_init_success(fake_proj_root, fake_src, monkeypatch, capsys):
     monkeypatch.setattr(init_module, "get_terraform_output",
                         lambda name: "http://10.0.0.1:8000" if name == "saas_url" else None)
 
-    mock_result = MagicMock()
-    mock_result.returncode = 0
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
-    with patch("agentbox.init_cmd.subprocess.run", return_value=mock_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection"):
         result = init(str(fake_src), skip_deps=True)
