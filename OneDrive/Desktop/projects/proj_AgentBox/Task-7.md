@@ -554,30 +554,30 @@ responses>=0.25
 
 ### Phase E — CA install Python 포팅
 
-- [ ] **E1**: `src/agentbox/ca_install.py` 신규
+- [x] **E1**: `src/agentbox/ca_install.py` 신규
   - verify: `pytest tests/unit/test_ca_install.py -x`
-- [ ] **E2**: `scripts/install_ca.sh` 삭제, `activate.sh`에서의 호출 흔적도 제거 (이미 C4에서 삭제됐는지 확인)
+- [x] **E2**: `scripts/install_ca.sh` 삭제, `activate.sh`에서의 호출 흔적도 제거 (이미 C4에서 삭제됨)
 
 ### Phase F — proto stub 내장
 
-- [ ] **F1**: `src/agentbox/set_cmd._ensure_proto_stub()` 추가
-- [ ] **F2**: `scripts/gen_proto.sh` 삭제, `Makefile` 등에서 호출 흔적 grep
-- [ ] **F3**: `scripts/gen_mtls_certs.sh` 삭제 (B1에서 Python으로 옮김)
+- [x] **F1**: `src/agentbox/set_cmd._ensure_proto_stub()` 추가
+- [x] **F2**: `scripts/gen_proto.sh` 삭제, `Makefile` 등에서 호출 흔적 grep
+- [x] **F3**: `scripts/gen_mtls_certs.sh` 삭제 (B1에서 Python으로 옮김)
 
 ### Phase G — transparent 모드 제거 (NG1)
 
-- [ ] **G1**: `src/agentbox/config.py`에서 `TRANSPARENT_MODE`, `EBPF_STATS_LOG` 필드 삭제
-- [ ] **G2**: `src/agentbox/__main__.py::_run`의 transparent 분기 삭제
-- [ ] **G3**: `src/agentbox/proxy/ebpf_stats.py` 파일 삭제
-- [ ] **G4**: `scripts/iptables_redirect.sh`, `scripts/install_ebpf.sh`, `scripts/test_transparent.sh` 삭제
+- [x] **G1**: `src/agentbox/config.py`에서 `TRANSPARENT_MODE`, `EBPF_STATS_LOG` 필드 삭제
+- [x] **G2**: `src/agentbox/__main__.py::_run`의 transparent 분기 삭제
+- [x] **G3**: `src/agentbox/proxy/ebpf_stats.py` 파일 삭제
+- [x] **G4**: `scripts/iptables_redirect.sh`, `scripts/install_ebpf.sh`, `scripts/test_transparent.sh` 삭제
   - verify: `pytest tests/unit -x -k "not transparent"`
 
 ### Phase H — 잔여 scripts 정리
 
-- [ ] **H1**: `scripts/check_ec2.sh`, `scripts/update_my_ip.sh`, `scripts/test_lifecycle_45.sh`,
+- [x] **H1**: `scripts/check_ec2.sh`, `scripts/update_my_ip.sh`, `scripts/test_lifecycle_45.sh`,
   `scripts/setup_vm.sh`, `scripts/deploy_static.sh`, `scripts/run.sh` 삭제
-- [ ] **H2**: `scripts/` 잔존 파일이 `deploy.sh`, `destroy.sh`, `redeploy_idempotency.sh`, `verify_consistency.py` 4개인지 확인
-  - verify: `ls scripts/ | wc -l` → 4
+- [x] **H2**: `scripts/` 잔존 파일이 `deploy.sh`, `destroy.sh`, `redeploy_idempotency.sh`, `verify_consistency.py` 4개인지 확인
+  - verify: `ls scripts/ | wc -l` → 4 (verify_consistency.py는 Phase I에서 추가)
 
 ### Phase I — 정합성 검사 스크립트
 
