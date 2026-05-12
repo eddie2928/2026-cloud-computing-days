@@ -513,7 +513,7 @@ responses>=0.25
 
 - [x] **A1**: `src/agentbox/dotagentbox.py` 신규 (LayoutPaths, ensure_layout, 마이그레이션)
   - verify: `pytest tests/unit/test_dotagentbox_layout.py -x`
-- [ ] **A2**: `src/agentbox/config.py` env_file 다중 경로화
+- [x] **A2**: `src/agentbox/config.py` env_file 다중 경로화
   - verify: `pytest tests/unit/test_config_loader_v2.py -x`
 - [ ] **A3**: `src/agentbox/last_init.py`의 `_DEFAULT_PATH`를 LayoutPaths 통해 `<proj>/.agentbox/last_init.json`로
   - verify: `pytest tests/unit/test_last_init.py -x` (기존 테스트는 `AGENTBOX_HOME` fixture 적용)
