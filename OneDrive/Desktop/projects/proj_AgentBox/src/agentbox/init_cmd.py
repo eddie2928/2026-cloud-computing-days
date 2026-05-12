@@ -18,13 +18,13 @@ _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
 logger = logging.getLogger("agentbox.init")
 
 
-def _setup_file_logger() -> None:
+def _setup_file_logger(log_dir: Path | None = None) -> None:
     if logger.handlers:
         return
+    target = log_dir or (_PROJ_ROOT / ".agentbox" / "logs")
+    target.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_dir = _PROJ_ROOT / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    handler = logging.FileHandler(log_dir / f"agentbox-init-{timestamp}.log")
+    handler = logging.FileHandler(target / f"agentbox-init-{timestamp}.log")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
@@ -66,7 +66,10 @@ def init(
     skip_deps: bool = False,
     auto_yes: bool = False,
 ) -> int:
-    _setup_file_logger()
+    # Ensure .agentbox/ layout first (migration + correct log/last_init paths)
+    from agentbox.dotagentbox import ensure_layout
+    layout = ensure_layout(_PROJ_ROOT)
+    _setup_file_logger(layout.local_logs_dir)
 
     # Step 1 — Path validation
     src = Path(dir).expanduser().resolve()
@@ -189,6 +192,6 @@ def init(
         "s3_uri": f"s3://{s3_bucket}/encrypted_code/{pid}/",
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "saas_url": saas_url,
-    })
+    }, path=layout.local_last_init)
     _log(f"[agentbox] init OK. 대시보드: {saas_url}")
     return 0

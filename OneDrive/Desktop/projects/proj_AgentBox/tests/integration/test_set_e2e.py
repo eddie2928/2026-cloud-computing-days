@@ -29,23 +29,35 @@ def reset_logger():
 def tmp_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv("AGENTBOX_HOME", str(tmp_path / "global"))
     monkeypatch.delenv("AWS_REGION", raising=False)
     monkeypatch.delenv("PROJECT_NAME", raising=False)
     (tmp_path / ".bashrc").write_text("", encoding="utf-8")
     monkeypatch.setattr(set_module, "_PROJ_ROOT", tmp_path)
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "logs").mkdir()
     return tmp_path
+
+
+def _all_step_patches():
+    return (
+        patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0),
+        patch("agentbox.set_cmd._ensure_proto_stub", return_value=0),
+        patch("agentbox.set_cmd._start_and_health_check", return_value=0),
+        patch("agentbox.set_cmd._check_grpc_tcp", return_value=0),
+        patch("agentbox.set_cmd._check_mtls_handshake", return_value=0),
+        patch("agentbox.set_cmd.platform.system", return_value="Linux"),
+    )
 
 
 def test_set_idempotent(tmp_home, monkeypatch):
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
-         patch("agentbox.set_cmd.platform.system", return_value="Linux"):
+    with _all_step_patches()[0], _all_step_patches()[1], _all_step_patches()[2], \
+         _all_step_patches()[3], _all_step_patches()[4], _all_step_patches()[5]:
         run_set(FakeArgs())
         content_first = (tmp_home / ".bashrc").read_text(encoding="utf-8")
+        import logging
+        logging.getLogger("agentbox.set").handlers.clear()
         run_set(FakeArgs())
         content_second = (tmp_home / ".bashrc").read_text(encoding="utf-8")
 
@@ -56,7 +68,11 @@ def test_set_writes_env_exports(tmp_home, monkeypatch):
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
+    with patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0), \
+         patch("agentbox.set_cmd._ensure_proto_stub", return_value=0), \
+         patch("agentbox.set_cmd._start_and_health_check", return_value=0), \
+         patch("agentbox.set_cmd._check_grpc_tcp", return_value=0), \
+         patch("agentbox.set_cmd._check_mtls_handshake", return_value=0), \
          patch("agentbox.set_cmd.platform.system", return_value="Linux"):
         run_set(FakeArgs())
 
@@ -69,7 +85,11 @@ def test_set_does_not_auto_activate(tmp_home, monkeypatch):
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
+    with patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0), \
+         patch("agentbox.set_cmd._ensure_proto_stub", return_value=0), \
+         patch("agentbox.set_cmd._start_and_health_check", return_value=0), \
+         patch("agentbox.set_cmd._check_grpc_tcp", return_value=0), \
+         patch("agentbox.set_cmd._check_mtls_handshake", return_value=0), \
          patch("agentbox.set_cmd.platform.system", return_value="Linux"):
         run_set(FakeArgs())
 
@@ -81,7 +101,11 @@ def test_set_registers_shell_functions(tmp_home, monkeypatch):
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
+    with patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0), \
+         patch("agentbox.set_cmd._ensure_proto_stub", return_value=0), \
+         patch("agentbox.set_cmd._start_and_health_check", return_value=0), \
+         patch("agentbox.set_cmd._check_grpc_tcp", return_value=0), \
+         patch("agentbox.set_cmd._check_mtls_handshake", return_value=0), \
          patch("agentbox.set_cmd.platform.system", return_value="Linux"):
         run_set(FakeArgs())
 
@@ -96,7 +120,11 @@ def test_set_returns_zero_on_success(tmp_home, monkeypatch):
     monkeypatch.setattr(set_module, "check_dep", lambda dep: (True, None))
     monkeypatch.setattr(set_module, "check_python_pkg", lambda pkg: True)
 
-    with patch("agentbox.set_cmd._check_ca_step", return_value=0), \
+    with patch("agentbox.set_cmd._check_ca_mtls_step", return_value=0), \
+         patch("agentbox.set_cmd._ensure_proto_stub", return_value=0), \
+         patch("agentbox.set_cmd._start_and_health_check", return_value=0), \
+         patch("agentbox.set_cmd._check_grpc_tcp", return_value=0), \
+         patch("agentbox.set_cmd._check_mtls_handshake", return_value=0), \
          patch("agentbox.set_cmd.platform.system", return_value="Linux"):
         rc = run_set(FakeArgs())
 

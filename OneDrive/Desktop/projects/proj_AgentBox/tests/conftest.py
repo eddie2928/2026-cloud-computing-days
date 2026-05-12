@@ -7,6 +7,13 @@ from agentbox.api.hitl import HITLQueue
 from agentbox.api.ws import WSHub
 
 
+@pytest.fixture(autouse=True)
+def agentbox_home(tmp_path, monkeypatch):
+    """Redirect AGENTBOX_HOME to a temp dir so tests never write to real ~/.agentbox/."""
+    if not os.environ.get("AGENTBOX_HOME"):
+        monkeypatch.setenv("AGENTBOX_HOME", str(tmp_path / "global"))
+
+
 @pytest.fixture
 def tmp_db(tmp_path):
     return str(tmp_path / "test.db")

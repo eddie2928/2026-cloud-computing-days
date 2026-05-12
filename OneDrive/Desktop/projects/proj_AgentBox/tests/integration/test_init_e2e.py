@@ -37,34 +37,23 @@ def fake_project(tmp_path):
 @pytest.fixture
 def proj_root(tmp_path, monkeypatch):
     monkeypatch.setattr(init_module, "_PROJ_ROOT", tmp_path)
-    (tmp_path / ".sops.yaml").write_text("arn:aws:kms:us-east-1:123456:key/real-key")
-    (tmp_path / ".env.endpoint").write_text("EC2_GRPC_HOST=127.0.0.1\n")
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    (tmp_path / "logs").mkdir()
+    global_home = tmp_path / "global"
+    global_home.mkdir()
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    (global_home / "sops.yaml").write_text("arn:aws:kms:us-east-1:123456:key/real-key")
+    (global_home / "endpoint").write_text("EC2_GRPC_HOST=127.0.0.1\n")
     return tmp_path
 
 
 @mock_aws
 def test_init_e2e_uploads_files(fake_project, proj_root, monkeypatch, capsys):
-    # Create S3 bucket
-    s3 = boto3.client("s3", region_name=REGION)
-    s3.create_bucket(Bucket=f"{PROJECT}-encrypted-code")
-
-    # Write a script that copies files as fake .enc uploads
-    script = proj_root / "scripts" / "encrypt_and_upload.sh"
-    # Simulate the script: just create .enc objects in S3 via AWS CLI mock
-    # We mock subprocess.run for the encrypt step to succeed
-    enc_result = MagicMock()
-    enc_result.returncode = 0
+    monkeypatch.setattr(init_module, "get_terraform_output",
+                        lambda name: "http://127.0.0.1:8000" if name == "saas_url" else None)
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
-    monkeypatch.setattr(init_module, "get_terraform_output",
-                        lambda name: "http://127.0.0.1:8000" if name == "saas_url" else None)
-
-    with patch("agentbox.init_cmd.subprocess.run", return_value=enc_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection"):
         result = init(str(fake_project), skip_deps=True)
@@ -77,12 +66,9 @@ def test_init_e2e_uploads_files(fake_project, proj_root, monkeypatch, capsys):
 
 @mock_aws
 def test_init_e2e_healthz_failure(fake_project, proj_root, monkeypatch):
-    enc_result = MagicMock()
-    enc_result.returncode = 0
-
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    with patch("agentbox.init_cmd.subprocess.run", return_value=enc_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get",
                side_effect=req_lib.ConnectionError("connection refused")):
         result = init(str(fake_project), skip_deps=True)
@@ -92,14 +78,12 @@ def test_init_e2e_healthz_failure(fake_project, proj_root, monkeypatch):
 
 @mock_aws
 def test_init_e2e_grpc_failure(fake_project, proj_root, monkeypatch):
-    enc_result = MagicMock()
-    enc_result.returncode = 0
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    with patch("agentbox.init_cmd.subprocess.run", return_value=enc_result), \
+    with patch("agentbox.init_cmd.encrypt_and_upload"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection",
                side_effect=OSError("connection refused")):
