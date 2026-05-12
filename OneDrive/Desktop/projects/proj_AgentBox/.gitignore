@@ -15,3 +15,7 @@ node_modules/
 .coverage
 htmlcov/
 .env
+.env.endpoint
+.sops.yaml
+# local state (new layout)
+.agentbox/
