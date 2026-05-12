@@ -537,11 +537,11 @@ responses>=0.25
 
 ### Phase C — on/off Python 포팅
 
-- [ ] **C1**: `src/agentbox/_activate.py` 신규 (`on_command`, `off_command`)
-- [ ] **C2**: `src/agentbox/__main__.py`에 `_on`/`_off` 서브커맨드 등록 (hidden help)
-- [ ] **C3**: `_install_shell_integration` 내용을 `eval "$(command agentbox _on)"` 패턴으로 갱신
+- [x] **C1**: `src/agentbox/_activate.py` 신규 (`on_command`, `off_command`)
+- [x] **C2**: `src/agentbox/__main__.py`에 `_on`/`_off` 서브커맨드 등록 (hidden help)
+- [x] **C3**: `_install_shell_integration` 내용을 `eval "$(command agentbox _on)"` 패턴으로 갱신
   - verify: `pytest tests/unit/test_activate_cmd.py -x`
-- [ ] **C4**: `scripts/activate.sh`, `scripts/deactivate.sh` 삭제
+- [x] **C4**: `scripts/activate.sh`, `scripts/deactivate.sh` 삭제
 
 ### Phase D — init/encrypt Python 포팅
 

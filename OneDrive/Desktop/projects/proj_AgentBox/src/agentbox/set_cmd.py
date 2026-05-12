@@ -179,19 +179,18 @@ def _ensure_proto_stub() -> int:
 # ── Step 6: shell integration ─────────────────────────────────────────────────
 
 def _install_shell_integration(bashrc: Path) -> bool:
-    """Step 6: Add agentbox shell function to ~/.bashrc.
+    """Step 6: Add agentbox shell function to ~/.bashrc (eval pattern).
 
     Returns True if newly added, False if already present.
     """
-    scripts_dir = _PROJ_ROOT / "scripts"
     marker = "# AgentBox shell integration"
     integration = f"""
 {marker}
 unalias agentbox 2>/dev/null
 agentbox() {{
     case "$1" in
-        on)  source {scripts_dir}/activate.sh ;;
-        off) source {scripts_dir}/deactivate.sh ;;
+        on)  eval "$(command agentbox _on)"  ;;
+        off) eval "$(command agentbox _off)" ;;
         *)   command agentbox "$@" ;;
     esac
 }}
