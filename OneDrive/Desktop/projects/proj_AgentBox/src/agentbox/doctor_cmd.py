@@ -125,9 +125,12 @@ def _check_d7_mtls(layout) -> dict:
     if not host:
         return {"id": "D7", "status": STATUS_SKIP, "detail": "GRPC_HOST not set"}
 
-    ca_cert = cfg.GRPC_CA_CERT or str(layout.global_certs_dir / "agentbox-ca.crt")
-    client_cert = cfg.GRPC_CLIENT_CERT or str(layout.global_certs_dir / "endpoint.crt")
-    client_key = cfg.GRPC_CLIENT_KEY or str(layout.global_certs_dir / "endpoint.key")
+    def _resolve(cfg_path: str, default: Path) -> str:
+        return cfg_path if cfg_path and Path(cfg_path).exists() else str(default)
+
+    ca_cert = _resolve(cfg.GRPC_CA_CERT, layout.global_certs_dir / "agentbox-ca.crt")
+    client_cert = _resolve(cfg.GRPC_CLIENT_CERT, layout.global_certs_dir / "endpoint.crt")
+    client_key = _resolve(cfg.GRPC_CLIENT_KEY, layout.global_certs_dir / "endpoint.key")
 
     ok, reason = verify_mtls_handshake(host, cfg.GRPC_PORT, ca_cert, client_cert, client_key)
     if ok:

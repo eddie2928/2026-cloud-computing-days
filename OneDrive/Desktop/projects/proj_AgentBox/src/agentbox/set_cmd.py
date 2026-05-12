@@ -301,9 +301,10 @@ def _check_mtls_handshake(layout) -> int:
         return 0
 
     port = cfg.GRPC_PORT
-    ca_cert = cfg.GRPC_CA_CERT or str(layout.global_certs_dir / "agentbox-ca.crt")
-    client_cert = cfg.GRPC_CLIENT_CERT or str(layout.global_certs_dir / "endpoint.crt")
-    client_key = cfg.GRPC_CLIENT_KEY or str(layout.global_certs_dir / "endpoint.key")
+    # Prefer cfg paths if file exists; fall back to layout paths for stale/empty values.
+    ca_cert = _resolve_cert(cfg.GRPC_CA_CERT, layout.global_certs_dir / "agentbox-ca.crt")
+    client_cert = _resolve_cert(cfg.GRPC_CLIENT_CERT, layout.global_certs_dir / "endpoint.crt")
+    client_key = _resolve_cert(cfg.GRPC_CLIENT_KEY, layout.global_certs_dir / "endpoint.key")
 
     ok, reason = verify_mtls_handshake(host, port, ca_cert, client_cert, client_key, timeout=5)
     if ok:
@@ -373,6 +374,32 @@ def _start_proxy_background() -> None:
         _log(f"[agentbox] 프록시 백그라운드 시작 실패: {exc}", "warning")
 
 
+# ── Config reload after migration ────────────────────────────────────────────
+
+def _reload_cfg_from_layout(layout) -> None:
+    """Reload the module-level cfg from migrated ~/.agentbox/env + endpoint.
+
+    Called after ensure_layout() so that GRPC_HOST etc. are available even on
+    the first run (when the files were just migrated from the project root).
+    """
+    import agentbox.config as _cfg_mod
+    fresh = _cfg_mod.Settings(
+        _env_file=(str(layout.global_env), str(layout.global_endpoint))
+    )
+    _cfg_mod.cfg = fresh
+
+
+def _resolve_cert(cfg_path: str, layout_path: "Path") -> str:
+    """Return cfg_path if file exists, otherwise fall back to layout_path.
+
+    Handles stale cert paths left in ~/.agentbox/env after migration (old
+    absolute paths that no longer point to the moved files).
+    """
+    if cfg_path and Path(cfg_path).exists():
+        return cfg_path
+    return str(layout_path)
+
+
 # ── Main entrypoint ───────────────────────────────────────────────────────────
 
 def run_set(args) -> int:
@@ -387,6 +414,10 @@ def run_set(args) -> int:
     except PermissionError as exc:
         print(f"[agentbox] ERROR: 레이아웃 초기화 권한 오류: {exc}")
         return 1
+
+    # Reload cfg from migrated ~/.agentbox/env so GRPC_HOST is available
+    # even on the very first run (files just moved from project root).
+    _reload_cfg_from_layout(layout)
 
     _setup_file_logger(layout.local_logs_dir)
     _log("[agentbox] Step 1: 레이아웃 초기화 완료.")
