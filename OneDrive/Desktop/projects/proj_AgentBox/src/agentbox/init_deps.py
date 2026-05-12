@@ -2,7 +2,8 @@
 import importlib.metadata
 import platform
 import subprocess
-from dataclasses import dataclass, field
+import sys
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,10 @@ DEPS = [
     ),
 ]
 
-PYTHON_PACKAGES = ["boto3", "pyyaml"]
+# Runtime Python packages required by agentbox.
+# grpcio-tools is needed to regenerate proto stubs when the installed
+# protobuf runtime version differs from the committed pb2 gencode version.
+PYTHON_PACKAGES = ["boto3", "pyyaml", "grpcio-tools"]
 
 
 def check_dep(dep: Dep) -> tuple[bool, str | None]:
@@ -73,3 +77,15 @@ def try_auto_install(dep: Dep) -> bool:
         return False
     ok, _ = check_dep(dep)
     return ok
+
+
+def try_auto_install_pkg(name: str) -> bool:
+    """Install a Python package via pip into the current interpreter's environment."""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--quiet", name],
+            timeout=120,
+        )
+        return result.returncode == 0 and check_python_pkg(name)
+    except Exception:
+        return False

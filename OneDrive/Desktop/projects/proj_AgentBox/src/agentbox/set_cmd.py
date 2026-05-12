@@ -8,7 +8,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from agentbox.init_deps import DEPS, PYTHON_PACKAGES, check_dep, check_python_pkg, try_auto_install
+from agentbox.init_deps import (
+    DEPS, PYTHON_PACKAGES, check_dep, check_python_pkg,
+    try_auto_install, try_auto_install_pkg,
+)
 
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
 logger = logging.getLogger("agentbox.set")
@@ -34,39 +37,55 @@ def _log(msg: str, level: str = "info") -> None:
 # ── Step 2: dependency check ──────────────────────────────────────────────────
 
 def _check_deps_step(args) -> int:
-    """Step 2: Check system dependencies. Returns 0 on success/skip, 4 on hard fail."""
-    failed = []
+    """Step 2: Check and auto-install system + Python dependencies."""
+    auto_yes = getattr(args, "yes", False)
+    skip_install = getattr(args, "skip_deps_install", False)
+
+    # System deps (sops, aws)
+    failed_sys = []
     for dep in DEPS:
         ok, _err = check_dep(dep)
         _log(f"[agentbox] {dep.name}: {'OK' if ok else 'MISSING'}")
         if not ok:
-            failed.append(dep)
+            failed_sys.append(dep)
 
+    # Python packages (boto3, pyyaml, grpcio-tools)
+    failed_py = []
     for pkg in PYTHON_PACKAGES:
         ok = check_python_pkg(pkg)
         _log(f"[agentbox] python package {pkg}: {'OK' if ok else 'MISSING'}")
+        if not ok:
+            failed_py.append(pkg)
 
-    if not failed:
+    if not failed_sys and not failed_py:
         return 0
 
-    names = ", ".join(d.name for d in failed)
-    _log(f"[agentbox] 누락된 의존성: {names}", "warning")
-
-    if getattr(args, "skip_deps_install", False):
+    if skip_install:
         _log("[agentbox] --skip-deps-install 설정됨. 경고만 출력 후 계속 진행.", "warning")
         return 0
 
-    if not getattr(args, "yes", False):
+    # Confirm once for everything missing
+    all_missing = [d.name for d in failed_sys] + failed_py
+    if not auto_yes:
+        names = ", ".join(all_missing)
         ans = input(f"누락된 의존성: {names}. 자동 설치할까요? [y/N]: ").strip().lower()
         if ans != "y":
-            for dep in failed:
-                _log(f"  수동 설치: {dep.name}")
+            for name in all_missing:
+                _log(f"  수동 설치: {name}")
             return 4
 
-    for dep in failed:
+    # Install system deps
+    for dep in failed_sys:
         _log(f"[agentbox] Installing {dep.name} ...")
         if not try_auto_install(dep):
             _log(f"[agentbox] ERROR: {dep.name} 설치 실패.", "error")
+            return 4
+
+    # Install Python packages via pip
+    for pkg in failed_py:
+        _log(f"[agentbox] pip install {pkg} ...")
+        if not try_auto_install_pkg(pkg):
+            _log(f"[agentbox] ERROR: {pkg} 설치 실패.", "error")
             return 4
 
     return 0
