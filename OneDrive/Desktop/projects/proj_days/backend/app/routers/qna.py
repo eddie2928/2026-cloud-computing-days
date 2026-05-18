@@ -2,6 +2,7 @@ from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,6 +32,32 @@ async def _get_rag_items(db: AsyncSession, user_id: int, exclude_session_id: int
     return list(result.scalars().all())
 
 
+async def _resume_session(
+    existing: QnASession, db: AsyncSession, user_id: int
+) -> QnAStartResponse:
+    if existing.status == "completed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Diary already completed for this date",
+        )
+    unanswered = sorted(
+        [i for i in existing.items if i.answer is None], key=lambda x: x.sequence
+    )
+    if unanswered:
+        first = unanswered[0]
+        return QnAStartResponse(
+            session_id=existing.id, question=first.question, sequence=first.sequence
+        )
+    answered_seqs = {i.sequence for i in existing.items if i.answer is not None}
+    next_seq = max(answered_seqs, default=0) + 1
+    rag_items = await _get_rag_items(db, user_id, existing.id)
+    answered_items = [i for i in existing.items if i.answer is not None]
+    question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq)
+    db.add(QnAItem(session_id=existing.id, sequence=next_seq, question=question, bedrock_meta=meta))
+    await db.commit()
+    return QnAStartResponse(session_id=existing.id, question=question, sequence=next_seq)
+
+
 @router.post("/start", response_model=QnAStartResponse)
 async def start_qna(
     body: QnAStartRequest,
@@ -43,64 +70,32 @@ async def start_qna(
         .where(QnASession.user_id == user_id, QnASession.diary_date == body.diary_date)
     )
     existing = result.scalar_one_or_none()
-
     if existing:
-        if existing.status == "completed":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Diary already completed for this date",
-            )
-        answered_seqs = {item.sequence for item in existing.items if item.answer is not None}
-        next_seq = max(answered_seqs, default=0) + 1
+        return await _resume_session(existing, db, user_id)
 
-        unanswered = [i for i in existing.items if i.answer is None]
-        if unanswered:
-            unanswered.sort(key=lambda x: x.sequence)
-            first_unanswered = unanswered[0]
-            return QnAStartResponse(
-                session_id=existing.id,
-                question=first_unanswered.question,
-                sequence=first_unanswered.sequence,
-            )
-
-        rag_items = await _get_rag_items(db, user_id, existing.id)
-        answered_items = [i for i in existing.items if i.answer is not None]
-        question, meta = await _get_bedrock().generate_question(
-            rag_items, answered_items, next_seq
-        )
-        new_item = QnAItem(
-            session_id=existing.id,
-            sequence=next_seq,
-            question=question,
-            bedrock_meta=meta,
-        )
-        db.add(new_item)
-        await db.commit()
-        return QnAStartResponse(
-            session_id=existing.id, question=question, sequence=next_seq
-        )
-
-    session = QnASession(
-        user_id=user_id,
-        diary_date=body.diary_date,
-        status="in_progress",
-    )
+    # Create new session and commit BEFORE calling Bedrock so concurrent
+    # requests see the row immediately and take the resume path above.
+    session = QnASession(user_id=user_id, diary_date=body.diary_date, status="in_progress")
     db.add(session)
-    await db.flush()
+    try:
+        await db.flush()
+        session_id = session.id
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        result = await db.execute(
+            select(QnASession)
+            .options(selectinload(QnASession.items))
+            .where(QnASession.user_id == user_id, QnASession.diary_date == body.diary_date)
+        )
+        return await _resume_session(result.scalar_one(), db, user_id)
 
-    rag_items = await _get_rag_items(db, user_id, session.id)
+    rag_items = await _get_rag_items(db, user_id, session_id)
     question, meta = await _get_bedrock().generate_question(rag_items, [], 1)
-
-    item = QnAItem(
-        session_id=session.id,
-        sequence=1,
-        question=question,
-        bedrock_meta=meta,
-    )
-    db.add(item)
+    db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
     await db.commit()
 
-    return QnAStartResponse(session_id=session.id, question=question, sequence=1)
+    return QnAStartResponse(session_id=session_id, question=question, sequence=1)
 
 
 @router.post("/answer", response_model=QnAAnswerResponse)
