@@ -319,10 +319,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 2.5 SQL 을 SQLAlchemy 2.x 선언적 모델로 옮김. async engine + `async_sessionmaker`. TIMESTAMPTZ→DateTime(timezone=True) 수정.
   - Verify: User/QnASession/QnAItem/DiaryEntry import 성공 ✓
 
-- [ ] **2.4** Alembic 초기화 + 0001 마이그레이션
-  - `alembic init alembic` 후 `env.py` 를 async 모드로 수정 + target_metadata=models.Base.metadata.
-  - `alembic revision --autogenerate -m "init"` (테스트 DB 띄워서) → `versions/0001_init.py` 커밋.
-  - Verify: `alembic upgrade head` 가 testcontainers Postgres 에 대해 성공 (다음 todo 의 conftest 에서 자동 검증).
+- [x] **2.4** Alembic 초기화 + 0001 마이그레이션
+  - `alembic init alembic` 후 `env.py` async 모드로 수정 + `target_metadata=Base.metadata`. `0001_init.py` 수동 작성 (4개 테이블 + default-user 시드).
+  - Verify: `alembic upgrade head` → 3.1 conftest testcontainers 에서 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.5** `backend/app/auth.py`
   - `verify_password(input: str) -> bool`: `secrets.compare_digest(input, settings.app_password)`.
