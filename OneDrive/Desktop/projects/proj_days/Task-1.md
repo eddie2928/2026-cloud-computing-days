@@ -453,6 +453,7 @@ IAM Role `ec2-bedrock-role` 정책:
 - [ ] **6.3** 프론트 dev server + 수동 5문답 1회
   - 실행: `cd frontend && npm run dev` → 브라우저 `http://localhost:5173/login` → 비번 `inha-nxt` → QnA 5회 → 일기 확인 → 캘린더 확인.
   - Verify: 일기 한 건 생성, 캘린더에 점 표시.
+  - **[사용자 확인 필요]** Phase 6.2 uvicorn + docker postgres 기동 상태에서 직접 브라우저 테스트.
 
 ### Phase 7 — AWS 실배포 + E2E
 
