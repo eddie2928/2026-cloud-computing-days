@@ -65,11 +65,6 @@ variable "bedrock_model_id" {
   default     = "us.anthropic.claude-sonnet-4-6"
 }
 
-variable "my_ip_cidr" {
-  description = "Your public IP CIDR for SSH access to EC2 (e.g. 1.2.3.4/32)"
-  type        = string
-}
-
 variable "git_repo_url" {
   description = "Git repository URL to clone onto EC2"
   type        = string
