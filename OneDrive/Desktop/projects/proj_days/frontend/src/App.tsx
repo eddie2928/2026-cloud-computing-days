@@ -13,7 +13,11 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {showSidebar && <Sidebar />}
-      <main style={{ flex: 1 }}>{children}</main>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ maxWidth: 900, width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {children}
+        </div>
+      </main>
     </div>
   )
 }

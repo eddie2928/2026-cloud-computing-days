@@ -75,7 +75,8 @@ class BedrockClient:
             f"사용자의 과거 일기 참고:\n{rag_block}\n\n"
             f"오늘 지금까지의 대화:\n{session_block}\n\n"
             f"위 내용을 바탕으로 {next_sequence}번째 질문을 한 문장으로 작성하세요. "
-            f"총 5개의 질문을 통해 하루 일기를 완성합니다."
+            f"총 5개의 질문을 통해 하루 일기를 완성합니다.\n"
+            f"규칙: 마크다운(**, *, #, ` 등) 절대 사용 금지. 이모지 절대 사용 금지. 순수 텍스트 한 문장만 출력."
         )
         text, meta = await asyncio.to_thread(
             _invoke_claude, self._client, self._model_id, prompt
