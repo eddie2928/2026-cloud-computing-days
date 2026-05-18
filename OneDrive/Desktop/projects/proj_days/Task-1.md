@@ -306,10 +306,10 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 2 — Backend (FastAPI) 코드
 
-- [ ] **2.1** `backend/requirements.txt` + `requirements-dev.txt` + `pyproject.toml`
+- [x] **2.1** `backend/requirements.txt` + `requirements-dev.txt` + `pyproject.toml`
   - runtime: `fastapi==0.115.*`, `uvicorn[standard]`, `sqlalchemy>=2.0`, `asyncpg`, `alembic`, `pydantic-settings`, `boto3`, `python-multipart`, `itsdangerous`.
-  - dev: `pytest`, `pytest-asyncio`, `httpx`, `moto[bedrock,sts]>=5.0`, `testcontainers[postgres]`, `freezegun`.
-  - Verify: `cd backend && python3.11 -m venv .venv && .venv/Scripts/pip install -r requirements.txt -r requirements-dev.txt` 성공.
+  - dev: `pytest`, `pytest-asyncio`, `httpx`, `moto[sts]>=5.0` (bedrock extra 없음→unittest.mock 폴백), `testcontainers[postgres]`, `freezegun`.
+  - Verify: `python -m venv .venv && pip install` 성공 ✓ (Python 3.13.13, moto 5.2.1)
 
 - [ ] **2.2** `backend/app/config.py`
   - `class Settings(BaseSettings)`: `app_password`, `session_secret`, `db_url`, `bedrock_model_id`, `aws_region`. `model_config = SettingsConfigDict(env_file=".env")`.
