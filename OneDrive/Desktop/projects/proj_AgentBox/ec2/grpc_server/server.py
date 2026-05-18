@@ -163,30 +163,30 @@ def serve() -> None:
     certs_dir = os.environ.get("GRPC_CERTS_DIR", "/opt/agentbox/certs/grpc")
     port = int(os.environ.get("GRPC_PORT", "50051"))
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    inspect_pb2_grpc.add_InspectorServicer_to_server(InspectorServicer(), server)
-
     ca_crt = f"{certs_dir}/agentbox-ca.crt"
     ec2_crt = f"{certs_dir}/ec2.crt"
     ec2_key = f"{certs_dir}/ec2.key"
 
-    if os.path.exists(ec2_crt):
-        with open(ca_crt, "rb") as f:
-            root_certs = f.read()
-        with open(ec2_crt, "rb") as f:
-            cert_chain = f.read()
-        with open(ec2_key, "rb") as f:
-            private_key = f.read()
-        creds = grpc.ssl_server_credentials(
-            [(private_key, cert_chain)],
-            root_certificates=root_certs,
-            require_client_auth=True,
-        )
-        server.add_secure_port(f"0.0.0.0:{port}", creds)
-        logger.info("grpc_server_mtls", port=port)
-    else:
-        server.add_insecure_port(f"0.0.0.0:{port}")
-        logger.warning("grpc_server_insecure", port=port)
+    for path in (ca_crt, ec2_crt, ec2_key):
+        if not os.path.exists(path):
+            raise RuntimeError(f"server cert missing: {path}")
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    inspect_pb2_grpc.add_InspectorServicer_to_server(InspectorServicer(), server)
+
+    with open(ca_crt, "rb") as f:
+        root_certs = f.read()
+    with open(ec2_crt, "rb") as f:
+        cert_chain = f.read()
+    with open(ec2_key, "rb") as f:
+        private_key = f.read()
+    creds = grpc.ssl_server_credentials(
+        [(private_key, cert_chain)],
+        root_certificates=root_certs,
+        require_client_auth=True,
+    )
+    server.add_secure_port(f"0.0.0.0:{port}", creds)
+    logger.info("grpc_server_mtls", port=port)
 
     server.start()
     logger.info("grpc_server_started", port=port)
