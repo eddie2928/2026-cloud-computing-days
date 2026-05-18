@@ -24,7 +24,26 @@ def _is_listening(port: int) -> bool:
         return False
 
 
-def on_command(project_root: Path | None = None) -> int:
+_DEFAULT_REDIRECT_HOSTS = ["api.anthropic.com"]
+
+
+def _apply_iptables(proxy_port: int) -> None:
+    try:
+        from agentbox.proxy.iptables import apply_redirect
+        apply_redirect(proxy_port, _DEFAULT_REDIRECT_HOSTS)
+    except Exception as exc:
+        print(f"[agentbox] iptables 설정 건너뜀 (Linux/WSL + sudo 필요): {exc}", file=sys.stderr)
+
+
+def _clear_iptables(proxy_port: int) -> None:
+    try:
+        from agentbox.proxy.iptables import clear_redirect
+        clear_redirect(proxy_port)
+    except Exception as exc:
+        print(f"[agentbox] iptables 해제 건너뜀: {exc}", file=sys.stderr)
+
+
+def on_command(project_root: Path | None = None, no_iptables: bool = False) -> int:
     """Print export statements to stdout; start proxy if needed (stderr)."""
     from agentbox.dotagentbox import ensure_layout
     from agentbox.config import cfg
@@ -50,6 +69,9 @@ def on_command(project_root: Path | None = None) -> int:
     else:
         print("[agentbox] 프록시 이미 실행 중 (:8080).", file=sys.stderr)
 
+    if not no_iptables:
+        _apply_iptables(cfg.PROXY_PORT)
+
     ca_cert = layout.global_certs_dir / "agentbox-ca.crt"
     proxy_port = cfg.PROXY_PORT
 
@@ -61,9 +83,10 @@ def on_command(project_root: Path | None = None) -> int:
     return 0
 
 
-def off_command(project_root: Path | None = None) -> int:
+def off_command(project_root: Path | None = None, no_iptables: bool = False) -> int:
     """Print unset statements to stdout; stop proxy via pid file (stderr)."""
     from agentbox.dotagentbox import ensure_layout
+    from agentbox.config import cfg
 
     root = project_root or _PROJ_ROOT
     layout = ensure_layout(root)
@@ -79,6 +102,9 @@ def off_command(project_root: Path | None = None) -> int:
             print(f"[agentbox] 프록시 종료 실패: {exc}", file=sys.stderr)
     else:
         print("[agentbox] 실행 중인 프록시 없음.", file=sys.stderr)
+
+    if not no_iptables:
+        _clear_iptables(cfg.PROXY_PORT)
 
     # stdout: only valid shell commands (eval target)
     print("unset HTTPS_PROXY")

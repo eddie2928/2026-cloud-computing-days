@@ -216,7 +216,7 @@ def main() -> None:
     )
 
     # ── on / off (public, eval wrappers) ─────────────────────────────────────
-    sub.add_parser(
+    p_on = sub.add_parser(
         "on",
         help="[shell] HTTPS_PROXY 설정 (eval 패턴, ~/.bashrc 함수에서 호출)",
         description=(
@@ -226,7 +226,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
     )
-    sub.add_parser(
+    p_on.add_argument("--no-iptables", action="store_true", help="iptables REDIRECT 규칙 건너뜀 (테스트용)")
+    p_off = sub.add_parser(
         "off",
         help="[shell] HTTPS_PROXY 해제 (eval 패턴, ~/.bashrc 함수에서 호출)",
         description=(
@@ -236,20 +237,23 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Made by JeonMyeongHwan",
     )
+    p_off.add_argument("--no-iptables", action="store_true", help="iptables REDIRECT 규칙 건너뜀 (테스트용)")
 
     # ── _on / _off (hidden, eval targets) ────────────────────────────────────
-    sub.add_parser(
+    p_on_hidden = sub.add_parser(
         "_on",
         help=argparse.SUPPRESS,
         description='eval "$(command agentbox _on)" 으로 호출됨 — stdout 에 export 문 출력',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    sub.add_parser(
+    p_on_hidden.add_argument("--no-iptables", action="store_true", help=argparse.SUPPRESS)
+    p_off_hidden = sub.add_parser(
         "_off",
         help=argparse.SUPPRESS,
         description='eval "$(command agentbox _off)" 으로 호출됨 — stdout 에 unset 문 출력',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    p_off_hidden.add_argument("--no-iptables", action="store_true", help=argparse.SUPPRESS)
 
     # ── doctor ────────────────────────────────────────────────────────────────
     p_doctor = sub.add_parser(
@@ -311,10 +315,10 @@ def main() -> None:
         _destroy()
     elif args.cmd in ("on", "_on"):
         from agentbox._activate import on_command
-        sys.exit(on_command())
+        sys.exit(on_command(no_iptables=getattr(args, "no_iptables", False)))
     elif args.cmd in ("off", "_off"):
         from agentbox._activate import off_command
-        sys.exit(off_command())
+        sys.exit(off_command(no_iptables=getattr(args, "no_iptables", False)))
     elif args.cmd == "doctor":
         from agentbox.doctor_cmd import run_doctor
         sys.exit(run_doctor(

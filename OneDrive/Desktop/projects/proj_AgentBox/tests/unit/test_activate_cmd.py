@@ -40,7 +40,8 @@ def test_on_starts_proxy_when_not_listening(tmp_layout, capsys):
         return mock_proc
 
     with patch("agentbox._activate._is_listening", return_value=False), \
-         patch("agentbox._activate.subprocess.Popen", side_effect=fake_popen):
+         patch("agentbox._activate.subprocess.Popen", side_effect=fake_popen), \
+         patch("agentbox._activate._apply_iptables"):
         from agentbox._activate import on_command
         rc = on_command(project_root=tmp_layout)
 
@@ -96,3 +97,51 @@ def test_off_stdout_is_eval_safe(tmp_layout, capsys):
             assert stripped.startswith("unset "), (
                 f"stdout has non-eval-safe line: {stripped!r}"
             )
+
+
+# ── C2: iptables integration ──────────────────────────────────────────────────
+def test_on_calls_apply_redirect(tmp_layout, capsys):
+    with patch("agentbox._activate._is_listening", return_value=True), \
+         patch("agentbox._activate._apply_iptables") as mock_ipt:
+        from agentbox._activate import on_command
+        rc = on_command(project_root=tmp_layout, no_iptables=False)
+    mock_ipt.assert_called_once()
+    assert rc == 0
+
+
+def test_on_no_iptables_skips_apply(tmp_layout, capsys):
+    with patch("agentbox._activate._is_listening", return_value=True), \
+         patch("agentbox._activate._apply_iptables") as mock_ipt:
+        from agentbox._activate import on_command
+        rc = on_command(project_root=tmp_layout, no_iptables=True)
+    mock_ipt.assert_not_called()
+    assert rc == 0
+
+
+def test_off_calls_clear_redirect(tmp_layout, capsys):
+    with patch("agentbox._activate._clear_iptables") as mock_ipt:
+        from agentbox._activate import off_command
+        rc = off_command(project_root=tmp_layout, no_iptables=False)
+    mock_ipt.assert_called_once()
+    assert rc == 0
+
+
+def test_off_no_iptables_skips_clear(tmp_layout, capsys):
+    with patch("agentbox._activate._clear_iptables") as mock_ipt:
+        from agentbox._activate import off_command
+        rc = off_command(project_root=tmp_layout, no_iptables=True)
+    mock_ipt.assert_not_called()
+    assert rc == 0
+
+
+def test_apply_iptables_passes_host_and_port(tmp_layout):
+    """Verify apply_redirect is called with api.anthropic.com and proxy port."""
+    from agentbox._activate import _apply_iptables
+    with patch("agentbox.proxy.iptables.apply_redirect") as mock_apply:
+        mock_apply.return_value = None
+        _apply_iptables(8080)
+    mock_apply.assert_called_once()
+    _, call_args, _ = mock_apply.mock_calls[0]
+    port, hosts = call_args
+    assert port == 8080
+    assert "api.anthropic.com" in hosts
