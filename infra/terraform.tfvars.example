@@ -1,0 +1,27 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is gitignored — never commit it.
+
+# Required: Your public IP in CIDR notation for SSH access
+# Get it with: curl ifconfig.me
+my_ip_cidr = "1.2.3.4/32"
+
+# Required: Git repository URL to clone onto EC2
+git_repo_url = "https://github.com/your-org/proj_days.git"
+
+# Optional: Git branch (default: main)
+# git_branch = "main"
+
+# Required: RDS master password (min 8 chars)
+db_password = "change-me-strong-password"
+
+# Required: Secret key for session cookie signing (random string, min 32 chars)
+session_secret = "change-me-random-secret-key-at-least-32-chars"
+
+# Optional: Application login password (default: inha-nxt)
+# app_password = "inha-nxt"
+
+# Optional: AWS region (default: us-east-1)
+# aws_region = "us-east-1"
+
+# Optional: Bedrock model ID (default: us.anthropic.claude-sonnet-4-6)
+# bedrock_model_id = "us.anthropic.claude-sonnet-4-6"
