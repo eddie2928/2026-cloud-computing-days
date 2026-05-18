@@ -2,20 +2,22 @@ import { useNavigate } from 'react-router-dom'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { DatesSetArg } from '@fullcalendar/core'
+import type { DatesSetArg, EventInput } from '@fullcalendar/core'
 import { useState } from 'react'
 import client from '../api/client'
 
 export function CalendarPage() {
   const navigate = useNavigate()
-  const [diaryDates, setDiaryDates] = useState<Set<string>>(new Set())
+  const [events, setEvents] = useState<EventInput[]>([])
 
   const handleDatesSet = async (info: DatesSetArg) => {
-    const month = info.start.toISOString().slice(0, 7)
+    // Use midpoint of the visible range so timezone offset never shifts the month.
+    const mid = new Date((info.start.getTime() + info.end.getTime()) / 2)
+    const month = `${mid.getFullYear()}-${String(mid.getMonth() + 1).padStart(2, '0')}`
     try {
       const resp = await client.get('/calendar', { params: { month } })
       const dates: string[] = resp.data.dates
-      setDiaryDates(new Set(dates))
+      setEvents(dates.map((d) => ({ id: d, title: '일기 확인', start: d, allDay: true })))
     } catch {
       // ignore
     }
@@ -27,37 +29,30 @@ export function CalendarPage() {
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
+        events={events}
         datesSet={handleDatesSet}
         height="auto"
-        dayCellContent={(arg) => {
-          const dateStr = arg.date.toISOString().slice(0, 10)
-          const hasDiary = diaryDates.has(dateStr)
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, padding: '2px 4px' }}>
-              <span>{arg.dayNumberText}</span>
-              {hasDiary && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigate(`/diary/${dateStr}`)
-                  }}
-                  style={{
-                    background: '#4f46e5',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 5,
-                    padding: '2px 7px',
-                    fontSize: 11,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  일기 확인
-                </button>
-              )}
-            </div>
-          )
-        }}
+        eventContent={(info) => (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/diary/${info.event.id}`)
+            }}
+            style={{
+              background: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: 5,
+              padding: '2px 8px',
+              fontSize: 11,
+              cursor: 'pointer',
+              width: '100%',
+              textAlign: 'center',
+            }}
+          >
+            일기 확인
+          </button>
+        )}
       />
     </div>
   )
