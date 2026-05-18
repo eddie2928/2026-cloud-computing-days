@@ -259,9 +259,9 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 1 — Terraform 인프라 코드
 
-- [ ] **1.1** `infra/versions.tf`
+- [x] **1.1** `infra/versions.tf`
   - 내용: `terraform { required_version = ">= 1.6" }` + AWS provider `~> 5.0`
-  - Verify: `terraform -chdir=infra init -backend=false` 성공
+  - Verify: `terraform -chdir=infra init -backend=false` 성공 ✓ (aws 5.100.0 설치됨)
 
 - [ ] **1.2** `infra/variables.tf`
   - 변수: `aws_region` (default `us-east-1`), `vpc_cidr` (`10.20.0.0/16`), `public_subnet_cidrs` (`["10.20.1.0/24","10.20.2.0/24"]`), `azs` (`["us-east-1a","us-east-1b"]`), `ec2_instance_type` (`t3.small`), `db_instance_class` (`db.t3.micro`), `db_username` (`appuser`), `db_password` (sensitive, no default), `app_password` (sensitive, default `"inha-nxt"`), `session_secret` (sensitive, no default), `bedrock_model_id` (default = Phase 0.2 결과), `my_ip_cidr` (string, no default), `git_repo_url` (string, no default), `git_branch` (default `main`).
