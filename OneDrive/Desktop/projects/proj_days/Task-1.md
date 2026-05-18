@@ -271,10 +271,10 @@ IAM Role `ec2-bedrock-role` 정책:
   - 리소스: `aws_vpc`, `aws_internet_gateway`, 2x `aws_subnet` (각 AZ, `map_public_ip_on_launch=true`), `aws_route_table` + `aws_route` (0.0.0.0/0 → IGW), 2x `aws_route_table_association`.
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.4** `infra/security_groups.tf`
+- [x] **1.4** `infra/security_groups.tf`
   - `aws_security_group.ec2_sg`: ingress 80/0.0.0.0/0, 22/`var.my_ip_cidr`.
-  - `aws_security_group.rds_sg`: ingress 5432/source_security_group_id=`ec2_sg.id`.
-  - Verify: `terraform -chdir=infra validate` 성공.
+  - `aws_security_group.rds_sg`: ingress 5432/security_groups=[ec2_sg.id].
+  - Verify: `terraform validate` 성공 ✓
 
 - [ ] **1.5** `infra/iam.tf`
   - `aws_iam_role` (assume `ec2.amazonaws.com`), `aws_iam_policy` (bedrock 권한), `aws_iam_role_policy_attachment`, `aws_iam_instance_profile`.
