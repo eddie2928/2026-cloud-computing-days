@@ -347,10 +347,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `GET /api/diary/{date}` (404 if not found), `GET /api/calendar?month=YYYY-MM`, `finalize_session(session, db)` 내부 함수.
   - Verify: 3.6 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.11** `backend/app/main.py`
-  - FastAPI 앱 + 모든 라우터 include + CORS (개발용 `http://localhost:5173`) + `StaticFiles(directory="../frontend/dist", html=True)` mount at `/`.
-  - `@app.on_event("startup")` 에서 (선택) Alembic upgrade 호출 또는 README 에 수동 명시.
-  - Verify: `uvicorn backend.app.main:app --reload` 로컬 기동, `curl http://localhost:8000/api/health` 200.
+- [x] **2.11** `backend/app/main.py`
+  - FastAPI + CORS + 4개 라우터 + StaticFiles (frontend/dist 존재 시) + `/api/health`. 
+  - Verify: routes 12개 등록 확인 ✓ (uvicorn 기동은 Phase 6.2에서 검증)
 
 ### Phase 3 — Backend 테스트
 
