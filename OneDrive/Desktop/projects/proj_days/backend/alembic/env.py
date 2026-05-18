@@ -21,10 +21,26 @@ from app.models import Base
 target_metadata = Base.metadata
 
 
+def _load_dotenv() -> None:
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    if not os.path.isfile(env_path):
+        return
+    with open(env_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            os.environ.setdefault(key.strip(), val.strip())
+
+
+_load_dotenv()
+
+
 def get_url() -> str:
-    url = os.environ.get("DB_URL") or config.get_main_option("sqlalchemy.url")
+    url = os.environ.get("DB_URL")
     if not url:
-        raise RuntimeError("DB_URL not set")
+        raise RuntimeError("DB_URL not set — set it in backend/.env or as a system environment variable")
     return url
 
 

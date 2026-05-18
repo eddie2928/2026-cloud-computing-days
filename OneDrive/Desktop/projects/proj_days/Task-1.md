@@ -449,6 +449,7 @@ IAM Role `ec2-bedrock-role` 정책:
 - [x] **6.2** 백엔드 로컬 기동 + 마이그레이션
   - `alembic upgrade head` + `uvicorn app.main:app` 성공.
   - Verify: `curl http://localhost:8000/api/health` → `{"status":"ok"}` 200 ✓
+  - Bug fix: `alembic/env.py` `get_url()`이 `.env` 파일을 읽지 않아 `sqlalchemy.dialects:driver` 오류 발생 → `_load_dotenv()` 추가로 수정. 포트 8000 충돌(PID 9548) → `taskkill`로 해결.
 
 - [ ] **6.3** 프론트 dev server + 수동 5문답 1회
   - 실행: `cd frontend && npm run dev` → 브라우저 `http://localhost:5173/login` → 비번 `inha-nxt` → QnA 5회 → 일기 확인 → 캘린더 확인.
