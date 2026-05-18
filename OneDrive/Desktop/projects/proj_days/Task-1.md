@@ -443,8 +443,8 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 6 — 로컬 통합 검증 (사람 손으로 한 번 확인)
 
-- [ ] **6.1** `docker-compose.dev.yml` (Postgres 16 + .env 예시)
-  - Verify: `docker compose -f docker-compose.dev.yml up -d` 후 `pg_isready` 성공.
+- [x] **6.1** `docker-compose.dev.yml` + `backend/.env.example`
+  - Verify: `docker compose -f docker-compose.dev.yml up -d` 후 `pg_isready` 성공 ✓
 
 - [ ] **6.2** 백엔드 로컬 기동 + 마이그레이션
   - 실행: `cd backend && .venv/Scripts/alembic upgrade head && .venv/Scripts/uvicorn app.main:app --reload`

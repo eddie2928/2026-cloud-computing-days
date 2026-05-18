@@ -1,7 +1,7 @@
-"""agentbox init - encrypt project, upload to S3, verify EC2, print dashboard URL."""
+"""agentbox init - encrypt project, upload via EC2 upload-proxy, verify EC2, print dashboard URL."""
 import logging
-import os
 import platform
+import shutil
 import socket
 import subprocess
 from datetime import datetime, timezone
@@ -10,7 +10,7 @@ from pathlib import Path
 import requests
 
 from agentbox import last_init as _last_init
-from agentbox.encrypt import encrypt_and_upload
+from agentbox.encrypt import encrypt_local, upload_via_ec2
 from agentbox.init_deps import DEPS, PYTHON_PACKAGES, check_dep, check_python_pkg, try_auto_install
 
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -110,6 +110,11 @@ def init(
 
     app_ip = env_vars["EC2_GRPC_HOST"]
     saas_url = get_terraform_output("saas_url") or f"http://{app_ip}:8000"
+    ec2_url = f"https://{app_ip}:8443"
+    certs_dir = _global_home() / "certs" / "grpc"
+    ep_crt = str(certs_dir / "endpoint.crt")
+    ep_key = str(certs_dir / "endpoint.key")
+    ca_crt = str(certs_dir / "agentbox-ca.crt")
 
     # Step 3 — Dependency check
     if not skip_deps:
@@ -140,33 +145,38 @@ def init(
             ok = check_python_pkg(pkg)
             _log(f"[agentbox] python package {pkg}: {'OK' if ok else 'MISSING'}")
 
-    # Step 4 — Encrypt + Upload
-    project_name = os.environ.get("PROJECT_NAME", "agentbox")
-    s3_bucket = f"{project_name}-encrypted-code"
-
-    _log(f"[agentbox] Encrypting and uploading {src} ...")
+    # Step 4 — Encrypt + Upload via EC2 upload-proxy
+    _log(f"[agentbox] Encrypting and uploading {src} via {ec2_url} ...")
     try:
-        encrypt_and_upload(src, s3_bucket, pid, sops_yaml=sops_yaml)
+        enc_dir = encrypt_local(src, sops_yaml=sops_yaml)
+        try:
+            upload_via_ec2(enc_dir, pid, ec2_url, ep_crt, ep_key, ca_crt)
+        finally:
+            shutil.rmtree(enc_dir, ignore_errors=True)
     except Exception as exc:
         _log(f"[agentbox] ERROR: Encryption/upload failed: {exc}", "error")
         return 5
 
-    # Step 5 — EC2 Connectivity
+    # Step 5 — EC2 Connectivity (healthz via upload-proxy mTLS :8443)
     _log(f"[agentbox] Checking EC2 connectivity ({app_ip}) ...")
 
     try:
-        resp = requests.get(f"{saas_url}/healthz", timeout=5)
+        resp = requests.get(
+            f"{ec2_url}/healthz",
+            cert=(ep_crt, ep_key),
+            verify=ca_crt,
+            timeout=5,
+        )
         if resp.status_code != 200:
             raise ValueError(f"HTTP {resp.status_code}")
     except Exception as exc:
         _log(
-            f"[agentbox] ERROR: SaaS healthz failed: {exc}\n"
+            f"[agentbox] ERROR: Upload-proxy healthz failed: {exc}\n"
             "  Possible causes:\n"
-            "  1. Security Group: check inbound port 8000 is open for your IP\n"
-            "  2. SaaS service: systemctl status agentbox-saas on app-EC2\n"
+            "  1. Security Group: check inbound port 8443 is open for your IP\n"
+            "  2. Upload-proxy service: systemctl status agentbox-upload-proxy on app-EC2\n"
             "  3. EIP reassigned: check app_public_ip in terraform output\n"
-            "  4. Subnet egress: check route table for public subnet\n"
-            "  5. DNS/firewall: try curl directly from inside VPC",
+            "  4. mTLS: verify cert paths with agentbox doctor",
             "error",
         )
         return 6
@@ -189,7 +199,7 @@ def init(
     _last_init.write({
         "project_id": pid,
         "src_path": str(src),
-        "s3_uri": f"s3://{s3_bucket}/encrypted_code/{pid}/",
+        "ec2_upload_url": f"{ec2_url}/upload",
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "saas_url": saas_url,
     }, path=layout.local_last_init)

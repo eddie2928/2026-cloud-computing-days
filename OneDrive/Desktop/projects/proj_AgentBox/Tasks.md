@@ -147,8 +147,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
   - 기존 `encrypt_and_upload`는 두 함수의 thin wrapper로 유지(하위호환).
   - `verify`: `pytest tests/unit/test_encrypt_module.py -q` 통과 + 새 분리 함수 단위 테스트 추가.
   - 결과: 5 passed — encrypt_local/upload_via_ec2/encrypt_and_upload 분리, requests 모듈 레벨 import로 patch 정상화.
-- [ ] **E2**: `init_cmd.py`의 직접 boto3 호출 흐름을 새 `upload_via_ec2` 경로로 전환. SaaS healthz는 `https://EC2:8443/healthz`로 변경(평문 8000 호출 제거).
+- [x] **E2**: `init_cmd.py`의 직접 boto3 호출 흐름을 새 `upload_via_ec2` 경로로 전환. SaaS healthz는 `https://EC2:8443/healthz`로 변경(평문 8000 호출 제거).
   - `verify`: `pytest tests/integration/test_init_e2e.py -q` 통과(로컬 mock upload_proxy 사용).
+  - 결과: 3 passed — encrypt_local+upload_via_ec2로 교체, healthz https://IP:8443/healthz mTLS로 변경, 테스트 fixtures에 dummy cert 추가.
 - [ ] **E3**: `scripts/deploy_certs_to_ec2.sh`의 SSM 흐름은 "최초 부트스트랩"으로 한정. 부트스트랩 이후 cert rotate는 `upload_proxy`의 `/cert_rotate` 엔드포인트(D1에 추가)를 사용하도록 README 갱신.
   - `verify`: README diff 확인 + script가 한 번만 호출되는지 unit 검증 불가 → 수동 확인 체크박스로 대체.
 
