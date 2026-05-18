@@ -3,7 +3,8 @@ set -euo pipefail
 exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 
 # 1. Install system packages
-dnf install -y python3.11 python3.11-pip nodejs git nginx postgresql15
+dnf install -y python3.11 python3.11-pip nodejs20 git nginx
+dnf clean all
 
 # 2. Clone repository
 mkdir -p /opt/app
@@ -20,6 +21,7 @@ python3.11 -m venv .venv
 cd /opt/app/frontend
 npm ci
 npm run build
+rm -rf node_modules
 
 # 5. systemd unit for FastAPI (uvicorn)
 cat > /etc/systemd/system/qna-api.service <<'UNIT'

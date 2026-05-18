@@ -18,6 +18,12 @@ resource "aws_iam_role" "ec2_bedrock_role" {
   }
 }
 
+locals {
+  # Strip regional prefix (e.g. "us.") to get the base foundation model ID
+  # e.g. "us.anthropic.claude-sonnet-4-6" -> "anthropic.claude-sonnet-4-6"
+  base_model_id = replace(var.bedrock_model_id, "/^[a-z]+\\./", "")
+}
+
 data "aws_iam_policy_document" "bedrock_access" {
   statement {
     sid    = "BedrockInvokeModel"
@@ -27,8 +33,10 @@ data "aws_iam_policy_document" "bedrock_access" {
       "bedrock:InvokeModelWithResponseStream",
     ]
     resources = [
-      "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}",
+      # Cross-region inference profile (e.g. us.anthropic.claude-sonnet-4-6)
       "arn:aws:bedrock:${var.aws_region}:*:inference-profile/${var.bedrock_model_id}",
+      # Base foundation model in all regions (required when using cross-region profiles)
+      "arn:aws:bedrock:*::foundation-model/${local.base_model_id}",
     ]
   }
 
@@ -66,4 +74,4 @@ resource "aws_iam_instance_profile" "ec2_profile" {
     Name    = "qna-diary-ec2-profile"
     Project = "qna-diary"
   }
-}
+} 
