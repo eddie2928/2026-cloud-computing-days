@@ -8,8 +8,8 @@ my_ip_cidr = "1.2.3.4/32"
 # Required: Git repository URL to clone onto EC2
 git_repo_url = "https://github.com/your-org/proj_days.git"
 
-# Optional: Git branch (default: main)
-# git_branch = "main"
+# Optional: Git branch
+# git_branch = "master"
 
 # Required: RDS master password (min 8 chars)
 db_password = "change-me-strong-password"
