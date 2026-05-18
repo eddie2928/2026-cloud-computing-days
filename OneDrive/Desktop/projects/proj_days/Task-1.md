@@ -293,8 +293,8 @@ IAM Role `ec2-bedrock-role` 정책:
   - 출력: `ec2_public_ip`, `ec2_public_dns`, `rds_endpoint`, `app_url`(`"http://${ec2_public_ip}"`).
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.9** `infra/terraform.tfvars.example` 작성 (실제 `terraform.tfvars` 는 gitignore)
-  - Verify: 파일 존재.
+- [x] **1.9** `infra/terraform.tfvars.example` 작성 (실제 `terraform.tfvars` 는 gitignore)
+  - Verify: 파일 존재 ✓
 
 - [ ] **1.10** Terraform 정적 검증 일괄
   - 실행: `terraform -chdir=infra fmt -check -recursive && terraform -chdir=infra validate`
