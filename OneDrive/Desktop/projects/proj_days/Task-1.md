@@ -373,9 +373,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 5개 (start/5사이클/409/재개/400 sequence) 모두 구현.
   - Verify: `pytest tests/integration/test_qna_full_cycle.py -v` 5 passed ✓
 
-- [ ] **3.6** `tests/integration/test_diary_calendar.py`
-  - 케이스: ① diary 완료 후 GET /api/diary/{date} → 200 + body ② 없는 날짜 → 404 ③ /api/calendar?month=YYYY-MM 에 해당 날짜 포함 ④ 다른 달 조회시 미포함.
-  - Verify: `pytest backend/tests/integration/test_diary_calendar.py -v` 모두 pass.
+- [x] **3.6** `tests/integration/test_diary_calendar.py`
+  - 케이스 4개 (diary 200/404/calendar 포함/미포함) 구현.
+  - Verify: `pytest tests/integration/test_diary_calendar.py -v` 4 passed ✓
 
 - [ ] **3.7** 전체 백엔드 테스트 일괄
   - 실행: `cd backend && pytest -v --tb=short`
