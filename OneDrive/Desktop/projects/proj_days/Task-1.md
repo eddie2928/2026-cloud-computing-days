@@ -377,9 +377,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 4개 (diary 200/404/calendar 포함/미포함) 구현.
   - Verify: `pytest tests/integration/test_diary_calendar.py -v` 4 passed ✓
 
-- [ ] **3.7** 전체 백엔드 테스트 일괄
+- [x] **3.7** 전체 백엔드 테스트 일괄
   - 실행: `cd backend && pytest -v --tb=short`
-  - Verify: 모든 테스트 pass, exit 0.
+  - Verify: 21 passed, 0 failed, exit 0 ✓
 
 ### Phase 4 — Frontend (React + Vite + TS) 코드
 
