@@ -17,3 +17,8 @@ output "app_url" {
   description = "Application URL"
   value       = "http://${aws_instance.app.public_ip}"
 }
+
+output "ssh_command" {
+  description = "SSH command to connect to EC2"
+  value       = "ssh -i ${local_sensitive_file.private_key.filename} ec2-user@${aws_instance.app.public_ip}"
+}
