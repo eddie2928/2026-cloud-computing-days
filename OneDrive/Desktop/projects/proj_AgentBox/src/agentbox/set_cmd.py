@@ -136,9 +136,10 @@ def _check_ca_mtls_step(layout) -> int:
 
     certs_dir = layout.global_certs_dir
     try:
-        ca_crt, ca_key, ep_crt, ep_key = gen_mtls_certs(certs_dir)
+        ca_crt, ca_key, ep_crt, ep_key, ec2_crt, ec2_key = gen_mtls_certs(certs_dir)
         _log(f"[agentbox] CA cert: {ca_crt}")
         _log(f"[agentbox] endpoint cert: {ep_crt}")
+        _log(f"[agentbox] EC2 server cert: {ec2_crt}")
     except Exception as exc:
         _log(f"[agentbox] ERROR: CA/mTLS 인증서 생성 실패: {exc}", "error")
         return 5

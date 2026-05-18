@@ -1,10 +1,11 @@
+import ipaddress
 import pytest
 from pathlib import Path
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from agentbox.proxy.ca import ensure_ca
+from agentbox.proxy.ca import ensure_ca, gen_mtls_certs
 
 
 def test_ca_generated(tmp_path):
@@ -33,6 +34,33 @@ def test_ca_idempotent(tmp_path):
     crt2, key2 = ensure_ca(tmp_path)
     data2 = crt2.read_bytes()
     assert data1 == data2  # no regeneration on second call
+
+
+def test_server_cert_san(tmp_path):
+    _, _, _, _, ec2_crt, _ = gen_mtls_certs(tmp_path, ips=["1.2.3.4"])
+    cert = x509.load_pem_x509_certificate(ec2_crt.read_bytes())
+    san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+
+    dns_names = {n.value for n in san if isinstance(n, x509.DNSName)}
+    ip_addrs = {str(n.value) for n in san if isinstance(n, x509.IPAddress)}
+
+    assert "agentbox-ec2" in dns_names
+    assert "localhost" in dns_names
+    assert "127.0.0.1" in ip_addrs
+    assert "1.2.3.4" in ip_addrs
+
+
+def test_server_cert_default_san(tmp_path):
+    _, _, _, _, ec2_crt, _ = gen_mtls_certs(tmp_path)
+    cert = x509.load_pem_x509_certificate(ec2_crt.read_bytes())
+    san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+
+    dns_names = {n.value for n in san if isinstance(n, x509.DNSName)}
+    ip_addrs = {str(n.value) for n in san if isinstance(n, x509.IPAddress)}
+
+    assert "agentbox-ec2" in dns_names
+    assert "localhost" in dns_names
+    assert "127.0.0.1" in ip_addrs
 
 
 def test_mitmproxy_pem_cert_matches_ca_crt(tmp_path):

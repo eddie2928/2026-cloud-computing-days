@@ -94,16 +94,18 @@ def test_ca_generated_when_missing(tmp_home, monkeypatch):
 
     gen_calls = []
 
-    def fake_gen_mtls(certs_dir):
+    def fake_gen_mtls(certs_dir, ips=None):
         gen_calls.append(certs_dir)
         ca_crt = certs_dir / "agentbox-ca.crt"
         ca_key = certs_dir / "agentbox-ca.key"
         ep_crt = certs_dir / "endpoint.crt"
         ep_key = certs_dir / "endpoint.key"
-        for p in (ca_crt, ca_key, ep_crt, ep_key):
+        ec2_crt = certs_dir / "ec2.crt"
+        ec2_key = certs_dir / "ec2.key"
+        for p in (ca_crt, ca_key, ep_crt, ep_key, ec2_crt, ec2_key):
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_bytes(b"FAKE")
-        return ca_crt, ca_key, ep_crt, ep_key
+        return ca_crt, ca_key, ep_crt, ep_key, ec2_crt, ec2_key
 
     with patch("agentbox.set_cmd.subprocess.run", return_value=MagicMock(returncode=1)), \
          patch("agentbox.proxy.ca.gen_mtls_certs", fake_gen_mtls), \

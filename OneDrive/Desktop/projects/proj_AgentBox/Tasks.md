@@ -90,8 +90,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **A1**: `src/agentbox/proxy/ca.py`에서 `mitmproxy-ca.pem` 별도 생성 로직 제거. `ensure_ca()` 종료 시 `mitmproxy-ca.pem`는 `agentbox-ca.key + agentbox-ca.crt` 결합본만 작성하도록 단순화. 함수 시그니처/반환값 그대로 유지.
   - `verify`: `pytest tests/unit/test_ca.py -q` 통과 + `agentbox-ca.crt`와 `mitmproxy-ca.pem` 내 인증서 본문 SHA256이 동일.
   - 결과: 5 passed — ca.py 코드는 이미 올바른 형태였으며, SHA256 동일성 검증 테스트(`test_mitmproxy_pem_cert_matches_ca_crt`) 추가 완료.
-- [ ] **A2**: `gen_mtls_certs()`에서 server cert(`ec2.crt`) 생성도 함께 처리하도록 확장 — SAN에 `agentbox-ec2`, `localhost`, 그리고 호출 시 인자로 받은 IP 목록(EIP, 127.0.0.1) 포함.
+- [x] **A2**: `gen_mtls_certs()`에서 server cert(`ec2.crt`) 생성도 함께 처리하도록 확장 — SAN에 `agentbox-ec2`, `localhost`, 그리고 호출 시 인자로 받은 IP 목록(EIP, 127.0.0.1) 포함.
   - `verify`: 새 unit test `tests/unit/test_ca.py::test_server_cert_san` (인자로 받은 IP가 SAN에 들어가는지 검증) 통과.
+  - 결과: 15 passed — gen_mtls_certs()가 6-tuple 반환, ec2.crt SAN 검증 테스트 통과. set_cmd.py/test_set_cmd_v2.py 호환 업데이트 완료.
 - [ ] **A3**: `scripts/deploy_certs_to_ec2.sh`가 6파일 대신 4파일(`agentbox-ca.crt`, `ec2.crt`, `ec2.key`, `endpoint.crt`-옵션)만 배포하도록 축소. `agentbox-ca.key`는 EC2에 절대 업로드하지 않음(보안).
   - `verify`: `bash -n scripts/deploy_certs_to_ec2.sh`(syntax) 통과 + `grep -c 'CA_KEY' scripts/deploy_certs_to_ec2.sh` 가 0.
 
