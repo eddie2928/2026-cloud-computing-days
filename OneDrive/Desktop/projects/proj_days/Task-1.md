@@ -446,9 +446,9 @@ IAM Role `ec2-bedrock-role` 정책:
 - [x] **6.1** `docker-compose.dev.yml` + `backend/.env.example`
   - Verify: `docker compose -f docker-compose.dev.yml up -d` 후 `pg_isready` 성공 ✓
 
-- [ ] **6.2** 백엔드 로컬 기동 + 마이그레이션
-  - 실행: `cd backend && .venv/Scripts/alembic upgrade head && .venv/Scripts/uvicorn app.main:app --reload`
-  - Verify: `curl http://localhost:8000/api/health` 200.
+- [x] **6.2** 백엔드 로컬 기동 + 마이그레이션
+  - `alembic upgrade head` + `uvicorn app.main:app` 성공.
+  - Verify: `curl http://localhost:8000/api/health` → `{"status":"ok"}` 200 ✓
 
 - [ ] **6.3** 프론트 dev server + 수동 5문답 1회
   - 실행: `cd frontend && npm run dev` → 브라우저 `http://localhost:5173/login` → 비번 `inha-nxt` → QnA 5회 → 일기 확인 → 캘린더 확인.
