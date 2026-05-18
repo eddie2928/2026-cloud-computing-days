@@ -335,10 +335,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `LoginRequest`, `QnAStartRequest`, `QnAStartResponse`, `QnAAnswerRequest`, `QnAAnswerResponse`, `CalendarResponse`, `DiaryResponse` 구현.
   - Verify: import 성공 ✓
 
-- [ ] **2.8** `backend/app/routers/auth.py`
-  - `POST /api/login` body=`{password}`. 성공 시 `Set-Cookie: session=...; HttpOnly; SameSite=Lax`.
-  - `POST /api/logout`.
-  - Verify: 3.4 통합테스트.
+- [x] **2.8** `backend/app/routers/auth.py`
+  - `POST /api/login` (Set-Cookie HttpOnly SameSite=Lax), `POST /api/logout`, `GET /api/me`.
+  - Verify: 3.4 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.9** `backend/app/routers/qna.py`
   - `POST /api/qna/start`: diary_date 받음 → 같은 날짜 session 존재 + status=completed 면 409. 없으면 새 session 생성 → RAG context 조립 → Bedrock 으로 첫 질문 → qna_items.sequence=1 저장 → 반환.
