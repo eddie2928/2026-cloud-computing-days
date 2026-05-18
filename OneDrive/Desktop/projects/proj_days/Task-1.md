@@ -315,9 +315,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `class Settings(BaseSettings)`: `app_password`, `session_secret`, `db_url`, `bedrock_model_id`, `aws_region`. `model_config = SettingsConfigDict(env_file=".env")`. module-level 인스턴스 대신 `@lru_cache get_settings()` 패턴 사용.
   - Verify: Settings 직접 인스턴스화 성공 ✓
 
-- [ ] **2.3** `backend/app/db.py` + `backend/app/models.py`
-  - 2.5 SQL 을 SQLAlchemy 2.x 선언적 모델로 옮김. async engine + `async_sessionmaker`.
-  - Verify: `python -c "from backend.app.models import User, QnASession, QnAItem, DiaryEntry"` import 성공.
+- [x] **2.3** `backend/app/db.py` + `backend/app/models.py`
+  - 2.5 SQL 을 SQLAlchemy 2.x 선언적 모델로 옮김. async engine + `async_sessionmaker`. TIMESTAMPTZ→DateTime(timezone=True) 수정.
+  - Verify: User/QnASession/QnAItem/DiaryEntry import 성공 ✓
 
 - [ ] **2.4** Alembic 초기화 + 0001 마이그레이션
   - `alembic init alembic` 후 `env.py` 를 async 모드로 수정 + target_metadata=models.Base.metadata.
