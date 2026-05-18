@@ -361,9 +361,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 5개 (정답/오답/roundtrip/tampered/expired) 모두 구현.
   - Verify: `pytest tests/unit/test_auth.py -v` 5 passed ✓
 
-- [ ] **3.3** `tests/unit/test_bedrock_prompt.py`
-  - 케이스: ① RAG context 가 비었을 때 프롬프트에 "이전 일기 없음" 명시 ② RAG item 10개 주어지면 최신순 정렬되어 prompt 포함 ③ 세션 내 sequence=3 일 때 이미 답한 1,2 가 프롬프트에 포함되고 3,4,5 는 없음.
-  - Verify: `pytest backend/tests/unit/test_bedrock_prompt.py -v` 모두 pass.
+- [x] **3.3** `tests/unit/test_bedrock_prompt.py`
+  - 케이스 3개 (빈 rag/최신순 정렬/partial session) 구현.
+  - Verify: `pytest tests/unit/test_bedrock_prompt.py -v` 3 passed ✓
 
 - [ ] **3.4** `tests/integration/test_login_flow.py`
   - 케이스: ① 정답 → 200 + Set-Cookie ② 오답 → 401 ③ 쿠키 없이 보호 라우트 → 401 ④ 쿠키 있고 호출 → 200.
