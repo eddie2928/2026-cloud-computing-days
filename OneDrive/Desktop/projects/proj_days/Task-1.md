@@ -421,10 +421,9 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 5 — Frontend 테스트
 
-- [ ] **5.1** `tests/setup.ts` + MSW 핸들러
-  - `setupServer(...handlers)` + `beforeAll/afterAll/afterEach` 표준.
-  - `tests/handlers.ts` 에 `/api/login`, `/api/qna/start`, `/api/qna/answer`, `/api/calendar`, `/api/diary/:date` 모의.
-  - Verify: `npm test -- --run --reporter=verbose tests/setup.ts` 통과 (or empty test pass).
+- [x] **5.1** `tests/setup.ts` + MSW 핸들러
+  - `setupServer(...handlers)` + `beforeAll/afterAll/afterEach`. `handlers.ts` 에 5개 API 핸들러 작성.
+  - Verify: `npm test -- --run tests/setup.ts` exit 0 (no test files = empty pass) ✓
 
 - [ ] **5.2** `tests/Login.test.tsx`
   - 케이스: ① 정답 입력 → 페이지 이동 ② 오답 → 에러 메시지 ③ 빈 입력 → 제출 비활성.
