@@ -102,8 +102,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **B1**: `ec2/grpc_server/server.py` 내 `add_insecure_port` 분기 삭제. cert 없으면 `RuntimeError("server cert missing")` 발생 후 종료.
   - `verify`: `pytest tests/integration/test_grpc_server.py -q` 통과 + cert 미배치 상태로 서버 import 시 RuntimeError 확인하는 unit test 추가.
   - 결과: 4 passed — insecure_port 분기 제거, RuntimeError 테스트 추가. gRPC 바인딩이 Windows Store Python AppContainer에서 불가능하여 테스트를 direct servicer 호출 방식으로 전환.
-- [ ] **B2**: `src/agentbox/grpc/client.py`에서 cert 3개 중 하나라도 누락 시 즉시 예외. `insecure_channel` fallback 제거.
+- [x] **B2**: `src/agentbox/grpc/client.py`에서 cert 3개 중 하나라도 누락 시 즉시 예외. `insecure_channel` fallback 제거.
   - `verify`: `pytest tests/unit/test_grpc_client.py -q` 통과 + cert 누락 unit test 추가.
+  - 결과: 6 passed — insecure_channel 제거, cert 미설정 시 ValueError 발생 테스트 추가.
 - [ ] **B3**: `src/agentbox/grpc/handshake.py`의 timeout 5→10초로 상향, 검사 후 SAN mismatch를 명시적으로 식별하는 분기 추가.
   - `verify`: `pytest tests/unit/test_handshake.py -q` 통과.
 

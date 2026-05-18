@@ -78,6 +78,21 @@ async def test_grpc_timeout_safe_block(addon):
         assert flow.response.status_code == 403
 
 
+def test_make_channel_raises_when_cert_missing():
+    from agentbox import config as _cfg_mod
+    from agentbox.grpc.client import _make_channel
+
+    orig = (_cfg_mod.cfg.GRPC_CA_CERT, _cfg_mod.cfg.GRPC_CLIENT_CERT, _cfg_mod.cfg.GRPC_CLIENT_KEY)
+    _cfg_mod.cfg.GRPC_CA_CERT = ""
+    _cfg_mod.cfg.GRPC_CLIENT_CERT = ""
+    _cfg_mod.cfg.GRPC_CLIENT_KEY = ""
+    try:
+        with pytest.raises(ValueError, match="gRPC cert missing"):
+            _make_channel()
+    finally:
+        _cfg_mod.cfg.GRPC_CA_CERT, _cfg_mod.cfg.GRPC_CLIENT_CERT, _cfg_mod.cfg.GRPC_CLIENT_KEY = orig
+
+
 @pytest.mark.asyncio
 async def test_no_grpc_host_allow(tmp_path):
     """No GRPC_HOST configured -> ALLOW with warning (dev mode)."""

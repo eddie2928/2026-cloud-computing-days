@@ -11,23 +11,21 @@ _pool_idx = 0
 
 def _make_channel() -> grpc.Channel:
     target = f"{cfg.GRPC_HOST}:{cfg.GRPC_PORT}"
-    if cfg.GRPC_CA_CERT and cfg.GRPC_CLIENT_CERT and cfg.GRPC_CLIENT_KEY:
-        # 1B-3: mTLS using endpoint client cert + CA cert for server verification
-        with open(cfg.GRPC_CA_CERT, "rb") as f:
-            root_certs = f.read()
-        with open(cfg.GRPC_CLIENT_CERT, "rb") as f:
-            cert_chain = f.read()
-        with open(cfg.GRPC_CLIENT_KEY, "rb") as f:
-            private_key = f.read()
-        creds = grpc.ssl_channel_credentials(
-            root_certificates=root_certs,
-            private_key=private_key,
-            certificate_chain=cert_chain,
-        )
-        # Server cert SAN is DNS:agentbox-ec2; override when connecting by IP
-        options = [("grpc.ssl_target_name_override", "agentbox-ec2")]
-        return grpc.secure_channel(target, creds, options=options)
-    return grpc.insecure_channel(target)
+    if not (cfg.GRPC_CA_CERT and cfg.GRPC_CLIENT_CERT and cfg.GRPC_CLIENT_KEY):
+        raise ValueError("gRPC cert missing: GRPC_CA_CERT, GRPC_CLIENT_CERT, GRPC_CLIENT_KEY all required")
+    with open(cfg.GRPC_CA_CERT, "rb") as f:
+        root_certs = f.read()
+    with open(cfg.GRPC_CLIENT_CERT, "rb") as f:
+        cert_chain = f.read()
+    with open(cfg.GRPC_CLIENT_KEY, "rb") as f:
+        private_key = f.read()
+    creds = grpc.ssl_channel_credentials(
+        root_certificates=root_certs,
+        private_key=private_key,
+        certificate_chain=cert_chain,
+    )
+    options = [("grpc.ssl_target_name_override", "agentbox-ec2")]
+    return grpc.secure_channel(target, creds, options=options)
 
 
 def _get_channel() -> grpc.Channel:
