@@ -271,13 +271,34 @@ resource "aws_instance" "mcp" {
   tags = { Name = "${var.project}-mcp" }
 }
 
+# ─── Elastic IPs ──────────────────────────────────────────────────────────────
+resource "aws_eip" "app" {
+  domain = "vpc"
+  tags   = { Name = "${var.project}-app-eip" }
+}
+
+resource "aws_eip_association" "app" {
+  instance_id   = aws_instance.app.id
+  allocation_id = aws_eip.app.id
+}
+
+resource "aws_eip" "mcp" {
+  domain = "vpc"
+  tags   = { Name = "${var.project}-mcp-eip" }
+}
+
+resource "aws_eip_association" "mcp" {
+  instance_id   = aws_instance.mcp.id
+  allocation_id = aws_eip.mcp.id
+}
+
 # ─── Outputs ──────────────────────────────────────────────────────────────────
 output "app_public_ip" {
-  value = aws_instance.app.public_ip
+  value = aws_eip.app.public_ip
 }
 
 output "mcp_public_ip" {
-  value = aws_instance.mcp.public_ip
+  value = aws_eip.mcp.public_ip
 }
 
 output "mcp_private_ip" {
@@ -293,5 +314,5 @@ output "mcp_instance_id" {
 }
 
 output "saas_url" {
-  value = "http://${aws_instance.app.public_ip}:8000"
+  value = "http://${aws_eip.app.public_ip}:8000"
 }
