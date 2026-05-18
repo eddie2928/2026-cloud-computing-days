@@ -11,7 +11,15 @@ resource "aws_security_group" "app" {
     to_port     = 50051
     protocol    = "tcp"
     cidr_blocks = [var.endpoint_cidr]
-    description = "gRPC mTLS from Endpoint"
+    description = "gRPC mTLS only - no insecure fallback"
+  }
+
+  ingress {
+    from_port = 50051
+    to_port   = 50051
+    protocol  = "tcp"
+    self      = true
+    description = "gRPC mTLS self (future sidecar)"
   }
 
   ingress {

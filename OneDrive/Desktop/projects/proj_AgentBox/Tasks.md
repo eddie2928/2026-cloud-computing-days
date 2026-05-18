@@ -159,8 +159,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **F1**: `infra/ec2.tf`에 `aws_eip` 2개 + `aws_eip_association` 2개 추가(app/mcp). `output "app_public_ip"`가 EIP를 반환하도록 변경.
   - `verify`: `terraform plan` 통과 + plan 출력에 `aws_eip` 자원 2개 등장.
   - 결과: terraform plan 61 to add — aws_eip.app/mcp + aws_eip_association.app/mcp 포함. outputs도 EIP IP로 변경.
-- [ ] **F2**: `infra/ec2.tf` app-sg ingress 50051을 endpoint_cidr 외에 EC2 자체 SG (self) 도 허용(향후 sidecar 가능성). 또한 50051의 description을 "gRPC mTLS only — no insecure fallback"로 갱신.
+- [x] **F2**: `infra/ec2.tf` app-sg ingress 50051을 endpoint_cidr 외에 EC2 자체 SG (self) 도 허용(향후 sidecar 가능성). 또한 50051의 description을 "gRPC mTLS only — no insecure fallback"로 갱신.
   - `verify`: `terraform plan -detailed-exitcode` 통과.
+  - 결과: terraform plan 61 to add — self ingress 추가. description은 AWS 제한(em dash 불가)으로 하이픈(-) 사용.
 - [ ] **F3**: `agentbox doctor`에 D10 추가: client cert 만료까지 ≤ 7일이면 자동 갱신 권고(`agentbox set -y --regen-certs` 안내).
   - `verify`: `pytest tests/unit/test_doctor_cmd.py -q` 통과 + D10 케이스 unit test 추가.
 
