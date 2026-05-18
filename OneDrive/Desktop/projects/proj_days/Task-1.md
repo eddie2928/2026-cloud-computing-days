@@ -300,10 +300,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 실행: `terraform -chdir=infra fmt -check -recursive && terraform -chdir=infra validate`
   - Verify: 둘 다 exit 0 ✓ (ec2.tf 정렬 자동 수정됨)
 
-- [ ] **1.11** `infra/tests/plan.tftest.hcl` 작성
-  - `run "plan_resources_count"` 블록에서 mock 변수 주입 후 `command = plan` 실행, `assert` 로 (a) EC2 1개, (b) RDS 1개, (c) Public Subnet 2개, (d) EC2 SG ingress 에 port 80 존재 확인.
-  - 실행: `terraform -chdir=infra test`
-  - Verify: 모든 `run` 블록 PASS.
+- [x] **1.11** `infra/tests/plan.tftest.hcl` 작성
+  - `run "plan_resources_count"` 블록에서 변수 주입 후 `command = plan` 실행, `assert` (a) EC2 1개, (b) RDS 1개, (c) Public Subnet 2개, (d) EC2 SG port 80 ingress 확인.
+  - Verify: `terraform test` 1 passed, 0 failed ✓
 
 ### Phase 2 — Backend (FastAPI) 코드
 
