@@ -343,11 +343,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `POST /api/qna/start` (409 on completed, 재개 on in_progress), `POST /api/qna/answer` (sequence 검증, 5회 완료 시 diary finalize 호출).
   - Verify: 3.5 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.10** `backend/app/routers/diary.py` + `routers/calendar.py`
-  - `GET /api/diary/{date}`: 해당 날짜 diary_entries 반환 (없으면 404).
-  - `GET /api/calendar?month=YYYY-MM`: 해당 월에 diary_entries 가 있는 날짜 배열 반환.
-  - 내부 함수 `finalize_session(session_id) -> DiaryEntry` 노출.
-  - Verify: 3.6 통합테스트.
+- [x] **2.10** `backend/app/routers/diary.py` + `routers/calendar.py`
+  - `GET /api/diary/{date}` (404 if not found), `GET /api/calendar?month=YYYY-MM`, `finalize_session(session, db)` 내부 함수.
+  - Verify: 3.6 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.11** `backend/app/main.py`
   - FastAPI 앱 + 모든 라우터 include + CORS (개발용 `http://localhost:5173`) + `StaticFiles(directory="../frontend/dist", html=True)` mount at `/`.
