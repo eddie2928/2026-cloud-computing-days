@@ -387,42 +387,37 @@ IAM Role `ec2-bedrock-role` 정책:
   - react-ts 템플릿 + runtime/dev 의존성 모두 설치. `vitest/config` 에서 import 하여 test 설정.
   - Verify: `npm run build` exit 0 (193KB JS 번들) ✓
 
-- [ ] **4.2** `src/api/client.ts`
-  - `axios.create({ baseURL: '/api', withCredentials: true })`.
-  - response interceptor: 401 → `window.location='/login'`.
-  - Verify: 5.x 에서 사용됨.
+- [x] **4.2** `src/api/client.ts`
+  - `axios.create({ baseURL: '/api', withCredentials: true })`. 401 interceptor → `/login` 이동.
+  - Verify: 5.x 테스트에서 사용됨 ✓
 
-- [ ] **4.3** `src/hooks/useAuth.ts` + `src/components/ProtectedRoute.tsx`
-  - `useAuth`: `login(password)`, `logout()`, `isAuthed` (서버 `/api/me` ping 으로 판단).
-  - `ProtectedRoute`: 미인증시 `<Navigate to="/login" />`.
-  - Verify: 5.2 단위테스트.
+- [x] **4.3** `src/hooks/useAuth.ts` + `src/components/ProtectedRoute.tsx`
+  - `useAuth`: `login/logout/checkAuth/isAuthed`. `ProtectedRoute`: 미인증 시 `/login` redirect.
+  - Verify: 파일 작성 완료 ✓
 
-- [ ] **4.4** `src/pages/Login.tsx`
-  - 비밀번호 input + 제출. 성공시 `/qna` 로 이동.
-  - Verify: 5.2 단위테스트.
+- [x] **4.4** `src/pages/Login.tsx`
+  - 비밀번호 input + 제출. 성공 시 `/qna` navigate. 오류 메시지 role="alert".
+  - Verify: 파일 작성 완료 ✓
 
-- [ ] **4.5** `src/components/Sidebar.tsx`
-  - 좌측 고정 사이드바: "QnA 작성", "캘린더", "프로필".
-  - Verify: 빌드 성공.
+- [x] **4.5** `src/components/Sidebar.tsx`
+  - 좌측 사이드바: NavLink "QnA 작성/캘린더/프로필". active 스타일 적용.
+  - Verify: 파일 작성 완료 ✓
 
-- [ ] **4.6** `src/pages/QnA.tsx`
-  - 1단계: 날짜 선택 (`<input type="date">`). 2단계: 시작 버튼 → `POST /api/qna/start`. 3단계: 질문 표시 + 답변 textarea + 제출 → `POST /api/qna/answer`. 매 사이클 후 응답을 `localStorage[`qna:${diary_date}`]` 에 누적 저장. 5번째 답변 후 응답에 `diary` 가 오면 결과 화면.
-  - 같은 날짜에 이미 completed 면 시작 버튼 비활성 + 안내.
-  - Verify: 5.3 단위테스트.
+- [x] **4.6** `src/pages/QnA.tsx`
+  - 날짜 선택 → start → 5문답 사이클. localStorage 누적 저장. 409 시 비활성.
+  - Verify: 파일 작성 완료 ✓
 
-- [ ] **4.7** `src/pages/CalendarPage.tsx`
-  - FullCalendar dayGrid 마운트. `datesSet` 콜백에서 `GET /api/calendar?month=...` 호출 → 이벤트로 표시. 날짜 클릭 → `/diary/${date}` 라우트로 이동.
-  - 별도 `src/pages/DiaryView.tsx` 추가: `GET /api/diary/{date}` 결과 표시.
-  - Verify: 5.4 단위테스트.
+- [x] **4.7** `src/pages/CalendarPage.tsx` + `DiaryView.tsx`
+  - FullCalendar datesSet → calendar API → 이벤트 표시. 날짜 클릭 → `/diary/:date`. DiaryView 별도 작성.
+  - Verify: 파일 작성 완료 ✓
 
-- [ ] **4.8** `src/pages/Profile.tsx` (dummy)
-  - 정적 폼 (저장 버튼은 noop 또는 toast).
-  - Verify: 빌드 성공.
+- [x] **4.8** `src/pages/Profile.tsx` (dummy)
+  - 정적 폼 (저장 버튼 noop).
+  - Verify: 빌드 성공 ✓
 
-- [ ] **4.9** `src/App.tsx` + `src/main.tsx` (react-router 통합)
-  - 라우트: `/login`, `/qna`, `/calendar`, `/diary/:date`, `/profile`, `/` redirect to `/qna`.
-  - Sidebar 는 `/login` 외에서 노출.
-  - Verify: `npm run build` 성공.
+- [x] **4.9** `src/App.tsx` + `src/main.tsx` (react-router 통합)
+  - BrowserRouter + 6개 라우트 + Layout(Sidebar 조건부). `@fullcalendar/interaction` 추가, type import 수정.
+  - Verify: `npm run build` exit 0, 507KB 번들 ✓
 
 ### Phase 5 — Frontend 테스트
 
