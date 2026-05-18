@@ -136,6 +136,18 @@ resource "aws_iam_role_policy" "app" {
           aws_dynamodb_table.settings.arn,
         ]
       },
+      {
+        Sid    = "S3UploadProxy"
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = ["${aws_s3_bucket.encrypted_code.arn}/_dist/*"]
+      },
+      {
+        Sid    = "KMSEncrypt"
+        Effect = "Allow"
+        Action = ["kms:GenerateDataKey"]
+        Resource = [local.kms_key_arn]
+      },
     ]
   })
 }
