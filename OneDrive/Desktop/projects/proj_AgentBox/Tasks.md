@@ -120,8 +120,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **C2**: `agentbox on/off` (`_activate.py`)에서 `apply_redirect`/`clear_redirect` 호출 추가. `--no-iptables` 옵션 제공(테스트용).
   - `verify`: `pytest tests/unit/test_activate_cmd.py -q` 통과 + mocked subprocess 호출 인자 검증.
   - 결과: 10 passed — on_command/off_command에 _apply_iptables/_clear_iptables 추가, --no-iptables 플래그로 건너뜀 가능.
-- [ ] **C3**: `apply_redirect` 대상 호스트 기본값은 `["api.anthropic.com"]`만. 추가 호스트는 `~/.agentbox/redirect_hosts`(개행 분리)에서 읽음.
+- [x] **C3**: `apply_redirect` 대상 호스트 기본값은 `["api.anthropic.com"]`만. 추가 호스트는 `~/.agentbox/redirect_hosts`(개행 분리)에서 읽음.
   - `verify`: `tests/unit/test_iptables.py::test_default_hosts` 통과.
+  - 결과: 7 passed — load_redirect_hosts() 추가, redirect_hosts 파일에서 추가 호스트 읽기 테스트 포함.
 
 ### Phase D — EC2 upload-proxy (:8443)
 

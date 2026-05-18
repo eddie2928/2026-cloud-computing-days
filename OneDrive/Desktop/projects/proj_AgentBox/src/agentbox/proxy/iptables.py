@@ -1,6 +1,21 @@
 """iptables OUTPUT chain REDIRECT rules for routing specific HTTPS traffic to mitmproxy."""
 import subprocess
 import sys
+from pathlib import Path
+
+_DEFAULT_HOSTS = ["api.anthropic.com"]
+_HOSTS_FILE = Path.home() / ".agentbox" / "redirect_hosts"
+
+
+def load_redirect_hosts() -> list[str]:
+    """Return default hosts plus any extra hosts from ~/.agentbox/redirect_hosts."""
+    hosts = list(_DEFAULT_HOSTS)
+    if _HOSTS_FILE.exists():
+        for line in _HOSTS_FILE.read_text().splitlines():
+            host = line.strip()
+            if host and host not in hosts:
+                hosts.append(host)
+    return hosts
 
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:

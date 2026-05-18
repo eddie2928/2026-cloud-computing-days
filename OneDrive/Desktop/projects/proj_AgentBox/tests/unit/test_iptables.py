@@ -78,12 +78,25 @@ def test_clear_redirect_no_rules(mock_run):
 
 
 def test_default_hosts():
-    """Verify the default host list as documented in Tasks.md C3."""
-    from agentbox.proxy.iptables import apply_redirect as _apply
-    import inspect
-    src = inspect.getsource(_apply)
-    # apply_redirect itself doesn't embed defaults; C3 wires them in _activate
-    # Just verify the function signature accepts target_hosts
-    import inspect as _ins
-    sig = _ins.signature(_apply)
-    assert "target_hosts" in sig.parameters
+    """api.anthropic.com is the only default host when redirect_hosts file is absent."""
+    from agentbox.proxy.iptables import load_redirect_hosts, _HOSTS_FILE
+    with patch.object(_HOSTS_FILE.__class__, "exists", return_value=False):
+        hosts = load_redirect_hosts()
+    assert hosts == ["api.anthropic.com"]
+
+
+def test_default_hosts_extended_from_file(tmp_path):
+    """Additional hosts from ~/.agentbox/redirect_hosts are appended."""
+    from agentbox.proxy.iptables import load_redirect_hosts, _HOSTS_FILE
+    hosts_file = tmp_path / "redirect_hosts"
+    hosts_file.write_text("example.com\nfoo.bar\n")
+    import agentbox.proxy.iptables as _mod
+    orig = _mod._HOSTS_FILE
+    _mod._HOSTS_FILE = hosts_file
+    try:
+        hosts = load_redirect_hosts()
+    finally:
+        _mod._HOSTS_FILE = orig
+    assert "api.anthropic.com" in hosts
+    assert "example.com" in hosts
+    assert "foo.bar" in hosts

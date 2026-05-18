@@ -24,13 +24,10 @@ def _is_listening(port: int) -> bool:
         return False
 
 
-_DEFAULT_REDIRECT_HOSTS = ["api.anthropic.com"]
-
-
 def _apply_iptables(proxy_port: int) -> None:
     try:
-        from agentbox.proxy.iptables import apply_redirect
-        apply_redirect(proxy_port, _DEFAULT_REDIRECT_HOSTS)
+        from agentbox.proxy.iptables import apply_redirect, load_redirect_hosts
+        apply_redirect(proxy_port, load_redirect_hosts())
     except Exception as exc:
         print(f"[agentbox] iptables 설정 건너뜀 (Linux/WSL + sudo 필요): {exc}", file=sys.stderr)
 
