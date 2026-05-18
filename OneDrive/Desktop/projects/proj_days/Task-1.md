@@ -252,10 +252,10 @@ IAM Role `ec2-bedrock-role` 정책:
   - 결과: foundation=`anthropic.claude-sonnet-4-6`, 채택 ID=`us.anthropic.claude-sonnet-4-6` (US cross-region inference profile)
   - Verify: 두 소스 모두 ID 출력 확인 ✓
 
-- [ ] **0.3** 디렉토리 + `.gitignore` + `README.md` 작성
+- [x] **0.3** 디렉토리 + `.gitignore` + `README.md` 작성
   - 작성: `proj_days/.gitignore` 에 `infra/.terraform/`, `infra/*.tfstate*`, `infra/*.tfplan`, `backend/.venv/`, `backend/__pycache__/`, `frontend/node_modules/`, `frontend/dist/`, `.env`, `.env.*`.
-  - 작성: `README.md` 에 "OneDrive 동기화로 terraform.tfstate 잠금 사고가 보고됨. terraform 명령 실행 전 OneDrive 동기화 일시중지 또는 `infra/` 폴더를 OneDrive 제외 폴더로 지정할 것" 명시.
-  - Verify: `git status` 에 `Task-1.md`, `README.md`, `.gitignore` 가 untracked 로 나타남.
+  - 작성: `README.md` 에 OneDrive 주의사항 + 기동 가이드 명시.
+  - Verify: README.md, .gitignore 모두 untracked 확인 ✓
 
 ### Phase 1 — Terraform 인프라 코드
 
