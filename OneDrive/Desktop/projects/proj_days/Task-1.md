@@ -280,9 +280,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `aws_iam_role` (assume `ec2.amazonaws.com`), `aws_iam_policy` (bedrock 권한), `aws_iam_role_policy_attachment`, `aws_iam_instance_profile`.
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.6** `infra/rds.tf`
-  - `aws_db_subnet_group` (Public Subnet 2개 참조), `aws_db_instance`: engine `postgres`, version `16.x`, class `var.db_instance_class`, `allocated_storage=20`, `publicly_accessible=false`, `vpc_security_group_ids=[rds_sg.id]`, `skip_final_snapshot=true`, `deletion_protection=false`, **`enabled_cloudwatch_logs_exports = []`** (destroy 후 CloudWatch Log Group 고아 잔존 방지 — 빈 배열 명시).
-  - Verify: `terraform -chdir=infra validate` 성공 + grep 으로 `enabled_cloudwatch_logs_exports = []` 라인 존재 확인.
+- [x] **1.6** `infra/rds.tf`
+  - `aws_db_subnet_group` (Public Subnet 2개 참조), `aws_db_instance`: engine `postgres`, version `16`, class `var.db_instance_class`, `allocated_storage=20`, `publicly_accessible=false`, `vpc_security_group_ids=[rds_sg.id]`, `skip_final_snapshot=true`, `deletion_protection=false`, `enabled_cloudwatch_logs_exports = []`.
+  - Verify: `terraform validate` 성공 + grep `enabled_cloudwatch_logs_exports = []` 확인 ✓
 
 - [ ] **1.7** `infra/user_data.sh.tftpl` + `infra/ec2.tf`
   - 템플릿에 2.7 의 8단계 작성. 변수 보간: `db_url`, `app_password`, `session_secret`, `bedrock_model_id`, `aws_region`, `git_repo_url`, `git_branch`.
