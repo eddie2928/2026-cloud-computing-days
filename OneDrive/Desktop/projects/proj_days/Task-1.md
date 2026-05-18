@@ -331,9 +331,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `BedrockClient`: `generate_question(rag_items, session_so_far, next_sequence)`, `generate_diary(qna_items)`. 모두 `asyncio.to_thread` + `(text, meta)` 튜플 반환.
   - Verify: 3.3 단위테스트에서 mock 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.7** `backend/app/schemas.py` (Pydantic I/O)
-  - `LoginRequest`, `QnAStartRequest{diary_date}`, `QnAStartResponse{session_id, question, sequence}`, `QnAAnswerRequest{session_id, sequence, answer}`, `QnAAnswerResponse{next_question?, sequence?, completed: bool, diary?: str}`, `CalendarResponse{dates: list[date]}`, `DiaryResponse{date, body}`.
-  - Verify: import 성공.
+- [x] **2.7** `backend/app/schemas.py` (Pydantic I/O)
+  - `LoginRequest`, `QnAStartRequest`, `QnAStartResponse`, `QnAAnswerRequest`, `QnAAnswerResponse`, `CalendarResponse`, `DiaryResponse` 구현.
+  - Verify: import 성공 ✓
 
 - [ ] **2.8** `backend/app/routers/auth.py`
   - `POST /api/login` body=`{password}`. 성공 시 `Set-Cookie: session=...; HttpOnly; SameSite=Lax`.
