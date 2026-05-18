@@ -425,9 +425,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `setupServer(...handlers)` + `beforeAll/afterAll/afterEach`. `handlers.ts` 에 5개 API 핸들러 작성.
   - Verify: `npm test -- --run tests/setup.ts` exit 0 (no test files = empty pass) ✓
 
-- [ ] **5.2** `tests/Login.test.tsx`
-  - 케이스: ① 정답 입력 → 페이지 이동 ② 오답 → 에러 메시지 ③ 빈 입력 → 제출 비활성.
-  - Verify: `npm test Login` pass.
+- [x] **5.2** `tests/Login.test.tsx`
+  - 케이스 3개 (정답/오답/빈입력) 구현.
+  - Verify: `npm test -- --run Login` 3 passed ✓
 
 - [ ] **5.3** `tests/QnA.test.tsx`
   - 케이스: ① 날짜 선택 후 시작 → 질문 표시 ② 답변 5회 사이클 → diary 표시 ③ 매 사이클 후 `localStorage` 에 누적 저장 확인 ④ 이미 완료된 날짜 → 안내 메시지.
