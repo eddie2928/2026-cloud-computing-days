@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
-from app.models import QnAItem, QnASession
+from app.models import DiaryEntry, QnAItem, QnASession
 from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
@@ -50,12 +50,21 @@ async def _resume_session(
         )
     answered_seqs = {i.sequence for i in existing.items if i.answer is not None}
     next_seq = max(answered_seqs, default=0) + 1
-    rag_items = await _get_rag_items(db, user_id, existing.id)
+    session_id = existing.id
     answered_items = [i for i in existing.items if i.answer is not None]
+    rag_items = await _get_rag_items(db, user_id, session_id)
     question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq)
-    db.add(QnAItem(session_id=existing.id, sequence=next_seq, question=question, bedrock_meta=meta))
-    await db.commit()
-    return QnAStartResponse(session_id=existing.id, question=question, sequence=next_seq)
+    try:
+        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        res = await db.execute(
+            select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == next_seq)
+        )
+        ei = res.scalar_one()
+        question, next_seq = ei.question, ei.sequence
+    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq)
 
 
 @router.post("/start", response_model=QnAStartResponse)
@@ -73,8 +82,8 @@ async def start_qna(
     if existing:
         return await _resume_session(existing, db, user_id)
 
-    # Create new session and commit BEFORE calling Bedrock so concurrent
-    # requests see the row immediately and take the resume path above.
+    # Commit session BEFORE Bedrock call to close the race window where concurrent
+    # requests both see no existing session and both try to INSERT.
     session = QnASession(user_id=user_id, diary_date=body.diary_date, status="in_progress")
     db.add(session)
     try:
@@ -92,9 +101,16 @@ async def start_qna(
 
     rag_items = await _get_rag_items(db, user_id, session_id)
     question, meta = await _get_bedrock().generate_question(rag_items, [], 1)
-    db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
-    await db.commit()
-
+    try:
+        db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        res = await db.execute(
+            select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 1)
+        )
+        ei = res.scalar_one()
+        question = ei.question
     return QnAStartResponse(session_id=session_id, question=question, sequence=1)
 
 
@@ -115,42 +131,77 @@ async def answer_qna(
 
     item = next((i for i in session.items if i.sequence == body.sequence), None)
     if item is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sequence")
+
+    # Idempotency: duplicate submit or concurrent race where this answer already committed.
+    if item.answer is not None:
+        if session.status == "completed":
+            diary_res = await db.execute(
+                select(DiaryEntry).where(DiaryEntry.session_id == session.id)
+            )
+            diary = diary_res.scalar_one_or_none()
+            return QnAAnswerResponse(completed=True, diary=diary.body if diary else None)
+        next_items = sorted(
+            [i for i in session.items if i.answer is None], key=lambda x: x.sequence
+        )
+        if next_items:
+            return QnAAnswerResponse(
+                next_question=next_items[0].question,
+                sequence=next_items[0].sequence,
+                completed=False,
+            )
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sequence"
+            status_code=status.HTTP_409_CONFLICT, detail="Answer already submitted"
         )
 
-    expected_seq = max((i.sequence for i in session.items if i.answer is None), default=None)
+    expected_seq = max(
+        (i.sequence for i in session.items if i.answer is None), default=None
+    )
     if expected_seq is not None and body.sequence != expected_seq:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Expected sequence {expected_seq}, got {body.sequence}",
         )
 
+    # Snapshot what we need before commit — SQLAlchemy expires all attributes after commit().
     item.answer = body.answer
     item.answered_at = datetime.now(tz=timezone.utc)
-    await db.flush()
+    session_id = session.id
+    is_final = body.sequence >= _MAX_SEQUENCE
+    answered_snapshot = [i for i in session.items if i.answer is not None]
 
-    if body.sequence >= _MAX_SEQUENCE:
+    await db.flush()
+    await db.commit()  # commit before any Bedrock call to close race window
+
+    if is_final:
         from app.routers.diary import finalize_session
 
-        diary_entry = await finalize_session(session, db)
-        session.status = "completed"
-        session.completed_at = datetime.now(tz=timezone.utc)
-        await db.commit()
+        try:
+            diary_entry = await finalize_session(session_id, db)
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            diary_res = await db.execute(
+                select(DiaryEntry).where(DiaryEntry.session_id == session_id)
+            )
+            diary_entry = diary_res.scalar_one()
         return QnAAnswerResponse(completed=True, diary=diary_entry.body)
 
-    rag_items = await _get_rag_items(db, user_id, session.id)
-    answered_items = [i for i in session.items if i.answer is not None]
     next_seq = body.sequence + 1
+    rag_items = await _get_rag_items(db, user_id, session_id)
+    question, meta = await _get_bedrock().generate_question(rag_items, answered_snapshot, next_seq)
 
-    question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq)
-    new_item = QnAItem(
-        session_id=session.id,
-        sequence=next_seq,
-        question=question,
-        bedrock_meta=meta,
-    )
-    db.add(new_item)
-    await db.commit()
+    try:
+        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        res = await db.execute(
+            select(QnAItem).where(
+                QnAItem.session_id == session_id, QnAItem.sequence == next_seq
+            )
+        )
+        ei = res.scalar_one()
+        question, next_seq = ei.question, ei.sequence
 
     return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False)

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -14,14 +14,15 @@ from app.schemas import DiaryResponse
 router = APIRouter(prefix="/api/diary", tags=["diary"])
 
 
-async def finalize_session(session: QnASession, db: AsyncSession) -> DiaryEntry:
-    if not hasattr(session, "items") or session.items is None:
-        result = await db.execute(
-            select(QnASession)
-            .options(selectinload(QnASession.items))
-            .where(QnASession.id == session.id)
-        )
-        session = result.scalar_one()
+async def finalize_session(session_id: int, db: AsyncSession) -> DiaryEntry:
+    # Re-query with fresh items so this is safe to call after a preceding commit()
+    # that would have expired the caller's session object.
+    result = await db.execute(
+        select(QnASession)
+        .options(selectinload(QnASession.items))
+        .where(QnASession.id == session_id)
+    )
+    session = result.scalar_one()
 
     client = BedrockClient()
     diary_body, meta = await client.generate_diary(session.items)
@@ -34,6 +35,8 @@ async def finalize_session(session: QnASession, db: AsyncSession) -> DiaryEntry:
         bedrock_meta=meta,
     )
     db.add(entry)
+    session.status = "completed"
+    session.completed_at = datetime.now(tz=timezone.utc)
     await db.flush()
     return entry
 
