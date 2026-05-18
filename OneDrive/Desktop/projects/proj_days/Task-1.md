@@ -429,9 +429,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 3개 (정답/오답/빈입력) 구현.
   - Verify: `npm test -- --run Login` 3 passed ✓
 
-- [ ] **5.3** `tests/QnA.test.tsx`
-  - 케이스: ① 날짜 선택 후 시작 → 질문 표시 ② 답변 5회 사이클 → diary 표시 ③ 매 사이클 후 `localStorage` 에 누적 저장 확인 ④ 이미 완료된 날짜 → 안내 메시지.
-  - Verify: `npm test QnA` pass.
+- [x] **5.3** `tests/QnA.test.tsx`
+  - 케이스 4개 (날짜→질문/5사이클/localStorage/409) 구현.
+  - Verify: `npm test -- --run QnA` 4 passed ✓
 
 - [ ] **5.4** `tests/CalendarPage.test.tsx`
   - 케이스: ① 마운트 시 calendar API 호출 ② API 응답의 날짜에 이벤트 점 표시 ③ 날짜 클릭 → `/diary/:date` 이동.
