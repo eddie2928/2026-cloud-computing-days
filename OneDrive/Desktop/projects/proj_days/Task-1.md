@@ -327,13 +327,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `verify_password`, `create_session_cookie`, `verify_session_cookie`, `require_session` 구현.
   - Verify: 3.2 단위테스트에서 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.6** `backend/app/bedrock.py`
-  - `class BedrockClient`: `__init__(self, region, model_id)` → `self.client = boto3.client("bedrock-runtime", region_name=region)`.
-  - `async def generate_question(rag_items: list[QnAItem], session_so_far: list[QnAItem]) -> str`: 프롬프트 템플릿 + `invoke_model` 호출.
-  - `async def generate_diary(qna_items: list[QnAItem]) -> str`: "500자 이내 일기" 프롬프트.
-  - 두 함수 모두 동기 boto3 호출을 `asyncio.to_thread` 로 감쌈.
-  - 모든 호출에서 `(text, bedrock_meta)` 튜플 반환 (meta = `{model_id, input_tokens, output_tokens, latency_ms}`).
-  - Verify: 2.10 에서 moto/mock 로 단위테스트.
+- [x] **2.6** `backend/app/bedrock.py`
+  - `BedrockClient`: `generate_question(rag_items, session_so_far, next_sequence)`, `generate_diary(qna_items)`. 모두 `asyncio.to_thread` + `(text, meta)` 튜플 반환.
+  - Verify: 3.3 단위테스트에서 mock 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.7** `backend/app/schemas.py` (Pydantic I/O)
   - `LoginRequest`, `QnAStartRequest{diary_date}`, `QnAStartResponse{session_id, question, sequence}`, `QnAAnswerRequest{session_id, sequence, answer}`, `QnAAnswerResponse{next_question?, sequence?, completed: bool, diary?: str}`, `CalendarResponse{dates: list[date]}`, `DiaryResponse{date, body}`.
