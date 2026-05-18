@@ -311,9 +311,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - dev: `pytest`, `pytest-asyncio`, `httpx`, `moto[sts]>=5.0` (bedrock extra 없음→unittest.mock 폴백), `testcontainers[postgres]`, `freezegun`.
   - Verify: `python -m venv .venv && pip install` 성공 ✓ (Python 3.13.13, moto 5.2.1)
 
-- [ ] **2.2** `backend/app/config.py`
-  - `class Settings(BaseSettings)`: `app_password`, `session_secret`, `db_url`, `bedrock_model_id`, `aws_region`. `model_config = SettingsConfigDict(env_file=".env")`.
-  - Verify: `python -c "from backend.app.config import Settings; print(Settings(_env_file=None, app_password='x', session_secret='y', db_url='postgresql+asyncpg://u:p@h/d', bedrock_model_id='m', aws_region='us-east-1'))"` 실행 성공.
+- [x] **2.2** `backend/app/config.py`
+  - `class Settings(BaseSettings)`: `app_password`, `session_secret`, `db_url`, `bedrock_model_id`, `aws_region`. `model_config = SettingsConfigDict(env_file=".env")`. module-level 인스턴스 대신 `@lru_cache get_settings()` 패턴 사용.
+  - Verify: Settings 직접 인스턴스화 성공 ✓
 
 - [ ] **2.3** `backend/app/db.py` + `backend/app/models.py`
   - 2.5 SQL 을 SQLAlchemy 2.x 선언적 모델로 옮김. async engine + `async_sessionmaker`.
