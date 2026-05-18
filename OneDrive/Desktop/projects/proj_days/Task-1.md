@@ -383,10 +383,9 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 4 — Frontend (React + Vite + TS) 코드
 
-- [ ] **4.1** Vite 프로젝트 생성 + 의존성 설치
-  - 실행: `cd frontend && npm create vite@latest . -- --template react-ts` (현재 폴더에 생성) → `npm i axios react-router-dom @fullcalendar/react @fullcalendar/daygrid date-fns` → `npm i -D vitest @testing-library/react @testing-library/user-event @testing-library/jest-dom jsdom msw@latest`.
-  - `vite.config.ts` 에 `server.proxy` 로 `/api → http://localhost:8000`, `test` 설정(`environment: 'jsdom', setupFiles: 'tests/setup.ts'`).
-  - Verify: `npm run build` 성공 (빈 App 으로도 빌드 가능).
+- [x] **4.1** Vite 프로젝트 생성 + 의존성 설치
+  - react-ts 템플릿 + runtime/dev 의존성 모두 설치. `vitest/config` 에서 import 하여 test 설정.
+  - Verify: `npm run build` exit 0 (193KB JS 번들) ✓
 
 - [ ] **4.2** `src/api/client.ts`
   - `axios.create({ baseURL: '/api', withCredentials: true })`.
