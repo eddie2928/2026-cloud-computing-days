@@ -111,11 +111,12 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 
 ### Phase C — Client iptables (Linux/WSL)
 
-- [ ] **C1**: `src/agentbox/proxy/iptables.py` 신설. 함수:
+- [x] **C1**: `src/agentbox/proxy/iptables.py` 신설. 함수:
   - `apply_redirect(proxy_port: int, target_hosts: list[str]) -> None`
   - `clear_redirect(proxy_port: int) -> None`
   - 구현: `iptables -t nat -A OUTPUT -p tcp --dport 443 -m string --algo bm --string <host> -j REDIRECT --to-ports <proxy_port>` 호출. 호스트별 1개씩 추가. sudo 필요 검사 + 실패 시 명확한 안내 메시지.
   - `verify`: `pytest tests/unit/test_iptables.py -q`(신규: subprocess mock) 통과.
+  - 결과: 6 passed — iptables.py 신설, apply/clear/permission 에러 테스트 추가.
 - [ ] **C2**: `agentbox on/off` (`_activate.py`)에서 `apply_redirect`/`clear_redirect` 호출 추가. `--no-iptables` 옵션 제공(테스트용).
   - `verify`: `pytest tests/unit/test_activate_cmd.py -q` 통과 + mocked subprocess 호출 인자 검증.
 - [ ] **C3**: `apply_redirect` 대상 호스트 기본값은 `["api.anthropic.com"]`만. 추가 호스트는 `~/.agentbox/redirect_hosts`(개행 분리)에서 읽음.
