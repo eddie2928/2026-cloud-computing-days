@@ -26,6 +26,7 @@ def _all_ok_patches(extra=None):
         "agentbox.doctor_cmd._check_d7_mtls": lambda l: {"id": "D7", "status": "OK", "detail": ""},
         "agentbox.doctor_cmd._check_d8_saas": lambda: {"id": "D8", "status": "OK", "detail": ""},
         "agentbox.doctor_cmd._check_d9_consistency": lambda: {"id": "D9", "status": "OK", "detail": ""},
+        "agentbox.doctor_cmd._check_d10_cert_expiry": lambda l: {"id": "D10", "status": "OK", "detail": ""},
     }
     if extra:
         patches.update(extra)
@@ -55,8 +56,8 @@ def test_d5_fail_continues(tmp_layout, capsys):
 
     assert rc == 1
     out = capsys.readouterr().out
-    # All 9 rows should appear (no early exit)
-    for i in range(1, 10):
+    # All 10 rows should appear (no early exit)
+    for i in range(1, 11):
         assert f"D{i}" in out
 
 
@@ -98,7 +99,7 @@ def test_json_output(tmp_layout, capsys):
     data = json.loads(out)
     assert "items" in data
     assert "exit_code" in data
-    assert len(data["items"]) == 9
+    assert len(data["items"]) == 10
     for item in data["items"]:
         assert "id" in item
         assert "status" in item
@@ -117,6 +118,7 @@ def test_fix_selectively_called(tmp_layout, monkeypatch):
         {"id": "D7", "status": "FAIL", "detail": ""},
         {"id": "D8", "status": "FAIL", "detail": ""},
         {"id": "D9", "status": "FAIL", "detail": ""},
+        {"id": "D10", "status": "FAIL", "detail": ""},
     ]
 
     fix_calls = []
@@ -138,6 +140,45 @@ def test_fix_selectively_called(tmp_layout, monkeypatch):
 
     # D3/D4/D5/D9 should have been targeted
     assert set(fix_calls) == {"D3", "D4", "D5", "D9"}
-    # D1/D2/D6/D7/D8 should NOT be in fix_calls
-    for item_id in ("D1", "D2", "D6", "D7", "D8"):
+    # D1/D2/D6/D7/D8/D10 should NOT be in fix_calls
+    for item_id in ("D1", "D2", "D6", "D7", "D8", "D10"):
         assert item_id not in fix_calls
+
+
+# ── T7: D10 cert expiry <= 7 days → FAIL + regen-certs 안내 ─────────────────
+def test_d10_cert_near_expiry(tmp_path, monkeypatch):
+    import datetime as dt
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    # Generate a cert that expires in 3 days
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    now = dt.datetime.now(dt.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "test")]))
+        .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "test")]))
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - dt.timedelta(days=1))
+        .not_valid_after(now + dt.timedelta(days=3))
+        .sign(key, hashes.SHA256())
+    )
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+
+    global_home = tmp_path / "global"
+    monkeypatch.setenv("AGENTBOX_HOME", str(global_home))
+    from agentbox.dotagentbox import ensure_layout
+    layout = ensure_layout(tmp_path)
+
+    # Write cert after ensure_layout creates the dirs (so migration can't delete it)
+    layout.global_certs_dir.mkdir(parents=True, exist_ok=True)
+    (layout.global_certs_dir / "endpoint.crt").write_bytes(cert_pem)
+
+    result = dc._check_d10_cert_expiry(layout)
+
+    assert result["status"] == "FAIL"
+    assert "agentbox set" in result["detail"]
+    assert "--regen-certs" in result["detail"]

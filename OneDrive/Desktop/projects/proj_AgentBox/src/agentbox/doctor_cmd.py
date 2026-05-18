@@ -178,9 +178,31 @@ def _check_d9_consistency() -> dict:
         return {"id": "D9", "status": STATUS_SKIP, "detail": str(exc)}
 
 
+def _check_d10_cert_expiry(layout) -> dict:
+    """D10: endpoint.crt expiry <= 7 days -> advise agentbox set --regen-certs."""
+    cert_path = layout.global_certs_dir / "endpoint.crt"
+    if not cert_path.exists():
+        return {"id": "D10", "status": STATUS_SKIP, "detail": "endpoint.crt not found"}
+
+    try:
+        from cryptography import x509
+        cert = x509.load_pem_x509_certificate(cert_path.read_bytes())
+        now = datetime.now(timezone.utc)
+        days = (cert.not_valid_after_utc - now).days
+        if days <= 7:
+            return {
+                "id": "D10",
+                "status": STATUS_FAIL,
+                "detail": f"endpoint.crt expires in {days}d — run: agentbox set -y --regen-certs",
+            }
+        return {"id": "D10", "status": STATUS_OK, "detail": f"endpoint.crt valid for {days}d"}
+    except Exception as exc:
+        return {"id": "D10", "status": STATUS_SKIP, "detail": f"cert read error: {exc}"}
+
+
 def run_doctor(project_root: Path | None = None, output_json: bool = False,
                fix: bool = False) -> int:
-    """Run all D1-D9 checks; return 0 if all OK, 1 if any FAIL."""
+    """Run all D1-D10 checks; return 0 if all OK, 1 if any FAIL."""
     from agentbox.dotagentbox import ensure_layout
 
     root = project_root or _PROJ_ROOT
@@ -196,6 +218,7 @@ def run_doctor(project_root: Path | None = None, output_json: bool = False,
         _check_d7_mtls(layout),
         _check_d8_saas(),
         _check_d9_consistency(),
+        _check_d10_cert_expiry(layout),
     ]
 
     has_fail = any(r["status"] == STATUS_FAIL for r in results)
