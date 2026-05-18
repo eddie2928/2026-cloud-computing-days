@@ -267,9 +267,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 변수: `aws_region` (default `us-east-1`), `vpc_cidr` (`10.20.0.0/16`), `public_subnet_cidrs` (`["10.20.1.0/24","10.20.2.0/24"]`), `azs` (`["us-east-1a","us-east-1b"]`), `ec2_instance_type` (`t3.small`), `db_instance_class` (`db.t3.micro`), `db_username` (`appuser`), `db_password` (sensitive, no default), `app_password` (sensitive, default `"inha-nxt"`), `session_secret` (sensitive, no default), `bedrock_model_id` (default = `us.anthropic.claude-sonnet-4-6`), `my_ip_cidr` (string, no default), `git_repo_url` (string, no default), `git_branch` (default `main`).
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.3** `infra/vpc.tf`
+- [x] **1.3** `infra/vpc.tf`
   - 리소스: `aws_vpc`, `aws_internet_gateway`, 2x `aws_subnet` (각 AZ, `map_public_ip_on_launch=true`), `aws_route_table` + `aws_route` (0.0.0.0/0 → IGW), 2x `aws_route_table_association`.
-  - Verify: `terraform -chdir=infra validate` 성공.
+  - Verify: `terraform validate` 성공 ✓
 
 - [ ] **1.4** `infra/security_groups.tf`
   - `aws_security_group.ec2_sg`: ingress 80/0.0.0.0/0, 22/`var.my_ip_cidr`.
