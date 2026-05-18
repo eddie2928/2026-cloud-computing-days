@@ -284,10 +284,10 @@ IAM Role `ec2-bedrock-role` 정책:
   - `aws_db_subnet_group` (Public Subnet 2개 참조), `aws_db_instance`: engine `postgres`, version `16`, class `var.db_instance_class`, `allocated_storage=20`, `publicly_accessible=false`, `vpc_security_group_ids=[rds_sg.id]`, `skip_final_snapshot=true`, `deletion_protection=false`, `enabled_cloudwatch_logs_exports = []`.
   - Verify: `terraform validate` 성공 + grep `enabled_cloudwatch_logs_exports = []` 확인 ✓
 
-- [ ] **1.7** `infra/user_data.sh.tftpl` + `infra/ec2.tf`
-  - 템플릿에 2.7 의 8단계 작성. 변수 보간: `db_url`, `app_password`, `session_secret`, `bedrock_model_id`, `aws_region`, `git_repo_url`, `git_branch`.
-  - `aws_instance`: AMI = `data.aws_ami.al2023` (`name=al2023-ami-*-x86_64`), instance_type, key_name 없음(SSM 대신), `vpc_security_group_ids`, `subnet_id`, `iam_instance_profile`, `user_data = templatefile(...)`.
-  - Verify: `terraform -chdir=infra validate` 성공.
+- [x] **1.7** `infra/user_data.sh.tftpl` + `infra/ec2.tf`
+  - 템플릿에 8단계 작성. 변수 보간: `db_url`, `app_password`, `session_secret`, `bedrock_model_id`, `aws_region`, `git_repo_url`, `git_branch`.
+  - `aws_instance`: AMI = `data.aws_ami.al2023` (`name=al2023-ami-*-x86_64`), `vpc_security_group_ids`, `subnet_id`, `iam_instance_profile`, `user_data = templatefile(...)`.
+  - Verify: `terraform validate` 성공 ✓
 
 - [ ] **1.8** `infra/outputs.tf`
   - 출력: `ec2_public_ip`, `ec2_public_dns`, `rds_endpoint`, `app_url`(`"http://${ec2_public_ip}"`).
