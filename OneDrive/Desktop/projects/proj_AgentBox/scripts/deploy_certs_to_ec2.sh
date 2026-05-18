@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# Deploy local mTLS certs to EC2 and restart agentbox-grpc service.
+# BOOTSTRAP ONLY — Deploy initial mTLS certs to EC2 via SSM (first boot / re-provision).
+#
+# This script is for ONE-TIME bootstrap when EC2 has no certs yet.
+# For subsequent cert rotation after initial setup, use the upload-proxy endpoint:
+#   curl -X POST https://<EC2_IP>:8443/cert_rotate \
+#     --cert ~/.agentbox/certs/grpc/endpoint.crt \
+#     --key  ~/.agentbox/certs/grpc/endpoint.key \
+#     --cacert ~/.agentbox/certs/grpc/agentbox-ca.crt \
+#     -F "cert_name=ec2.crt" -F "cert_file=@~/.agentbox/certs/grpc/ec2.crt"
+#
 # Usage: bash scripts/deploy_certs_to_ec2.sh
 set -euo pipefail
 
