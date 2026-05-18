@@ -1,9 +1,0 @@
-import { defineConfig } from "@playwright/test";
-
-export default defineConfig({
-  testDir: "./tests/e2e",
-  use: {
-    baseURL: process.env.SAAS_URL ?? "http://localhost:8000",
-    headless: true,
-  },
-});

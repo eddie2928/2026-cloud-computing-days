@@ -1,6 +1,0 @@
-pytest
-pytest-asyncio
-httpx
-moto[sts]>=5.0
-testcontainers[postgres]
-freezegun
