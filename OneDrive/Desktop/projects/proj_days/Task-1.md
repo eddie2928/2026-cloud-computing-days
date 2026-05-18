@@ -323,11 +323,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `alembic init alembic` 후 `env.py` async 모드로 수정 + `target_metadata=Base.metadata`. `0001_init.py` 수동 작성 (4개 테이블 + default-user 시드).
   - Verify: `alembic upgrade head` → 3.1 conftest testcontainers 에서 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.5** `backend/app/auth.py`
-  - `verify_password(input: str) -> bool`: `secrets.compare_digest(input, settings.app_password)`.
-  - `create_session_cookie() -> str`, `verify_session_cookie(token: str) -> bool`: `itsdangerous.URLSafeTimedSerializer(settings.session_secret)`.
-  - 의존성 함수 `require_session(request) -> int(user_id=1)`.
-  - Verify: 2.10 에서 단위테스트로 검증.
+- [x] **2.5** `backend/app/auth.py`
+  - `verify_password`, `create_session_cookie`, `verify_session_cookie`, `require_session` 구현.
+  - Verify: 3.2 단위테스트에서 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.6** `backend/app/bedrock.py`
   - `class BedrockClient`: `__init__(self, region, model_id)` → `self.client = boto3.client("bedrock-runtime", region_name=region)`.
