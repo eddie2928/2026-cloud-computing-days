@@ -339,10 +339,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `POST /api/login` (Set-Cookie HttpOnly SameSite=Lax), `POST /api/logout`, `GET /api/me`.
   - Verify: 3.4 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
-- [ ] **2.9** `backend/app/routers/qna.py`
-  - `POST /api/qna/start`: diary_date 받음 → 같은 날짜 session 존재 + status=completed 면 409. 없으면 새 session 생성 → RAG context 조립 → Bedrock 으로 첫 질문 → qna_items.sequence=1 저장 → 반환.
-  - `POST /api/qna/answer`: sequence 의 answer 저장. sequence<5 면 다음 질문 생성 + 저장 + 반환. sequence==5 면 → `routers/diary.py:finalize` 내부 호출 → 일기 생성/저장 + session status=completed.
-  - Verify: 3.5 통합테스트.
+- [x] **2.9** `backend/app/routers/qna.py`
+  - `POST /api/qna/start` (409 on completed, 재개 on in_progress), `POST /api/qna/answer` (sequence 검증, 5회 완료 시 diary finalize 호출).
+  - Verify: 3.5 통합테스트에서 검증 예정 ✓ (파일 작성 완료)
 
 - [ ] **2.10** `backend/app/routers/diary.py` + `routers/calendar.py`
   - `GET /api/diary/{date}`: 해당 날짜 diary_entries 반환 (없으면 404).
