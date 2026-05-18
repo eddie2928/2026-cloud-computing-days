@@ -149,6 +149,29 @@ def test_ca_mismatch(tmp_path):
     assert "mismatch" in reason.lower() or "ca" in reason.lower()
 
 
+# ── T5: SAN mismatch → False + "SAN mismatch" ───────────────────────────────
+def test_san_mismatch(tmp_path):
+    ca_crt, ca_key, ca_key_obj, ca_cert_obj = _make_ca(tmp_path)
+    ep_crt, ep_key = _make_client_cert(tmp_path, ca_cert_obj, ca_key_obj, days=365)
+
+    with patch("agentbox.grpc.handshake.socket.create_connection"), \
+         patch("agentbox.grpc.handshake.grpc") as mock_grpc:
+        mock_grpc.ssl_channel_credentials.return_value = MagicMock()
+        mock_ch = MagicMock()
+        mock_grpc.secure_channel.return_value = mock_ch
+        mock_future = MagicMock()
+        mock_future.result.side_effect = Exception("Peer name HOSTNAME does not match Subject Alternative Name")
+        mock_grpc.channel_ready_future.return_value = mock_future
+
+        from agentbox.grpc.handshake import verify_mtls_handshake
+        ok, reason = verify_mtls_handshake(
+            "fake", 50051, str(ca_crt), str(ep_crt), str(ep_key), timeout=10
+        )
+
+    assert ok is False
+    assert "san mismatch" in reason.lower()
+
+
 # ── T4: TCP unreachable → False + "unreachable" ───────────────────────────────
 def test_host_unreachable(tmp_path):
     ca_crt, ca_key, ca_key_obj, ca_cert_obj = _make_ca(tmp_path)

@@ -105,8 +105,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **B2**: `src/agentbox/grpc/client.py`에서 cert 3개 중 하나라도 누락 시 즉시 예외. `insecure_channel` fallback 제거.
   - `verify`: `pytest tests/unit/test_grpc_client.py -q` 통과 + cert 누락 unit test 추가.
   - 결과: 6 passed — insecure_channel 제거, cert 미설정 시 ValueError 발생 테스트 추가.
-- [ ] **B3**: `src/agentbox/grpc/handshake.py`의 timeout 5→10초로 상향, 검사 후 SAN mismatch를 명시적으로 식별하는 분기 추가.
+- [x] **B3**: `src/agentbox/grpc/handshake.py`의 timeout 5→10초로 상향, 검사 후 SAN mismatch를 명시적으로 식별하는 분기 추가.
   - `verify`: `pytest tests/unit/test_handshake.py -q` 통과.
+  - 결과: 5 passed — timeout 10초, SAN mismatch 분기 추가, test_san_mismatch 테스트 추가.
 
 ### Phase C — Client iptables (Linux/WSL)
 

@@ -12,7 +12,7 @@ def verify_mtls_handshake(
     ca_cert: str,
     client_cert: str,
     client_key: str,
-    timeout: float = 5.0,
+    timeout: float = 10.0,
 ) -> tuple[bool, str]:
     """Verify mTLS handshake with a gRPC server.
 
@@ -63,6 +63,8 @@ def verify_mtls_handshake(
         msg = str(exc).lower()
         if "timeout" in type(exc).__name__.lower() or "futuredeadline" in msg:
             return False, "CA mismatch"
+        if "san" in msg or "hostname" in msg or "subject alternative name" in msg:
+            return False, f"SAN mismatch: {exc}"
         if "certificate" in msg or "ca" in msg or "ssl" in msg:
             return False, f"CA mismatch: {exc}"
         return False, f"unreachable: {exc}"
