@@ -1,7 +1,9 @@
-"""Unit tests for agentbox.encrypt (Task-7 D1)."""
+"""Unit tests for agentbox.encrypt (Task-7 D1 / Tasks.md E1)."""
+import io
 import subprocess
+import zipfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from moto import mock_aws
@@ -23,6 +25,56 @@ def src_dir(tmp_path):
         p.parent.mkdir(exist_ok=True)
         p.write_text(f"# {name}")
     return src
+
+
+# ── E1: encrypt_local 단위 테스트 ──────────────────────────────────────────────
+def test_encrypt_local_creates_enc_files(src_dir, sops_yaml):
+    from agentbox.encrypt import encrypt_local
+    import shutil
+
+    def fake_sops(cmd, capture_output, cwd, **kw):
+        input_file = Path(cmd[-1])
+        data = input_file.read_bytes()
+        return type("R", (), {"returncode": 0, "stdout": b"ENC:" + data, "stderr": b""})()
+
+    with patch("agentbox.encrypt.subprocess.run", side_effect=fake_sops):
+        enc_dir = encrypt_local(src_dir, sops_yaml=sops_yaml)
+    try:
+        enc_files = list(enc_dir.rglob("*.enc"))
+        assert len(enc_files) == 4
+    finally:
+        shutil.rmtree(enc_dir, ignore_errors=True)
+
+
+def test_upload_via_ec2_posts_zip(tmp_path, sops_yaml, src_dir):
+    from agentbox.encrypt import encrypt_local, upload_via_ec2
+    import shutil
+
+    def fake_sops(cmd, capture_output, cwd, **kw):
+        return type("R", (), {"returncode": 0, "stdout": b"ENCRYPTED", "stderr": b""})()
+
+    with patch("agentbox.encrypt.subprocess.run", side_effect=fake_sops):
+        enc_dir = encrypt_local(src_dir, sops_yaml=sops_yaml)
+
+    try:
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        with patch("agentbox.encrypt.requests.post", return_value=mock_resp) as mock_post:
+            upload_via_ec2(
+                enc_dir, "proj-1",
+                "https://ec2.example.com:8443",
+                "/tmp/ep.crt", "/tmp/ep.key", "/tmp/ca.crt",
+            )
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args[1]
+        assert call_kwargs["cert"] == ("/tmp/ep.crt", "/tmp/ep.key")
+        assert call_kwargs["verify"] == "/tmp/ca.crt"
+        # Verify the posted file is a valid zip
+        posted_buf = mock_post.call_args[1]["files"]["file"][1]
+        posted_buf.seek(0)
+        assert zipfile.is_zipfile(posted_buf)
+    finally:
+        shutil.rmtree(enc_dir, ignore_errors=True)
 
 
 # ── T1: 4개 파일 → SOPS fake CLI + S3 업로드 검증 ─────────────────────────────
