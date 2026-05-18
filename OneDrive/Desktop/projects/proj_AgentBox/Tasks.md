@@ -132,8 +132,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 - [x] **D2**: `infra/userdata-app.sh.tpl`에 `agentbox-upload-proxy.service` systemd unit 추가. `uvicorn --ssl-keyfile=/opt/agentbox/certs/grpc/ec2.key --ssl-certfile=/opt/agentbox/certs/grpc/ec2.crt --port 8443` 실행.
   - `verify`: `bash -n infra/userdata-app.sh.tpl` 통과 + `grep agentbox-upload-proxy infra/userdata-app.sh.tpl` 매칭.
   - 결과: syntax OK, grep 3회 매칭. agentbox-upload-proxy.service systemd unit 추가, mTLS --ssl-ca-certs도 포함.
-- [ ] **D3**: `infra/ec2.tf` app-sg에 ingress 8443 (endpoint_cidr) 추가. 평문 8000은 admin_cidr 유지(SaaS dashboard 그대로).
+- [x] **D3**: `infra/ec2.tf` app-sg에 ingress 8443 (endpoint_cidr) 추가. 평문 8000은 admin_cidr 유지(SaaS dashboard 그대로).
   - `verify`: `cd infra && terraform plan -detailed-exitcode` 가 2(변경 있음) 또는 0(변경 없음). `terraform plan -no-color | grep -c 8443` ≥ 1.
+  - 결과: terraform plan 정상 (57 to add), 8443 grep 2회. Upload proxy mTLS ingress 추가 완료.
 - [ ] **D4**: app IAM 정책에 `s3:PutObject`, `kms:GenerateDataKey`(이미 mcp role에는 있음 — app role에도 부여) 추가.
   - `verify`: `terraform plan` 노이즈 없이 추가 변경 표시.
 

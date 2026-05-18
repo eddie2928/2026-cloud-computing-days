@@ -22,6 +22,14 @@ resource "aws_security_group" "app" {
     description = "SaaS dashboard admin access"
   }
 
+  ingress {
+    from_port   = 8443
+    to_port     = 8443
+    protocol    = "tcp"
+    cidr_blocks = [var.endpoint_cidr]
+    description = "Upload proxy mTLS HTTPS from Endpoint"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
