@@ -353,13 +353,9 @@ IAM Role `ec2-bedrock-role` 정책:
 
 ### Phase 3 — Backend 테스트
 
-- [ ] **3.1** `backend/conftest.py`
-  - fixture `pg_container`: `PostgresContainer("postgres:16")` session-scoped, `alembic upgrade head` 실행.
-  - fixture `db_session`: function-scoped, transaction rollback.
-  - fixture `app`: FastAPI app with `db_session` 의존성 오버라이드.
-  - fixture `client`: `AsyncClient(transport=ASGITransport(app))`.
-  - fixture `bedrock_mock`: `unittest.mock.patch("app.bedrock.BedrockClient")` 으로 결정론적 응답.
-  - Verify: `cd backend && pytest --collect-only` 에러 없음.
+- [x] **3.1** `backend/conftest.py`
+  - fixture `pg_container`/`db_session`/`app`/`client`/`bedrock_mock` 모두 구현.
+  - Verify: `pytest --collect-only` 에러 없이 0 items collected ✓
 
 - [ ] **3.2** `tests/unit/test_auth.py`
   - 케이스: ① 정답 비밀번호 → True ② 오답 → False ③ session cookie 발급 후 검증 통과 ④ 위조 토큰 검증 실패 ⑤ 만료(itsdangerous max_age) 검증 실패.
