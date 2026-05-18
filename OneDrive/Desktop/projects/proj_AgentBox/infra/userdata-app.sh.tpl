@@ -82,6 +82,30 @@ StandardError=journal
 WantedBy=multi-user.target
 SVC
 
+cat > /etc/systemd/system/agentbox-upload-proxy.service <<'SVC'
+[Unit]
+Description=AgentBox Upload Proxy (mTLS HTTPS :8443)
+After=network.target agentbox-grpc.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/agentbox
+EnvironmentFile=/opt/agentbox/.env
+ExecStart=/opt/agentbox/venv/bin/uvicorn ec2.upload_proxy.server:app \
+  --host 0.0.0.0 \
+  --port 8443 \
+  --ssl-keyfile=/opt/agentbox/certs/grpc/ec2.key \
+  --ssl-certfile=/opt/agentbox/certs/grpc/ec2.crt \
+  --ssl-ca-certs=/opt/agentbox/certs/grpc/agentbox-ca.crt
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+SVC
+
 systemctl daemon-reload
-systemctl enable agentbox-grpc agentbox-saas
-systemctl start  agentbox-grpc agentbox-saas
+systemctl enable agentbox-grpc agentbox-saas agentbox-upload-proxy
+systemctl start  agentbox-grpc agentbox-saas agentbox-upload-proxy
