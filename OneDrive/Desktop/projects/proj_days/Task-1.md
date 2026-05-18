@@ -289,9 +289,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `aws_instance`: AMI = `data.aws_ami.al2023` (`name=al2023-ami-*-x86_64`), `vpc_security_group_ids`, `subnet_id`, `iam_instance_profile`, `user_data = templatefile(...)`.
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.8** `infra/outputs.tf`
+- [x] **1.8** `infra/outputs.tf`
   - 출력: `ec2_public_ip`, `ec2_public_dns`, `rds_endpoint`, `app_url`(`"http://${ec2_public_ip}"`).
-  - Verify: `terraform -chdir=infra validate` 성공.
+  - Verify: `terraform validate` 성공 ✓
 
 - [ ] **1.9** `infra/terraform.tfvars.example` 작성 (실제 `terraform.tfvars` 는 gitignore)
   - Verify: 파일 존재.
