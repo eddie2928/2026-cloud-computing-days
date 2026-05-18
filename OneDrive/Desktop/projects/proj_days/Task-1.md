@@ -243,9 +243,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 실행: `git -C C:/Users/ab550/OneDrive/Desktop/projects/proj_days checkout -b task-1-init-infra`
   - Verify: `git branch --show-current` → `task-1-init-infra` ✓
 
-- [ ] **0.1** AWS 자격증명 + region 확인
+- [x] **0.1** AWS 자격증명 + region 확인
   - 실행: `aws sts get-caller-identity --region us-east-1`
-  - Verify: `Account` 필드 비어있지 않음. 실패 시 사용자에게 `aws configure` 요청 후 중단.
+  - Verify: Account=729403197556, user=jmh-1 ✓
 
 - [ ] **0.2** Bedrock Sonnet 4.6 모델 ID 조회
   - 실행: `aws bedrock list-foundation-models --region us-east-1 --query "modelSummaries[?contains(modelId, 'sonnet-4-6')].modelId" --output text` 및 `aws bedrock list-inference-profiles --region us-east-1 --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'sonnet-4-6')].inferenceProfileId" --output text`
