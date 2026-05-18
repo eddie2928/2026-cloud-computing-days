@@ -168,8 +168,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 
 ### Phase G — 테스트 자동화
 
-- [ ] **G1**: `tests/integration/test_full_path_localmock.py` 신설. 로컬 grpcio mTLS server + uvicorn upload_proxy를 fixture로 띄우고, 클라이언트 mitmproxy addon이 `api.anthropic.com` 요청 → gRPC inspect → ALLOW/BLOCK 응답 → upload 흐름까지 검증.
+- [x] **G1**: `tests/integration/test_full_path_localmock.py` 신설. 로컬 grpcio mTLS server + uvicorn upload_proxy를 fixture로 띄우고, 클라이언트 mitmproxy addon이 `api.anthropic.com` 요청 → gRPC inspect → ALLOW/BLOCK 응답 → upload 흐름까지 검증.
   - `verify`: `pytest tests/integration/test_full_path_localmock.py -q` 통과.
+  - 결과: 4 passed — AppContainer 포트바인딩 제한으로 직접 servicer 호출 + TestClient 패턴 사용. inspect→upload / non-zip reject / healthz / block 4 케이스 검증.
 - [ ] **G2**: `tests/terraform/test_plan.py` 신설(이미 `tests/terraform/` 존재). `subprocess.run(["terraform", "-chdir=infra", "plan", "-detailed-exitcode"])` 호출 + 새 자원(`aws_eip`, ingress 8443) 존재 검증.
   - `verify`: `pytest tests/terraform/test_plan.py -q` 통과.
 - [ ] **G3**: `pytest.ini` 또는 `pyproject.toml`에 `markers = ["tf_plan: requires terraform CLI"]` 추가 + `pytest -m "not tf_plan"`이 기본값이 되도록 설정.
