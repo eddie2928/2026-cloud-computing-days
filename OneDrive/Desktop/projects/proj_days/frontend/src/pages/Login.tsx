@@ -13,8 +13,13 @@ export function Login() {
     try {
       await client.post('/login', { password })
       navigate('/qna')
-    } catch {
-      setError('비밀번호가 틀렸습니다.')
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 401) {
+        setError('비밀번호가 틀렸습니다.')
+      } else {
+        setError('서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인하세요.')
+      }
     }
   }
 
