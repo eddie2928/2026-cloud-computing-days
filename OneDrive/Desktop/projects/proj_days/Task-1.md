@@ -247,10 +247,10 @@ IAM Role `ec2-bedrock-role` 정책:
   - 실행: `aws sts get-caller-identity --region us-east-1`
   - Verify: Account=729403197556, user=jmh-1 ✓
 
-- [ ] **0.2** Bedrock Sonnet 4.6 모델 ID 조회
+- [x] **0.2** Bedrock Sonnet 4.6 모델 ID 조회
   - 실행: `aws bedrock list-foundation-models --region us-east-1 --query "modelSummaries[?contains(modelId, 'sonnet-4-6')].modelId" --output text` 및 `aws bedrock list-inference-profiles --region us-east-1 --query "inferenceProfileSummaries[?contains(inferenceProfileId, 'sonnet-4-6')].inferenceProfileId" --output text`
-  - 결과를 `infra/variables.tf` 의 `bedrock_model_id` default + `backend/app/config.py` 기본값에 박는다.
-  - Verify: 둘 중 최소 하나에서 ID 출력. 둘 다 비면 사용자 보고 후 중단.
+  - 결과: foundation=`anthropic.claude-sonnet-4-6`, 채택 ID=`us.anthropic.claude-sonnet-4-6` (US cross-region inference profile)
+  - Verify: 두 소스 모두 ID 출력 확인 ✓
 
 - [ ] **0.3** 디렉토리 + `.gitignore` + `README.md` 작성
   - 작성: `proj_days/.gitignore` 에 `infra/.terraform/`, `infra/*.tfstate*`, `infra/*.tfplan`, `backend/.venv/`, `backend/__pycache__/`, `frontend/node_modules/`, `frontend/dist/`, `.env`, `.env.*`.
