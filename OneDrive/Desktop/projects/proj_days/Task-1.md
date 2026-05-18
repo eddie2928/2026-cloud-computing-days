@@ -357,9 +357,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - fixture `pg_container`/`db_session`/`app`/`client`/`bedrock_mock` 모두 구현.
   - Verify: `pytest --collect-only` 에러 없이 0 items collected ✓
 
-- [ ] **3.2** `tests/unit/test_auth.py`
-  - 케이스: ① 정답 비밀번호 → True ② 오답 → False ③ session cookie 발급 후 검증 통과 ④ 위조 토큰 검증 실패 ⑤ 만료(itsdangerous max_age) 검증 실패.
-  - Verify: `pytest backend/tests/unit/test_auth.py -v` 모두 pass.
+- [x] **3.2** `tests/unit/test_auth.py`
+  - 케이스 5개 (정답/오답/roundtrip/tampered/expired) 모두 구현.
+  - Verify: `pytest tests/unit/test_auth.py -v` 5 passed ✓
 
 - [ ] **3.3** `tests/unit/test_bedrock_prompt.py`
   - 케이스: ① RAG context 가 비었을 때 프롬프트에 "이전 일기 없음" 명시 ② RAG item 10개 주어지면 최신순 정렬되어 prompt 포함 ③ 세션 내 sequence=3 일 때 이미 답한 1,2 가 프롬프트에 포함되고 3,4,5 는 없음.
