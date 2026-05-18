@@ -365,9 +365,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 3개 (빈 rag/최신순 정렬/partial session) 구현.
   - Verify: `pytest tests/unit/test_bedrock_prompt.py -v` 3 passed ✓
 
-- [ ] **3.4** `tests/integration/test_login_flow.py`
-  - 케이스: ① 정답 → 200 + Set-Cookie ② 오답 → 401 ③ 쿠키 없이 보호 라우트 → 401 ④ 쿠키 있고 호출 → 200.
-  - Verify: `pytest backend/tests/integration/test_login_flow.py -v` 모두 pass.
+- [x] **3.4** `tests/integration/test_login_flow.py`
+  - 케이스 4개 (정답/오답/비인증/인증) 구현.
+  - Verify: `pytest tests/integration/test_login_flow.py -v` 4 passed (testcontainers+alembic) ✓
 
 - [ ] **3.5** `tests/integration/test_qna_full_cycle.py`
   - 케이스: ① 새 날짜로 start → sequence=1 질문 반환 ② answer x5 사이클 완료 → diary 생성 ③ 이미 완료된 날짜로 start → 409 ④ in_progress 상태에서 동일 날짜 start → 기존 session 의 다음 sequence 질문 반환(재개 보장) ⑤ sequence 가 잘못된 순서로 들어오면 400.
