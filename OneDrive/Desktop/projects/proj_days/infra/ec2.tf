@@ -25,13 +25,13 @@ resource "aws_instance" "app" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    git_repo_url    = var.git_repo_url
-    git_branch      = var.git_branch
-    db_url          = local.db_url
-    app_password    = var.app_password
-    session_secret  = var.session_secret
+    git_repo_url     = var.git_repo_url
+    git_branch       = var.git_branch
+    db_url           = local.db_url
+    app_password     = var.app_password
+    session_secret   = var.session_secret
     bedrock_model_id = var.bedrock_model_id
-    aws_region      = var.aws_region
+    aws_region       = var.aws_region
   })
 
   tags = {
