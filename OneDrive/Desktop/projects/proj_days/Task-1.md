@@ -276,9 +276,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - `aws_security_group.rds_sg`: ingress 5432/security_groups=[ec2_sg.id].
   - Verify: `terraform validate` 성공 ✓
 
-- [ ] **1.5** `infra/iam.tf`
+- [x] **1.5** `infra/iam.tf`
   - `aws_iam_role` (assume `ec2.amazonaws.com`), `aws_iam_policy` (bedrock 권한), `aws_iam_role_policy_attachment`, `aws_iam_instance_profile`.
-  - Verify: `terraform -chdir=infra validate` 성공.
+  - Verify: `terraform validate` 성공 ✓
 
 - [ ] **1.6** `infra/rds.tf`
   - `aws_db_subnet_group` (Public Subnet 2개 참조), `aws_db_instance`: engine `postgres`, version `16.x`, class `var.db_instance_class`, `allocated_storage=20`, `publicly_accessible=false`, `vpc_security_group_ids=[rds_sg.id]`, `skip_final_snapshot=true`, `deletion_protection=false`, **`enabled_cloudwatch_logs_exports = []`** (destroy 후 CloudWatch Log Group 고아 잔존 방지 — 빈 배열 명시).
