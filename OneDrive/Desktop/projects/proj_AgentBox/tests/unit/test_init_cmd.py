@@ -30,6 +30,11 @@ def fake_proj_root(tmp_path, monkeypatch):
     # Create required config files
     (global_home / "sops.yaml").write_text("arn:aws:kms:us-east-1:123456:key/abc-real")
     (global_home / "endpoint").write_text("EC2_GRPC_HOST=10.0.0.1\n")
+    certs_dir = global_home / "certs" / "grpc"
+    certs_dir.mkdir(parents=True)
+    (certs_dir / "endpoint.crt").write_text("FAKE")
+    (certs_dir / "endpoint.key").write_text("FAKE")
+    (certs_dir / "agentbox-ca.crt").write_text("FAKE")
     (tmp_path / "logs").mkdir()
     return tmp_path
 
@@ -105,7 +110,9 @@ def test_init_deps_missing_accept(fake_proj_root, fake_src, monkeypatch):
     mock_resp.status_code = 200
 
     with patch("builtins.input", return_value="y"), \
-         patch("agentbox.init_cmd.encrypt_and_upload"), \
+         patch("agentbox.init_cmd.encrypt_local", return_value=fake_src / "enc"), \
+         patch("agentbox.init_cmd.upload_via_ec2"), \
+         patch("agentbox.init_cmd.shutil.rmtree"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection"):
         result = init(str(fake_src))
@@ -116,7 +123,7 @@ def test_init_encrypt_failure(fake_proj_root, fake_src, monkeypatch):
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
     import subprocess
 
-    with patch("agentbox.init_cmd.encrypt_and_upload",
+    with patch("agentbox.init_cmd.encrypt_local",
                side_effect=subprocess.CalledProcessError(5, "sops", stderr="KMS error")):
         result = init(str(fake_src), skip_deps=True)
     assert result == 5
@@ -125,7 +132,9 @@ def test_init_encrypt_failure(fake_proj_root, fake_src, monkeypatch):
 def test_init_healthz_fail(fake_proj_root, fake_src, monkeypatch):
     monkeypatch.setattr(init_module, "get_terraform_output", lambda _: None)
 
-    with patch("agentbox.init_cmd.encrypt_and_upload"), \
+    with patch("agentbox.init_cmd.encrypt_local", return_value=fake_src / "enc"), \
+         patch("agentbox.init_cmd.upload_via_ec2"), \
+         patch("agentbox.init_cmd.shutil.rmtree"), \
          patch("agentbox.init_cmd.requests.get", side_effect=req_lib.ConnectionError("refused")):
         result = init(str(fake_src), skip_deps=True)
     assert result == 6
@@ -137,7 +146,9 @@ def test_init_tcp_fail(fake_proj_root, fake_src, monkeypatch, capsys):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
-    with patch("agentbox.init_cmd.encrypt_and_upload"), \
+    with patch("agentbox.init_cmd.encrypt_local", return_value=fake_src / "enc"), \
+         patch("agentbox.init_cmd.upload_via_ec2"), \
+         patch("agentbox.init_cmd.shutil.rmtree"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection", side_effect=OSError("refused")):
         result = init(str(fake_src), skip_deps=True)
@@ -151,7 +162,9 @@ def test_init_success(fake_proj_root, fake_src, monkeypatch, capsys):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
 
-    with patch("agentbox.init_cmd.encrypt_and_upload"), \
+    with patch("agentbox.init_cmd.encrypt_local", return_value=fake_src / "enc"), \
+         patch("agentbox.init_cmd.upload_via_ec2"), \
+         patch("agentbox.init_cmd.shutil.rmtree"), \
          patch("agentbox.init_cmd.requests.get", return_value=mock_resp), \
          patch("agentbox.init_cmd.socket.create_connection"):
         result = init(str(fake_src), skip_deps=True)

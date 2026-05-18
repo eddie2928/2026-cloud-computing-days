@@ -34,5 +34,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "terraform: requires terraform CLI in PATH",
+    "tf_plan: terraform plan verification (requires terraform CLI)",
     "aws: requires real AWS credentials",
 ]
+addopts = "-m 'not tf_plan'"
