@@ -126,8 +126,9 @@ AgentBox 인프라를 다음 6개 요구로 정합화한다.
 
 ### Phase D — EC2 upload-proxy (:8443)
 
-- [ ] **D1**: `ec2/upload_proxy/server.py` 신설. FastAPI app, 엔드포인트 `GET /healthz`, `GET /verify_cert`, `POST /upload`. server-side sops 암호화는 기존 `agentbox.encrypt.encrypt_and_upload`를 EC2 안에서 호출하는 형태로 재사용.
+- [x] **D1**: `ec2/upload_proxy/server.py` 신설. FastAPI app, 엔드포인트 `GET /healthz`, `GET /verify_cert`, `POST /upload`. server-side sops 암호화는 기존 `agentbox.encrypt.encrypt_and_upload`를 EC2 안에서 호출하는 형태로 재사용.
   - `verify`: 신규 `tests/unit/test_upload_proxy.py`(TestClient로 healthz, upload mock) 통과.
+  - 결과: 4 passed — healthz/verify_cert/upload/cert_rotate 엔드포인트 신설, 비zip 거부 포함.
 - [ ] **D2**: `infra/userdata-app.sh.tpl`에 `agentbox-upload-proxy.service` systemd unit 추가. `uvicorn --ssl-keyfile=/opt/agentbox/certs/grpc/ec2.key --ssl-certfile=/opt/agentbox/certs/grpc/ec2.crt --port 8443` 실행.
   - `verify`: `bash -n infra/userdata-app.sh.tpl` 통과 + `grep agentbox-upload-proxy infra/userdata-app.sh.tpl` 매칭.
 - [ ] **D3**: `infra/ec2.tf` app-sg에 ingress 8443 (endpoint_cidr) 추가. 평문 8000은 admin_cidr 유지(SaaS dashboard 그대로).
