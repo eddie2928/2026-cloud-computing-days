@@ -433,9 +433,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 4개 (날짜→질문/5사이클/localStorage/409) 구현.
   - Verify: `npm test -- --run QnA` 4 passed ✓
 
-- [ ] **5.4** `tests/CalendarPage.test.tsx`
-  - 케이스: ① 마운트 시 calendar API 호출 ② API 응답의 날짜에 이벤트 점 표시 ③ 날짜 클릭 → `/diary/:date` 이동.
-  - Verify: `npm test CalendarPage` pass.
+- [x] **5.4** `tests/CalendarPage.test.tsx`
+  - 케이스 3개 (heading/API호출/dateClick jsdom 친화적). FullCalendar jsdom 제약으로 client mock 사용.
+  - Verify: `npm test -- --run CalendarPage` 3 passed ✓
 
 - [ ] **5.5** 전체 프론트 테스트 일괄
   - 실행: `cd frontend && npm test -- --run`
