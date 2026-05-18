@@ -437,9 +437,9 @@ IAM Role `ec2-bedrock-role` 정책:
   - 케이스 3개 (heading/API호출/dateClick jsdom 친화적). FullCalendar jsdom 제약으로 client mock 사용.
   - Verify: `npm test -- --run CalendarPage` 3 passed ✓
 
-- [ ] **5.5** 전체 프론트 테스트 일괄
+- [x] **5.5** 전체 프론트 테스트 일괄
   - 실행: `cd frontend && npm test -- --run`
-  - Verify: 모든 테스트 pass.
+  - Verify: 3 test files, 10 tests passed, exit 0 ✓
 
 ### Phase 6 — 로컬 통합 검증 (사람 손으로 한 번 확인)
 
