@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-northeast-2"
 }
 
 variable "vpc_cidr" {
@@ -19,7 +19,7 @@ variable "public_subnet_cidrs" {
 variable "azs" {
   description = "Availability zones for subnets"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["ap-northeast-2a", "ap-northeast-2c"]
 }
 
 variable "ec2_instance_type" {
@@ -62,7 +62,7 @@ variable "session_secret" {
 variable "bedrock_model_id" {
   description = "AWS Bedrock model ID to use for AI generation"
   type        = string
-  default     = "us.anthropic.claude-sonnet-4-6"
+  default     = "global.anthropic.claude-sonnet-4-6"
 }
 
 variable "git_repo_url" {

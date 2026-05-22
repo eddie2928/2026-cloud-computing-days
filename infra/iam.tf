@@ -19,8 +19,9 @@ resource "aws_iam_role" "ec2_bedrock_role" {
 }
 
 locals {
-  # Strip regional prefix (e.g. "us.") to get the base foundation model ID
-  # e.g. "us.anthropic.claude-sonnet-4-6" -> "anthropic.claude-sonnet-4-6"
+  # Strip the prefix segment (regional like "us."/"apac."/"eu." or "global.")
+  # to get the underlying foundation model ID.
+  # e.g. "global.anthropic.claude-sonnet-4-6" -> "anthropic.claude-sonnet-4-6"
   base_model_id = replace(var.bedrock_model_id, "/^[a-z]+\\./", "")
 }
 
@@ -33,9 +34,9 @@ data "aws_iam_policy_document" "bedrock_access" {
       "bedrock:InvokeModelWithResponseStream",
     ]
     resources = [
-      # Cross-region inference profile (e.g. us.anthropic.claude-sonnet-4-6)
+      # Inference profile — cross-region (us./apac./eu.) or global. (e.g. global.anthropic.claude-sonnet-4-6)
       "arn:aws:bedrock:${var.aws_region}:*:inference-profile/${var.bedrock_model_id}",
-      # Base foundation model in all regions (required when using cross-region profiles)
+      # Base foundation model in all regions (required: profiles fan out to the underlying model in destination regions)
       "arn:aws:bedrock:*::foundation-model/${local.base_model_id}",
     ]
   }

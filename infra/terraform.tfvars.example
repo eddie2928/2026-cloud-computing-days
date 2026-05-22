@@ -20,8 +20,8 @@ session_secret = "change-me-random-secret-key-at-least-32-chars"
 # Optional: Application login password (default: inha-nxt)
 # app_password = "inha-nxt"
 
-# Optional: AWS region (default: us-east-1)
-# aws_region = "us-east-1"
+# Optional: AWS region (default: ap-northeast-2)
+# aws_region = "ap-northeast-2"
 
-# Optional: Bedrock model ID (default: us.anthropic.claude-sonnet-4-6)
-# bedrock_model_id = "us.anthropic.claude-sonnet-4-6"
+# Optional: Bedrock model ID (default: global.anthropic.claude-sonnet-4-6)
+# bedrock_model_id = "global.anthropic.claude-sonnet-4-6"
