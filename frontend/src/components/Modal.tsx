@@ -57,7 +57,7 @@ export function Modal({ open, onClose, children }: ModalProps) {
             border: 'none',
             fontSize: 20,
             cursor: 'pointer',
-            color: '#6b7280',
+            color: 'var(--ink-meta)',
             lineHeight: 1,
             padding: '4px 8px',
           }}

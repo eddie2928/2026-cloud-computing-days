@@ -20,10 +20,7 @@ export function ProtectedRoute({ children, requireProfile = true }: Props) {
   }, [isAuthed, checkAuth])
 
   useEffect(() => {
-    if (isAuthed !== true || !requireProfile) {
-      setProfileChecked(true)
-      return
-    }
+    if (isAuthed !== true || !requireProfile) return
     client.get('/profile').then(() => {
       setHasProfile(true)
       setProfileChecked(true)
@@ -37,8 +34,9 @@ export function ProtectedRoute({ children, requireProfile = true }: Props) {
 
   if (isAuthed === null) return <div>Loading...</div>
   if (!isAuthed) return <Navigate to="/login" replace />
-  if (requireProfile && !profileChecked) return <div>Loading...</div>
-  if (requireProfile && hasProfile === false) return <Navigate to="/onboarding" replace />
+  if (!requireProfile) return <>{children}</>
+  if (!profileChecked) return <div>Loading...</div>
+  if (hasProfile === false) return <Navigate to="/onboarding" replace />
 
   return <>{children}</>
 }

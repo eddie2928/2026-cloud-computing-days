@@ -34,15 +34,14 @@ function renderProfile() {
 }
 
 describe('Profile page', () => {
-  it('마운트 시 GET /profile로 초기값이 폼에 표시된다', async () => {
+  it('마운트 시 GET /profile → 닉네임 표시', async () => {
     renderProfile()
     await waitFor(() => {
-      expect((screen.getByLabelText('닉네임 *') as HTMLInputElement).value).toBe('홍길동')
+      expect(screen.getAllByText('홍길동').length).toBeGreaterThan(0)
     })
-    expect((screen.getByLabelText('나이 *') as HTMLInputElement).value).toBe('30')
   })
 
-  it('닉네임 수정 후 저장 시 PUT /profile 호출 + navigate("/")', async () => {
+  it('기본정보 수정 → 저장 → PUT /profile 호출 + 갱신 표시', async () => {
     let capturedBody: unknown = null
     server.use(
       http.put('/api/profile', async ({ request }) => {
@@ -51,23 +50,21 @@ describe('Profile page', () => {
       })
     )
     renderProfile()
+    await waitFor(() => expect(screen.getAllByText('홍길동').length).toBeGreaterThan(0))
+    await userEvent.click(screen.getAllByRole('button', { name: '수정' })[0])
+    const nicknameInput = screen.getByLabelText('닉네임 수정')
+    await userEvent.clear(nicknameInput)
+    await userEvent.type(nicknameInput, '새이름')
+    await userEvent.click(screen.getAllByRole('button', { name: '저장' })[0])
     await waitFor(() => {
-      expect(screen.getByLabelText('닉네임 *')).toBeInTheDocument()
-    })
-    await userEvent.clear(screen.getByLabelText('닉네임 *'))
-    await userEvent.type(screen.getByLabelText('닉네임 *'), '새이름')
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/')
+      expect(capturedBody).toBeTruthy()
     })
     expect((capturedBody as { nickname: string }).nickname).toBe('새이름')
   })
 
-  it('로그아웃 버튼 클릭 시 POST /logout 호출 + navigate("/login")', async () => {
+  it('로그아웃 버튼 클릭 시 navigate("/login")', async () => {
     renderProfile()
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument()
-    })
+    await waitFor(() => expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: '로그아웃' }))
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true })

@@ -28,4 +28,4 @@ frontend/dist/
 !.env.example
 !**/.env.example
 
-Task-*.md
+Task*.md
