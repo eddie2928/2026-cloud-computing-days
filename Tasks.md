@@ -216,7 +216,7 @@ frontend/src/
 
 ### Phase 2 — 프론트엔드 공용 부품
 
-- [ ] **2.1** `frontend/src/components/Spinner.tsx` 신설
+- [x] **2.1** `frontend/src/components/Spinner.tsx` 신설 — SVG 회전 스피너, size/color props, 빌드 통과
   - 24px 정도의 회전 원형 스피너. `@keyframes spin` 인라인 정의.
   - props: `size?: number` (기본 24), `color?: string` (기본 `#4f46e5`).
   - Verify: `npm run build` 통과.
