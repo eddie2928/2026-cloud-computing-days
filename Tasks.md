@@ -234,7 +234,7 @@ frontend/src/
   - finalizing 동안: textarea/전송 disabled + 입력값 클리어, "Thinking..." 말풍선 대신 중앙 박스 + Spinner.
   - Verify: `npm run build` 통과.
 
-- [ ] **3.5** localStorage `qna:{date}` 저장 로직 완전 제거
+- [x] **3.5** localStorage `qna:{date}` 저장 로직 완전 제거 — ChatSessionPanel.tsx에서 handleAnswer 재작성(3.2) 시 함께 제거. grep 결과 0건 확인. QnA.tsx는 App.tsx에서 미사용 dead code
   - `ChatSessionPanel.tsx:110-114`의 `localStorage.setItem(...)` 블록 삭제.
   - 백엔드 history가 진실의 원천이므로 클라이언트 캐시 불필요.
   - Verify: `npm run build` 통과 + `grep -r "qna:" frontend/src` 결과 0건.
