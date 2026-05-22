@@ -4,6 +4,11 @@ infra/*.tfstate*
 infra/*.tfplan
 infra/terraform.tfvars
 infra/*.pem
+# Catch-all in case terraform is run from another cwd (e.g. project root)
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform/
+**/*.tfplan
 
 # Python
 backend/.venv/
