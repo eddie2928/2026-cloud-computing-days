@@ -283,7 +283,7 @@ frontend/src/
   - (c) `finalizing=true`에서 닫기 클릭 → `onClose` 호출되지 않음 + "거의 다 됐어요" 안내 표시.
   - Verify: 3 passed.
 
-- [ ] **5.4** 프론트엔드 전체 회귀
+- [x] **5.4** 프론트엔드 전체 회귀 — 7 test files, 23 passed. npm run build 성공
   - 실행: `cd frontend && npm test -- --run && npm run build`
   - 누적 테스트: 4(Login) + 3(Home) + 5(ChatSessionPanel) + 2(DiaryDetailModal) + 3(Onboarding) + 3(Profile) + 3(ChatSessionModal) = **23 passed** (실제 기존 카운트는 `npm test` 한 번 돌려 검증).
   - 빌드 번들 크기 ±10% 이내 확인.
