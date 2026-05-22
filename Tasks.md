@@ -277,7 +277,7 @@ frontend/src/
   - (신규 b) 5번째 답변 전송 시 "당신의 일기를 만들고 있어요" 로딩 UI 노출 → `completed=true` 응답 후 사라지고 `onComplete` 호출.
   - Verify: ChatSessionPanel 테스트 5 passed.
 
-- [ ] **5.3** `frontend/tests/ChatSessionModal.test.tsx` 신설 (3 케이스)
+- [x] **5.3** `frontend/tests/ChatSessionModal.test.tsx` 신설 (3 케이스) — progress=0 즉시닫기, progress>=1 토스트, finalizing 차단 테스트. 3 passed
   - (a) `progress=0`에서 닫기 클릭 → 토스트 미노출 + `onClose` 즉시 호출.
   - (b) `progress=2`에서 닫기 클릭 → 토스트 노출 + 1.5초 후 `onClose` 호출.
   - (c) `finalizing=true`에서 닫기 클릭 → `onClose` 호출되지 않음 + "거의 다 됐어요" 안내 표시.
