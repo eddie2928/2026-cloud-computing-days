@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
-from app.models import DiaryEntry, QnAItem, QnASession
+from app.models import DiaryEntry, QnAItem, QnASession, UserProfile
 from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
@@ -19,6 +19,19 @@ _MAX_SEQUENCE = 5
 
 def _get_bedrock() -> BedrockClient:
     return BedrockClient()
+
+
+async def _get_user_profile(db: AsyncSession, user_id: int) -> dict | None:
+    result = await db.execute(select(UserProfile).where(UserProfile.user_id == user_id))
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        return None
+    return {
+        "nickname": profile.nickname,
+        "occupation": profile.occupation,
+        "hobbies": profile.hobbies,
+        "interests": profile.interests,
+    }
 
 
 async def _get_rag_items(db: AsyncSession, user_id: int, exclude_session_id: int) -> list[QnAItem]:
@@ -33,7 +46,7 @@ async def _get_rag_items(db: AsyncSession, user_id: int, exclude_session_id: int
 
 
 async def _resume_session(
-    existing: QnASession, db: AsyncSession, user_id: int
+    existing: QnASession, db: AsyncSession, user_id: int, user_profile: dict | None = None
 ) -> QnAStartResponse:
     if existing.status == "completed":
         raise HTTPException(
@@ -53,7 +66,7 @@ async def _resume_session(
     session_id = existing.id
     answered_items = [i for i in existing.items if i.answer is not None]
     rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq)
+    question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq, user_profile=user_profile)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
         await db.commit()
@@ -73,6 +86,7 @@ async def start_qna(
     user_id: int = Depends(require_session),
     db: AsyncSession = Depends(get_db),
 ):
+    user_profile = await _get_user_profile(db, user_id)
     result = await db.execute(
         select(QnASession)
         .options(selectinload(QnASession.items))
@@ -80,7 +94,7 @@ async def start_qna(
     )
     existing = result.scalar_one_or_none()
     if existing:
-        return await _resume_session(existing, db, user_id)
+        return await _resume_session(existing, db, user_id, user_profile=user_profile)
 
     # Commit session BEFORE Bedrock call to close the race window where concurrent
     # requests both see no existing session and both try to INSERT.
@@ -97,10 +111,10 @@ async def start_qna(
             .options(selectinload(QnASession.items))
             .where(QnASession.user_id == user_id, QnASession.diary_date == body.diary_date)
         )
-        return await _resume_session(result.scalar_one(), db, user_id)
+        return await _resume_session(result.scalar_one(), db, user_id, user_profile=user_profile)
 
     rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, [], 1)
+    question, meta = await _get_bedrock().generate_question(rag_items, [], 1, user_profile=user_profile)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
         await db.commit()
@@ -120,6 +134,7 @@ async def answer_qna(
     user_id: int = Depends(require_session),
     db: AsyncSession = Depends(get_db),
 ):
+    user_profile = await _get_user_profile(db, user_id)
     result = await db.execute(
         select(QnASession)
         .options(selectinload(QnASession.items))
@@ -177,7 +192,7 @@ async def answer_qna(
         from app.routers.diary import finalize_session
 
         try:
-            diary_entry = await finalize_session(session_id, db)
+            diary_entry = await finalize_session(session_id, db, user_profile=user_profile)
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -189,7 +204,7 @@ async def answer_qna(
 
     next_seq = body.sequence + 1
     rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, answered_snapshot, next_seq)
+    question, meta = await _get_bedrock().generate_question(rag_items, answered_snapshot, next_seq, user_profile=user_profile)
 
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))

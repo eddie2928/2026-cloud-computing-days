@@ -91,3 +91,22 @@ async def test_wrong_sequence_returns_400(client, bedrock_mock):
         json={"session_id": session_id, "sequence": 99, "answer": "잘못된 순서"},
     )
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
+    await _login(client)
+    await client.put(
+        "/api/profile",
+        json={"nickname": "테스트유저", "gender": "other", "age": 20, "interests": ["커리어"]},
+    )
+
+    start = await client.post("/api/qna/start", json={"diary_date": "2026-05-06"})
+    assert start.status_code == 200
+
+    call_kwargs = bedrock_mock.generate_question.call_args
+    user_profile_arg = call_kwargs.kwargs.get("user_profile") or (
+        call_kwargs.args[3] if len(call_kwargs.args) > 3 else None
+    )
+    assert user_profile_arg is not None
+    assert user_profile_arg.get("nickname") == "테스트유저"

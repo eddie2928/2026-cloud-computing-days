@@ -1,6 +1,19 @@
 import { http, HttpResponse } from 'msw'
 
 export const handlers = [
+  http.get('/api/profile', () => {
+    return HttpResponse.json({ detail: 'Profile not found' }, { status: 404 })
+  }),
+
+  http.put('/api/profile', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+
+  http.post('/api/logout', () => {
+    return HttpResponse.json({ ok: true })
+  }),
+
   http.post('/api/login', async ({ request }) => {
     const body = await request.json() as { password: string }
     if (body.password === 'inha-nxt') {
@@ -43,16 +56,33 @@ export const handlers = [
     const url = new URL(request.url)
     const month = url.searchParams.get('month')
     if (month === '2026-05') {
-      return HttpResponse.json({ dates: ['2026-05-01', '2026-05-15'] })
+      return HttpResponse.json({
+        entries: [
+          { date: '2026-05-01', emotion: 'happy' },
+          { date: '2026-05-15', emotion: 'neutral' },
+        ],
+      })
     }
-    return HttpResponse.json({ dates: [] })
+    return HttpResponse.json({ entries: [] })
   }),
 
   http.get('/api/diary/:date', ({ params }) => {
     const { date } = params
     if (date === '2026-05-01') {
-      return HttpResponse.json({ date: '2026-05-01', body: '오늘의 일기 내용입니다.' })
+      return HttpResponse.json({ date: '2026-05-01', body: '오늘의 일기 내용입니다.', emotion: 'happy' })
     }
     return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+  }),
+
+  http.patch('/api/diary/:date/emotion', async ({ params, request }) => {
+    const { date } = params
+    const body = await request.json() as { emotion: string }
+    return HttpResponse.json({ date, body: '오늘의 일기 내용입니다.', emotion: body.emotion })
+  }),
+
+  http.patch('/api/diary/:date/body', async ({ params, request }) => {
+    const { date } = params
+    const body = await request.json() as { body: string }
+    return HttpResponse.json({ date, body: body.body, emotion: 'happy' })
   }),
 ]

@@ -9,6 +9,19 @@ from app.config import get_settings
 from app.models import QnAItem
 
 
+def _build_profile_block(user_profile: dict | None) -> str:
+    if not user_profile:
+        return ""
+    parts = [f"닉네임: {user_profile.get('nickname', '')}"]
+    if user_profile.get("occupation"):
+        parts.append(f"직업: {user_profile['occupation']}")
+    if user_profile.get("interests"):
+        parts.append(f"관심사: {', '.join(user_profile['interests'])}")
+    if user_profile.get("hobbies"):
+        parts.append(f"취미: {', '.join(user_profile['hobbies'])}")
+    return "사용자 정보: " + " / ".join(parts)
+
+
 def _build_rag_block(rag_items: list[QnAItem]) -> str:
     if not rag_items:
         return "이전 일기 없음"
@@ -67,11 +80,15 @@ class BedrockClient:
         rag_items: list[QnAItem],
         session_so_far: list[QnAItem],
         next_sequence: int,
+        user_profile: dict | None = None,
     ) -> tuple[str, dict]:
+        profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_items)
         session_block = _build_session_block(session_so_far)
+        profile_line = f"{profile_block}\n" if profile_block else ""
         prompt = (
             f"당신은 사용자의 하루를 일기로 기록하는 AI입니다.\n"
+            f"{profile_line}"
             f"사용자의 과거 일기 참고:\n{rag_block}\n\n"
             f"오늘 지금까지의 대화:\n{session_block}\n\n"
             f"위 내용을 바탕으로 {next_sequence}번째 질문을 한 문장으로 작성하세요. "
@@ -86,14 +103,18 @@ class BedrockClient:
     async def generate_diary(
         self,
         qna_items: list[QnAItem],
+        user_profile: dict | None = None,
     ) -> tuple[str, dict]:
+        profile_block = _build_profile_block(user_profile)
         sorted_items = sorted(qna_items, key=lambda x: x.sequence)
         qa_text = "\n".join(
             f"Q{i.sequence}: {i.question}\nA{i.sequence}: {i.answer}" for i in sorted_items
         )
+        profile_line = f"{profile_block}\n" if profile_block else ""
         prompt = (
             f"아래 5개의 질문과 답변을 바탕으로 500자 이내의 한국어 일기를 작성하세요.\n"
-            f"자연스럽고 감성적인 문체로, 1인칭 시점으로 작성합니다.\n\n"
+            f"자연스럽고 감성적인 문체로, 1인칭 시점으로 작성합니다.\n"
+            f"{profile_line}\n"
             f"{qa_text}"
         )
         text, meta = await asyncio.to_thread(

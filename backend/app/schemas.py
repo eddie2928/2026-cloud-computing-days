@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import date, time
+from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
@@ -30,10 +31,46 @@ class QnAAnswerResponse(BaseModel):
     diary: str | None = None
 
 
+class CalendarEntry(BaseModel):
+    date: date
+    emotion: str
+
+
 class CalendarResponse(BaseModel):
-    dates: list[date]
+    entries: list[CalendarEntry]
 
 
 class DiaryResponse(BaseModel):
     date: date
     body: str
+    emotion: str
+
+
+class UserProfileIn(BaseModel):
+    nickname: str
+    gender: str = Field(..., pattern="^(male|female|other|private)$")
+    age: int = Field(..., gt=0, lt=150)
+    occupation: Optional[str] = None
+    hobbies: list[str] = []
+    interests: list[str] = []
+    notification_time: Optional[time] = None
+
+
+class UserProfileOut(BaseModel):
+    nickname: str
+    gender: str
+    age: int
+    occupation: Optional[str]
+    hobbies: list[str]
+    interests: list[str]
+    notification_time: Optional[time]
+
+    model_config = {"from_attributes": True}
+
+
+class EmotionUpdate(BaseModel):
+    emotion: str = Field(..., pattern="^(happy|sad|angry|neutral|bored)$")
+
+
+class DiaryBodyUpdate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=5000)

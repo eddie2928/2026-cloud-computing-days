@@ -9,14 +9,16 @@ from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnASession
-from app.schemas import DiaryResponse
+from app.schemas import DiaryBodyUpdate, DiaryResponse, EmotionUpdate
 
 router = APIRouter(prefix="/api/diary", tags=["diary"])
 
 
-async def finalize_session(session_id: int, db: AsyncSession) -> DiaryEntry:
-    # Re-query with fresh items so this is safe to call after a preceding commit()
-    # that would have expired the caller's session object.
+async def finalize_session(
+    session_id: int,
+    db: AsyncSession,
+    user_profile: dict | None = None,
+) -> DiaryEntry:
     result = await db.execute(
         select(QnASession)
         .options(selectinload(QnASession.items))
@@ -25,13 +27,14 @@ async def finalize_session(session_id: int, db: AsyncSession) -> DiaryEntry:
     session = result.scalar_one()
 
     client = BedrockClient()
-    diary_body, meta = await client.generate_diary(session.items)
+    diary_body, meta = await client.generate_diary(session.items, user_profile=user_profile)
 
     entry = DiaryEntry(
         session_id=session.id,
         user_id=session.user_id,
         diary_date=session.diary_date,
         body=diary_body,
+        emotion="neutral",
         bedrock_meta=meta,
     )
     db.add(entry)
@@ -56,4 +59,48 @@ async def get_diary(
     entry = result.scalar_one_or_none()
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
-    return DiaryResponse(date=entry.diary_date, body=entry.body)
+    return DiaryResponse(date=entry.diary_date, body=entry.body, emotion=entry.emotion)
+
+
+@router.patch("/{diary_date}/emotion", response_model=DiaryResponse)
+async def update_emotion(
+    diary_date: date,
+    body: EmotionUpdate,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.diary_date == diary_date,
+        )
+    )
+    entry = result.scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
+    entry.emotion = body.emotion
+    await db.commit()
+    await db.refresh(entry)
+    return DiaryResponse(date=entry.diary_date, body=entry.body, emotion=entry.emotion)
+
+
+@router.patch("/{diary_date}/body", response_model=DiaryResponse)
+async def update_body(
+    diary_date: date,
+    body: DiaryBodyUpdate,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.diary_date == diary_date,
+        )
+    )
+    entry = result.scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
+    entry.body = body.body
+    await db.commit()
+    await db.refresh(entry)
+    return DiaryResponse(date=entry.diary_date, body=entry.body, emotion=entry.emotion)

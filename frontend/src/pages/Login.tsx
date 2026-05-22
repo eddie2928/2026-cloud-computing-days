@@ -12,7 +12,17 @@ export function Login() {
     setError('')
     try {
       await client.post('/login', { password })
-      navigate('/qna')
+      try {
+        await client.get('/profile')
+        navigate('/')
+      } catch (profileErr: unknown) {
+        const profileStatus = (profileErr as { response?: { status?: number } })?.response?.status
+        if (profileStatus === 404) {
+          navigate('/onboarding')
+        } else {
+          throw profileErr
+        }
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (status === 401) {
