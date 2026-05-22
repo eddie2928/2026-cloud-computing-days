@@ -1,4 +1,5 @@
 /* days — design tokens (warm paper + gold ink + thin rules + small dots) */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @font-face {
   font-family: "Playfair Display";
@@ -21,7 +22,6 @@
   font-style: italic;
   font-display: swap;
 }
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
   --paper-bone: #fbf7ee;
