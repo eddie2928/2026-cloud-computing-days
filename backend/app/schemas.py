@@ -12,10 +12,17 @@ class QnAStartRequest(BaseModel):
     diary_date: date
 
 
+class QnAHistoryItem(BaseModel):
+    sequence: int
+    question: str
+    answer: str
+
+
 class QnAStartResponse(BaseModel):
     session_id: int
     question: str
     sequence: int
+    history: list[QnAHistoryItem] = Field(default_factory=list)
 
 
 class QnAAnswerRequest(BaseModel):
