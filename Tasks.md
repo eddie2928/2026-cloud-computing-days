@@ -239,7 +239,7 @@ frontend/src/
   - 백엔드 history가 진실의 원천이므로 클라이언트 캐시 불필요.
   - Verify: `npm run build` 통과 + `grep -r "qna:" frontend/src` 결과 0건.
 
-- [ ] **3.3** 에러 상태를 `{message, retry}` 구조로 확장 + 재시도 버튼
+- [x] **3.3** 에러 상태를 `{message, retry}` 구조로 확장 + 재시도 버튼 — ErrorState 인터페이스, submitAnswer 헬퍼로 retry closure 캡처, 409는 retry=null. 빌드 통과
   - `error: { message: string, retry: (() => void | Promise<void>) | null } | null`.
   - `/qna/start` 실패 시 retry는 start 재호출.
   - `/qna/answer` 실패 시 retry는 마지막 answer 재전송.

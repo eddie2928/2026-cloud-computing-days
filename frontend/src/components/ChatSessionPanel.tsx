@@ -4,6 +4,11 @@ import Spinner from './Spinner'
 
 type Phase = 'idle' | 'thinking' | 'finalizing'
 
+interface ErrorState {
+  message: string
+  retry: (() => void) | null
+}
+
 interface Message {
   role: 'ai' | 'user'
   text: string
@@ -58,7 +63,7 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [qnaState, setQnaState] = useState<QnAState | null>(null)
   const [answer, setAnswer] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState<ErrorState | null>(null)
   const [completed, setCompleted] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -70,48 +75,48 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
   // 마운트 시 자동으로 세션 시작
   useEffect(() => {
     let cancelled = false
-    setPhase('thinking')
-    client.post('/qna/start', { diary_date: date })
-      .then((resp) => {
-        if (cancelled) return
-        const data = resp.data
-        setQnaState({ sessionId: data.session_id, sequence: data.sequence })
-        const history: Array<{ sequence: number; question: string; answer: string }> = data.history ?? []
-        const historyMessages: Message[] = history.flatMap((h) => ([
-          { role: 'ai' as const, text: h.question, seq: h.sequence },
-          { role: 'user' as const, text: h.answer },
-        ]))
-        setMessages([...historyMessages, { role: 'ai', text: data.question, seq: data.sequence }])
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        const status = (err as { response?: { status?: number } })?.response?.status
-        if (status === 409) {
-          setError('이미 완료된 날짜입니다.')
-          setCompleted(true)
-        } else {
-          setError('오류가 발생했습니다.')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setPhase('idle')
-      })
+    const start = () => {
+      setPhase('thinking')
+      setError(null)
+      client.post('/qna/start', { diary_date: date })
+        .then((resp) => {
+          if (cancelled) return
+          const data = resp.data
+          setQnaState({ sessionId: data.session_id, sequence: data.sequence })
+          const history: Array<{ sequence: number; question: string; answer: string }> = data.history ?? []
+          const historyMessages: Message[] = history.flatMap((h) => ([
+            { role: 'ai' as const, text: h.question, seq: h.sequence },
+            { role: 'user' as const, text: h.answer },
+          ]))
+          setMessages([...historyMessages, { role: 'ai', text: data.question, seq: data.sequence }])
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return
+          const status = (err as { response?: { status?: number } })?.response?.status
+          if (status === 409) {
+            setError({ message: '이미 완료된 날짜입니다.', retry: null })
+            setCompleted(true)
+          } else {
+            setError({ message: '오류가 발생했습니다.', retry: start })
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setPhase('idle')
+        })
+    }
+    start()
     return () => { cancelled = true }
   }, [date])
 
-  const handleAnswer = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!qnaState || !answer.trim() || phase !== 'idle') return
-    setError('')
-    const submittedAnswer = answer.trim()
-    setAnswer('')
+  const submitAnswer = async (submittedAnswer: string, currentQnaState: QnAState) => {
+    setError(null)
     setMessages((prev) => [...prev, { role: 'user', text: submittedAnswer }])
-    const isFinal = qnaState.sequence >= 5
+    const isFinal = currentQnaState.sequence >= 5
     setPhase(isFinal ? 'finalizing' : 'thinking')
     try {
       const resp = await client.post('/qna/answer', {
-        session_id: qnaState.sessionId,
-        sequence: qnaState.sequence,
+        session_id: currentQnaState.sessionId,
+        sequence: currentQnaState.sequence,
         answer: submittedAnswer,
       })
       const data = resp.data
@@ -125,15 +130,26 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
           ...prev,
           { role: 'ai', text: data.next_question, seq: data.sequence },
         ])
-        setQnaState({ ...qnaState, sequence: data.sequence })
+        setQnaState({ ...currentQnaState, sequence: data.sequence })
         setPhase('idle')
       }
-    } catch {
-      setError('답변 제출 중 오류가 발생했습니다.')
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      const retryFn = status === 409 ? null : () => submitAnswer(submittedAnswer, currentQnaState)
+      const message = status === 409 ? '이미 완료된 날짜입니다.' : '답변 제출 중 오류가 발생했습니다.'
+      setError({ message, retry: retryFn })
       setMessages((prev) => prev.slice(0, -1))
       setAnswer(submittedAnswer)
       setPhase('idle')
     }
+  }
+
+  const handleAnswer = (e: FormEvent) => {
+    e.preventDefault()
+    if (!qnaState || !answer.trim() || phase !== 'idle') return
+    const submittedAnswer = answer.trim()
+    setAnswer('')
+    void submitAnswer(submittedAnswer, qnaState)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -183,7 +199,23 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
         </div>
       )}
 
-      {error && <p role="alert" style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}</p>}
+      {error && (
+        <div role="alert" style={{ marginTop: 8 }}>
+          <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error.message}</p>
+          {error.retry && (
+            <button
+              onClick={error.retry}
+              style={{
+                marginTop: 6, padding: '4px 12px', borderRadius: 6,
+                background: '#fef2f2', border: '1px solid #fca5a5',
+                color: '#dc2626', fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              재시도
+            </button>
+          )}
+        </div>
+      )}
 
       {!completed && (
         <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 12 }}>
