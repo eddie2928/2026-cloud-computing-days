@@ -1,149 +1,134 @@
-/* days — design tokens (warm paper + gold ink + thin rules + small dots) */
+/* Days — Design System tokens
+ * Soft sage green + cream paper. Cloud + leaf motif. Korean-first.
+ */
 
-@font-face {
-  font-family: "Playfair Display";
-  src:
-    url("/fonts/PlayfairDisplay-VariableFont_wght.ttf")
-      format("truetype-variations"),
-    url("/fonts/PlayfairDisplay-VariableFont_wght.ttf") format("truetype");
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Playfair Display";
-  src:
-    url("/fonts/PlayfairDisplay-Italic-VariableFont_wght.ttf")
-      format("truetype-variations"),
-    url("/fonts/PlayfairDisplay-Italic-VariableFont_wght.ttf")
-      format("truetype");
-  font-weight: 400 900;
-  font-style: italic;
-  font-display: swap;
-}
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap");
+@import './styles/days-tokens.css';
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@400;500;600;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --paper-bone: #fbf7ee;
-  --paper-cream: #f6efdf;
-  --paper-warm: #efe6d0;
-  --paper-mist: #faf8f2;
+  /* ── Sage (primary brand green) ─────────────────────────────────── */
+  --sage-ink:      #2E3B1F;
+  --sage-forest:   #475A33;
+  --sage-leaf:     #7D9D6A;
+  --sage-fern:     #A2BA8D;
+  --sage-mist:     #C8DFCA;
+  --sage-wash:     #E3F2E4;
+  --sage-cloud:    #EBEFE8;
+  --sage-paper:    #F0F4E5;
 
-  --ink-coffee: #2e2418;
-  --ink-walnut: #4f3f2c;
-  --ink-bark: #6e5a42;
-  --ink-stone: #998366;
-  --ink-soft: #c2ae8e;
+  /* ── Paper / cream ──────────────────────────────────────────────── */
+  --paper-bone:    #FCF6EC;
+  --paper-warm:    #FBF3E8;
+  --paper-mist:    #F9F6E6;
+  --paper-pure:    #FFFFFF;
+  --paper-soft:    #FDFBF5;
 
-  --gold-deep: #8a6a1f;
-  --gold: #b68c2c;
-  --gold-warm: #d5a646;
-  --gold-soft: #e8ce83;
-  --gold-glow: #f4e5b6;
-  --gold-mist: #fbf1d7;
+  /* ── Ink (text) ─────────────────────────────────────────────────── */
+  --ink-deep:      #1F2818;
+  --ink-body:      #3D4A30;
+  --ink-meta:      #6E7A5E;
+  --ink-hint:      #9BA590;
+  --ink-soft:      #C5CCB8;
 
-  --line-faint: #ece2cb;
-  --line: #ddcfb1;
-  --line-strong: #c9b68f;
-  --line-ink: #6e5a42;
+  /* ── Lines ──────────────────────────────────────────────────────── */
+  --line-faint:    #EFEEE5;
+  --line:          #DDDED0;
+  --line-strong:   #C2C8B3;
 
-  --sage: #7e8a5c;
-  --sage-soft: #dce0c6;
-  --clay: #b5573b;
-  --clay-soft: #f1d9cc;
-  --sky: #6c8aa0;
-  --sky-soft: #dde6eb;
+  /* ── Semantic ───────────────────────────────────────────────────── */
+  --accent-clay:      #B5573B;
+  --accent-clay-soft: #F3DDD2;
+  --accent-honey:     #D9A441;
+  --accent-sky:       #6C8AA0;
 
-  --bubble-ai: #f1e7cc;
-  --bubble-user: #fbf7ee;
-  --bubble-border: #e2d2a8;
+  /* ── Chat bubbles ───────────────────────────────────────────────── */
+  --bubble-user:       #7D9D6A;
+  --bubble-ai:         #FFFFFF;
+  --bubble-text-user:  #FCFCF8;
+  --bubble-text-ai:    #2E3B1F;
+  --bubble-border-ai:  rgba(31, 40, 24, 0.04);
 
-  --font-serif: "Playfair Display", "Gowun Batang", Georgia, serif;
-  --font-sans:
-    "Manrope", "Gowun Dodum", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-ko-serif: "Gowun Batang", "Playfair Display", serif;
-  --font-ko-sans: "Gowun Dodum", "Manrope", sans-serif;
+  /* ── Calendar ───────────────────────────────────────────────────── */
+  --cal-today-ring: #7D9D6A;
 
-  --t-xxs: 11px;
-  --t-xs: 12px;
-  --t-sm: 13px;
+  /* ── Decorative cloud blobs ─────────────────────────────────────── */
+  --cloud-1: #C8DFCA;
+  --cloud-2: #DCE7CC;
+  --cloud-3: #EBEFE8;
+
+  /* ── Fonts ──────────────────────────────────────────────────────── */
+  --font-sans:     "Pretendard", "Pretendard Variable", "Inter", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-display:  "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-rounded:  "Gowun Dodum", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+  --font-serif:    "Noto Serif KR", Georgia, serif;
+  --font-ko:       "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Type scale ─────────────────────────────────────────────────── */
+  --t-xxs:  11px;
+  --t-xs:   12px;
+  --t-sm:   13px;
   --t-base: 15px;
-  --t-md: 17px;
-  --t-lg: 20px;
-  --t-xl: 24px;
-  --t-2xl: 30px;
-  --t-3xl: 40px;
-  --t-4xl: 56px;
-  --t-5xl: 72px;
+  --t-md:   17px;
+  --t-lg:   20px;
+  --t-xl:   24px;
+  --t-2xl:  30px;
+  --t-3xl:  40px;
+  --t-4xl:  56px;
+  --t-5xl:  72px;
 
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
-  --s-4: 16px;
-  --s-5: 20px;
-  --s-6: 24px;
-  --s-7: 32px;
-  --s-8: 40px;
-  --s-9: 56px;
-  --s-10: 72px;
-  --s-11: 96px;
+  /* ── Spacing ────────────────────────────────────────────────────── */
+  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;  --s-5: 20px;
+  --s-6: 24px;  --s-7: 32px;  --s-8: 40px;  --s-9: 56px;  --s-10: 72px;  --s-11: 96px;
 
-  --r-1: 4px;
-  --r-2: 8px;
-  --r-3: 12px;
-  --r-4: 18px;
-  --r-5: 24px;
+  /* ── Radius ─────────────────────────────────────────────────────── */
+  --r-1: 6px;  --r-2: 10px;  --r-3: 14px;  --r-4: 18px;  --r-5: 24px;  --r-6: 32px;
   --r-pill: 999px;
 
-  --shadow-1: 0 1px 2px rgba(94, 70, 30, 0.06);
-  --shadow-2:
-    0 2px 6px rgba(94, 70, 30, 0.08), 0 1px 2px rgba(94, 70, 30, 0.04);
-  --shadow-3:
-    0 8px 20px -6px rgba(94, 70, 30, 0.14), 0 2px 4px rgba(94, 70, 30, 0.06);
-  --shadow-glow: 0 0 0 4px rgba(214, 166, 70, 0.18);
-  --shadow-press: inset 0 1px 2px rgba(94, 70, 30, 0.1);
+  /* ── Shadows (sage-tinted, not brown) ───────────────────────────── */
+  --shadow-1:    0 1px 2px rgba(54, 70, 38, 0.05);
+  --shadow-2:    0 4px 14px -6px rgba(54, 70, 38, 0.10), 0 1px 2px rgba(54, 70, 38, 0.04);
+  --shadow-3:    0 14px 32px -10px rgba(54, 70, 38, 0.16), 0 4px 8px -2px rgba(54, 70, 38, 0.06);
+  --shadow-card: 0 2px 8px -2px rgba(54, 70, 38, 0.08);
+  --shadow-press: inset 0 1px 2px rgba(54, 70, 38, 0.08);
+  --shadow-ring: 0 0 0 3px rgba(125, 157, 106, 0.22);
+  --shadow-glow: 0 0 0 4px rgba(125, 157, 106, 0.18);
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  /* ── Motion ─────────────────────────────────────────────────────── */
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
   --ease-soft: cubic-bezier(0.34, 1.16, 0.64, 1);
-  --dur-1: 140ms;
-  --dur-2: 240ms;
-  --dur-3: 380ms;
-  --dur-4: 600ms;
+  --ease-in:   cubic-bezier(0.7, 0, 0.84, 0);
+  --dur-1: 140ms;  --dur-2: 240ms;  --dur-3: 380ms;  --dur-4: 600ms;
 
-  --dot-leader: radial-gradient(
-      circle,
-      var(--line-strong) 1px,
-      transparent 1.4px
-    )
-    0 50% / 7px 7px repeat-x;
-  --grid-dots: radial-gradient(
-      circle at 1px 1px,
-      var(--line) 1px,
-      transparent 0
-    )
-    0 0 / 24px 24px;
+  /* ── Backward-compat aliases (old gold → new sage) ──────────────── */
+  --paper-cream:   var(--paper-warm);
+  --ink-coffee:    var(--ink-deep);
+  --ink-walnut:    var(--ink-body);
+  --ink-bark:      var(--ink-meta);
+  --ink-stone:     var(--ink-meta);
+  --line-ink:      var(--sage-forest);
+  --sage:          var(--sage-leaf);
+  --sage-soft:     var(--sage-mist);
+  --clay:          var(--accent-clay);
+  --clay-soft:     var(--accent-clay-soft);
+  --sky:           var(--accent-sky);
+  --sky-soft:      var(--sage-cloud);
+  --bubble-border: var(--bubble-border-ai);
+  --font-ko-serif: var(--font-serif);
+  --font-ko-sans:  var(--font-rounded);
+
+  /* ── Legacy patterns ────────────────────────────────────────────── */
+  --dot-leader: radial-gradient(circle, var(--line-strong) 1px, transparent 1.4px) 0 50% / 7px 7px repeat-x;
+  --grid-dots:  radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0 / 24px 24px;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-}
-
-html,
-body {
+/* ── Base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+html, body {
   background: var(--paper-bone);
-  color: var(--ink-coffee);
+  color: var(--ink-deep);
   font-family: var(--font-sans);
   font-size: var(--t-base);
   line-height: 1.55;
@@ -151,50 +136,49 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
+button, input, textarea, select { font-family: inherit; }
+a { color: var(--sage-forest); text-decoration: none; }
+a:hover { color: var(--sage-leaf); }
 
-a {
-  color: var(--gold-deep);
-  text-decoration: none;
+/* ── Semantic type classes ───────────────────────────────────────── */
+.t-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--t-3xl);
+  letter-spacing: -0.04em;
+  color: var(--sage-ink);
+  line-height: 1;
 }
-a:hover {
-  color: var(--gold);
-}
-
-button {
-  font-family: inherit;
-}
-
 .t-display {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: var(--t-5xl);
-  line-height: 1.04;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--t-3xl);
+  line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--ink-coffee);
+  color: var(--sage-ink);
 }
 .t-h1 {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: var(--t-3xl);
-  line-height: 1.1;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--t-2xl);
+  line-height: 1.25;
   letter-spacing: -0.015em;
-  color: var(--ink-coffee);
+  color: var(--sage-ink);
 }
 .t-h2 {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: var(--t-2xl);
-  line-height: 1.15;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--t-xl);
+  line-height: 1.3;
   letter-spacing: -0.01em;
-  color: var(--ink-coffee);
+  color: var(--sage-forest);
 }
 .t-h3 {
   font-family: var(--font-sans);
   font-weight: 600;
-  font-size: var(--t-lg);
-  line-height: 1.25;
-  letter-spacing: -0.005em;
-  color: var(--ink-walnut);
+  font-size: var(--t-md);
+  line-height: 1.4;
+  color: var(--sage-forest);
 }
 .t-eyebrow {
   font-family: var(--font-sans);
@@ -203,146 +187,111 @@ button {
   line-height: 1;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold-deep);
+  color: var(--sage-forest);
 }
 .t-body {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--t-base);
-  line-height: 1.6;
-  color: var(--ink-coffee);
+  line-height: 1.65;
+  color: var(--ink-body);
 }
 .t-body-serif {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--t-md);
-  line-height: 1.75;
-  color: var(--ink-walnut);
+  line-height: 1.85;
+  color: var(--sage-ink);
 }
-.t-meta {
+.t-label {
   font-family: var(--font-sans);
   font-weight: 500;
   font-size: var(--t-sm);
-  color: var(--ink-bark);
+  color: var(--ink-body);
+  letter-spacing: -0.005em;
+}
+.t-meta {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--t-sm);
+  color: var(--ink-meta);
 }
 .t-caption {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--t-xs);
-  color: var(--ink-stone);
+  color: var(--ink-meta);
 }
 .t-mono {
   font-family: var(--font-mono);
-  font-weight: 400;
+  font-weight: 500;
   font-size: var(--t-sm);
   letter-spacing: -0.01em;
-  color: var(--ink-walnut);
+  color: var(--ink-body);
+}
+.t-required { color: var(--accent-clay); font-weight: 500; }
+
+/* ── Helpers · backgrounds ───────────────────────────────────────── */
+.bg-cream    { background: var(--paper-bone); }
+.bg-sage     { background: var(--sage-paper); }
+.bg-gradient {
+  background:
+    radial-gradient(ellipse 800px 600px at 80% 110%, var(--sage-wash) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 500px at 10% -10%, #F6F0E3 0%, transparent 55%),
+    var(--paper-bone);
+}
+.bg-clouds {
+  position: relative;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 18%),
+    radial-gradient(ellipse 480px 320px at 18% 78%, var(--cloud-1) 0%, transparent 55%),
+    radial-gradient(ellipse 360px 260px at 88% 88%, var(--cloud-2) 0%, transparent 55%),
+    radial-gradient(ellipse 280px 220px at 12% 28%, var(--cloud-3) 0%, transparent 55%),
+    linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-wash) 100%);
+}
+.screen {
+  position: relative;
+  border-radius: var(--r-6);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 320px 240px at 100% 0%, #FFFFFF 0%, transparent 60%),
+    radial-gradient(ellipse 220px 200px at 0% 100%, var(--sage-mist) 0%, transparent 60%),
+    linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-paper) 100%);
 }
 
-.hr-dots {
-  height: 7px;
-  background: var(--dot-leader);
-  border: 0;
-}
-.hr-line {
-  height: 1px;
-  background: var(--line);
-  border: 0;
-}
+/* ── Utility ─────────────────────────────────────────────────────── */
+.hr-dots { height: 7px; background: var(--dot-leader); border: 0; }
+.hr-line  { height: 1px; background: var(--line); border: 0; }
 
-@keyframes days-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes days-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes days-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes days-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes days-dot-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.18);
-  }
-}
+/* ── Keyframes ───────────────────────────────────────────────────── */
+@keyframes days-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes days-rise     { from { opacity: 0; transform: translateY(8px); }
+                           to   { opacity: 1; transform: none; } }
+@keyframes days-pop      { 0%   { opacity: 0; transform: scale(0.92); }
+                           60%  { opacity: 1; transform: scale(1.02); }
+                           100% { opacity: 1; transform: scale(1); } }
+@keyframes days-slide-in { from { opacity: 0; transform: translateX(-8px); }
+                           to   { opacity: 1; transform: none; } }
+@keyframes days-drift    { 0%, 100% { transform: translate(0, 0); }
+                           50%      { transform: translate(8px, -6px); } }
+@keyframes days-dot-pulse { 0%, 100% { opacity: 0.45; transform: scale(1); }
+                            50%      { opacity: 1;    transform: scale(1.18); } }
+@keyframes days-thinking  { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); }
+                            40%           { opacity: 1;   transform: scale(1.1); } }
 @keyframes days-daisy-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  20% {
-    transform: rotate(70deg);
-  }
-  40% {
-    transform: rotate(155deg);
-  }
-  50% {
-    transform: rotate(170deg);
-  }
-  60% {
-    transform: rotate(195deg);
-  }
-  80% {
-    transform: rotate(285deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0%   { transform: rotate(0deg);   }
+  20%  { transform: rotate(70deg);  }
+  40%  { transform: rotate(155deg); }
+  50%  { transform: rotate(170deg); }
+  60%  { transform: rotate(195deg); }
+  80%  { transform: rotate(285deg); }
+  100% { transform: rotate(360deg); }
 }
 @keyframes home-ring-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.04);
-    opacity: 0.65;
-  }
+  0%, 100% { transform: scale(1);    opacity: 0.5; }
+  50%       { transform: scale(1.04); opacity: 0.65; }
 }
 @keyframes home-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
+  0%, 100% { transform: translateY(0);   }
+  50%       { transform: translateY(-6px); }
 }

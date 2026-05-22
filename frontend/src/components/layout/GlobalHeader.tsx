@@ -1,0 +1,82 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import client from '../../api/client'
+import { Logo } from '../days/Logo'
+import { Icon } from '../days/Icon'
+
+export function GlobalHeader() {
+  const navigate = useNavigate()
+  const [nickname, setNickname] = useState('')
+
+  useEffect(() => {
+    client
+      .get('/profile')
+      .then((res) => {
+        setNickname(res.data?.nickname ?? '')
+      })
+      .catch(() => {
+        setNickname('')
+      })
+  }, [])
+
+  return (
+    <header
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: 480,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 16px',
+        minHeight: 52,
+        zIndex: 90,
+        background: 'transparent',
+        pointerEvents: 'none',
+      }}
+    >
+      <button
+        type="button"
+        aria-label="홈으로"
+        onClick={() => navigate('/hub')}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          pointerEvents: 'auto',
+        }}
+      >
+        <Logo size={24} />
+      </button>
+
+      <button
+        type="button"
+        aria-label="프로필"
+        onClick={() => navigate('/profile')}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'var(--paper-pure)',
+          border: '1px solid var(--line-faint)',
+          borderRadius: 999,
+          padding: '6px 12px',
+          cursor: 'pointer',
+          color: 'var(--ink-deep)',
+          font: '500 13px/1 var(--font-sans)',
+          boxShadow: 'var(--shadow-1)',
+          pointerEvents: 'auto',
+        }}
+      >
+        {nickname && <span>{nickname}</span>}
+        <Icon name="user" size={18} color="var(--sage-forest)" />
+      </button>
+    </header>
+  )
+}

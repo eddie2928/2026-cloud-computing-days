@@ -29,7 +29,7 @@ export const handlers = [
   }),
 
   http.post('/api/qna/start', async ({ request }) => {
-    const body = await request.json() as { diary_date: string }
+    await request.json()
     return HttpResponse.json({
       session_id: 1,
       question: '오늘 가장 기억에 남는 일은 무엇인가요?',
