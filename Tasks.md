@@ -254,7 +254,7 @@ frontend/src/
 
 ### Phase 4 — ChatSessionModal 닫기 가드
 
-- [ ] **4.1** `ChatSessionModal.tsx`에 progress 추적 + 토스트 안내 추가
+- [x] **4.1** `ChatSessionModal.tsx`에 progress 추적 + 토스트 안내 추가 — finalizing 중 닫기 차단+안내, progress>=1 첫 닫기 1.5초 토스트 후 onClose, ESC/백드롭도 동일 가드. 빌드 통과
   - 내부 state: `progress: number` (기본 0), `noticeShown: boolean`, `finalizing: boolean` (Panel에서 콜백으로 받음).
   - `<ChatSessionPanel onProgressChange={setProgress} onFinalizingChange={setFinalizing} />`.
   - 닫기 요청 시:
