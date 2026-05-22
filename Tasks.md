@@ -210,7 +210,7 @@ frontend/src/
   - resume 경로: `existing.items` 중 `answer is not None`인 항목을 `sequence` 오름차순 정렬해 `QnAHistoryItem` 리스트로 매핑.
   - Verify: 기존 `tests/integration/test_qna.py` 회귀 0 fail (`pytest tests/integration/test_qna.py -v`).
 
-- [ ] **1.3** `tests/integration/test_qna.py`에 history 복원 케이스 1개 추가
+- [x] **1.3** `tests/integration/test_qna.py`에 history 복원 케이스 1개 추가 — `test_start_returns_history_on_resume` 추가, 백엔드 전체 35 passed
   - 시나리오: start → 1번 answer → start 재호출 → 응답의 `history`가 1개(seq=1) 포함되고 `sequence`는 2를 가리킴.
   - Verify: 새 케이스 1 passed, 백엔드 전체 회귀 `pytest -v --tb=short` → **35 passed** (34 + 1).
 

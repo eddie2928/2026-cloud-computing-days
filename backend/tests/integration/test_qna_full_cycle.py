@@ -94,6 +94,29 @@ async def test_wrong_sequence_returns_400(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
+async def test_start_returns_history_on_resume(client, bedrock_mock):
+    await _login(client)
+    start = await client.post("/api/qna/start", json={"diary_date": "2026-05-07"})
+    assert start.status_code == 200
+    data = start.json()
+    session_id = data["session_id"]
+    seq = data["sequence"]
+
+    await client.post(
+        "/api/qna/answer",
+        json={"session_id": session_id, "sequence": seq, "answer": "첫 번째 답변"},
+    )
+
+    resume = await client.post("/api/qna/start", json={"diary_date": "2026-05-07"})
+    assert resume.status_code == 200
+    resume_data = resume.json()
+    assert resume_data["sequence"] == 2
+    assert len(resume_data["history"]) == 1
+    assert resume_data["history"][0]["sequence"] == 1
+    assert resume_data["history"][0]["answer"] == "첫 번째 답변"
+
+
+@pytest.mark.asyncio
 async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
     await _login(client)
     await client.put(
