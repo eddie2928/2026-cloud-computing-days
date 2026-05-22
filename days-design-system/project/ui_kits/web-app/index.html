@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>days · web app · UI kit</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/logo-mark.svg"/>
+  <link rel="stylesheet" href="../../colors_and_type.css"/>
+  <style>
+    html, body, #root { height: 100%; margin: 0; }
+    body { background: var(--paper-bone); color: var(--ink-coffee); font-family: var(--font-sans); }
+    *, *::before, *::after { box-sizing: border-box; }
+    /* hide focus-ring on mouse but keep on keyboard */
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+    button:focus:not(:focus-visible),
+    input:focus:not(:focus-visible),
+    textarea:focus:not(:focus-visible) { outline: none; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="Logo.jsx" data-presets="react"></script>
+  <script type="text/babel" src="Primitives.jsx" data-presets="react"></script>
+  <script type="text/babel" src="Sidebar.jsx" data-presets="react"></script>
+  <script type="text/babel" src="ChatBubble.jsx" data-presets="react"></script>
+  <script type="text/babel" src="CalendarMonth.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/Login.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/Today.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/QnAChat.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/DiaryDone.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/CalendarPage.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/DiaryView.jsx" data-presets="react"></script>
+  <script type="text/babel" src="screens/Profile.jsx" data-presets="react"></script>
+  <script type="text/babel" src="app.jsx" data-presets="react"></script>
+</body>
+</html>

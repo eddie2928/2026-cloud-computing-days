@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="card.css"></head>
+<body><div class="card">
+  <div class="label">components · sidebar nav</div>
+  <style>
+    .sb { width:220px; background:var(--paper-cream); border:1px solid var(--line); border-radius:18px; padding:16px 10px; display:flex; flex-direction:column; gap:4px;}
+    .sb .brand { padding: 4px 8px 10px; border-bottom: 1px solid var(--line-faint); margin-bottom:8px;}
+    .sb .item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; font:500 14px/1 var(--font-sans); color:var(--ink-bark); cursor:pointer; transition: background var(--dur-1);}
+    .sb .item:hover { background:var(--paper-mist);}
+    .sb .item.active { background: var(--gold-mist); color: var(--ink-coffee);}
+    .sb .item.active::before { content:""; width:4px; height:4px; border-radius:999px; background: var(--gold-warm); margin-left:-6px; margin-right:2px;}
+    .sb svg { color: var(--ink-walnut);}
+    .sb .item.active svg { color: var(--gold-deep);}
+  </style>
+  <div style="display:flex; gap:20px; align-items:flex-start;">
+    <div class="sb">
+      <div class="brand"><img src="../assets/logo.svg" alt="days" style="height:50px;"/></div>
+      <div class="item active"><img src="../assets/icons/pencil.svg" width="18" height="18"/>오늘 쓰기</div>
+      <div class="item"><img src="../assets/icons/calendar.svg" width="18" height="18"/>캘린더</div>
+      <div class="item"><img src="../assets/icons/user.svg" width="18" height="18"/>프로필</div>
+    </div>
+    <div class="meta" style="flex:1; padding-top:8px;">active item: gold-mist bg, small gold dot indicator, icon recolored gold-deep. resting: ink-bark.</div>
+  </div>
+</div></body></html>

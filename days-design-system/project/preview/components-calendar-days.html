@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="card.css"></head>
+<body><div class="card">
+  <div class="label">components · calendar day states</div>
+  <style>
+    .cal { display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+    .day { aspect-ratio: 1; background:var(--paper-mist); border:1px solid var(--line-faint); border-radius:10px; display:flex; flex-direction:column; align-items:flex-start; padding:8px 9px; gap:4px; font:500 12px/1 var(--font-mono); color:var(--ink-bark); position:relative;}
+    .day .num{}
+    .day .dot{ width:8px; height:8px; background:var(--gold-warm); border-radius:999px; box-shadow: 0 1px 2px rgba(94,70,30,0.18);}
+    .day-empty { color:var(--ink-soft); background:transparent; border-style:dashed;}
+    .day-today { border-color: var(--gold); background: var(--gold-mist); color: var(--ink-coffee);}
+    .day-saved .num { color: var(--ink-coffee); }
+    .day-saved .dot { animation: days-pop 500ms var(--ease-soft) both;}
+    .day-streak { background: var(--gold-glow); border-color: var(--gold-soft);}
+  </style>
+  <div class="cal">
+    <div class="day day-empty"><span class="num">18</span></div>
+    <div class="day day-saved"><span class="num">19</span><span class="dot"></span></div>
+    <div class="day day-saved"><span class="num">20</span><span class="dot"></span></div>
+    <div class="day day-streak day-saved"><span class="num">21</span><span class="dot"></span></div>
+    <div class="day day-today"><span class="num">22</span></div>
+    <div class="day"><span class="num">23</span></div>
+    <div class="day"><span class="num">24</span></div>
+  </div>
+  <div class="meta">empty (dashed) · saved (cream + gold dot) · streak (gold-glow bg) · today (gold border + mist bg)</div>
+</div></body></html>

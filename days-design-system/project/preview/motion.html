@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="card.css"></head>
+<body><div class="card">
+  <div class="label">motion · keyframes</div>
+  <style>
+    .anim-row { display:flex; align-items:center; gap:16px; padding:10px 0; border-bottom:1px solid var(--line-faint);}
+    .anim-row:last-child{border-bottom:0;}
+    .anim-name { font:500 12px/1.2 var(--font-mono); color:var(--ink-walnut); width: 130px; }
+    .anim-meta { font:400 11px/1.4 var(--font-sans); color:var(--ink-stone); flex:1;}
+    .demo { width:54px; height:32px; background:var(--gold-warm); border-radius:8px; display:flex; align-items:center; justify-content:center; color:white; font:500 11px/1 var(--font-sans);}
+    .reset:hover .demo-fade  { animation: days-fade-in 600ms var(--ease-out) both; }
+    .reset:hover .demo-rise  { animation: days-rise 500ms var(--ease-out) both; }
+    .reset:hover .demo-pop   { animation: days-pop 500ms var(--ease-soft) both; }
+    .reset:hover .demo-slide { animation: days-slide-in 500ms var(--ease-out) both; }
+    .demo-fade { animation: days-fade-in 600ms var(--ease-out) both; }
+    .demo-rise { animation: days-rise 500ms var(--ease-out) both; }
+    .demo-pop  { animation: days-pop 500ms var(--ease-soft) both; }
+    .demo-slide { animation: days-slide-in 500ms var(--ease-out) both; }
+  </style>
+  <div class="reset" onmouseleave="this.style.animation=''">
+    <div class="anim-row"><span class="anim-name">days-fade-in</span><div class="demo demo-fade">fade</div><span class="anim-meta">240ms · ease-out · used for hover, micro state changes</span></div>
+    <div class="anim-row"><span class="anim-name">days-rise</span><div class="demo demo-rise">rise</div><span class="anim-meta">380ms · ease-out · cards, list items, chat bubbles</span></div>
+    <div class="anim-row"><span class="anim-name">days-pop</span><div class="demo demo-pop">pop</div><span class="anim-meta">500ms · ease-soft (1.16 overshoot) · today-dot, completed checks</span></div>
+    <div class="anim-row"><span class="anim-name">days-slide-in</span><div class="demo demo-slide">slide</div><span class="anim-meta">380ms · ease-out · sidebar reveal, drawer panels</span></div>
+  </div>
+</div></body></html>

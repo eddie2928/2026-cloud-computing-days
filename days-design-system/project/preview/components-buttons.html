@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="card.css"></head>
+<body><div class="card">
+  <div class="label">components · buttons</div>
+  <style>
+    .btn { font:600 15px/1 var(--font-sans); border:0; cursor:pointer; transition: background var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out); letter-spacing:-0.005em;}
+    .btn-pri { background:linear-gradient(180deg, var(--gold-warm), var(--gold)); color:#fff; padding:8px 14px 6px; border-radius:999px; box-shadow: 0 2px 6px rgba(94,70,30,0.10);}
+    .btn-pri:hover { background:linear-gradient(180deg, var(--gold), var(--gold-deep));}
+    .btn-pri:active { transform: scale(0.98); box-shadow: inset 0 1px 2px rgba(94,70,30,0.16);}
+    .btn-sec { background:var(--paper-cream); color:var(--ink-walnut); padding:8px 12px 6px; border-radius:12px; border:1px solid var(--line);}
+    .btn-sec:hover { background:var(--paper-mist); border-color: var(--line-strong);}
+    .btn-ghost { background:transparent; color:var(--gold-deep); padding:8px 10px 6px; border-radius:12px;}
+    .btn-ghost:hover { background:var(--gold-mist);}
+    .btn-disabled { background:var(--paper-warm); color:var(--ink-soft); padding:8px 14px 6px; border-radius:999px; cursor:not-allowed; opacity:0.65;}
+  </style>
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <button class="btn btn-pri">시작 <span style="opacity:0.7">→</span></button>
+    <button class="btn btn-sec">취소</button>
+    <button class="btn btn-ghost">또 보기</button>
+    <button class="btn btn-disabled" disabled>이미 완료됨</button>
+  </div>
+  <div class="meta">600 weight · 15px · tight padding · primary: pill, gold gradient · secondary: cream + line · ghost: gold-deep on gold-mist · disabled: opacity .65</div>
+</div></body></html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="card.css"></head>
+<body><div class="card">
+  <div class="label">components · card surface</div>
+  <style>
+    .cta { font:600 15px/1 var(--font-sans); letter-spacing:-0.005em; border:0; cursor:pointer;
+      background:linear-gradient(180deg, var(--gold-warm), var(--gold)); color:#fff;
+      padding:8px 16px 6px; border-radius:999px; box-shadow: 0 2px 6px rgba(94,70,30,0.10);
+      transition: transform 120ms var(--ease-out), box-shadow 120ms var(--ease-out), background 140ms var(--ease-out);}
+    .cta:hover { background:linear-gradient(180deg, var(--gold), var(--gold-deep));}
+    .cta:active { transform: scale(0.96) translateY(1px); box-shadow: inset 0 1px 2px rgba(94,70,30,0.20), 0 0 0 0 transparent;}
+  </style>
+  <div style="background:var(--paper-cream); border:1px solid var(--line); border-radius:18px; padding:24px; box-shadow: 0 2px 6px rgba(94,70,30,0.08), 0 1px 2px rgba(94,70,30,0.04); display:flex; flex-direction:column; gap:8px;">
+    <div style="font:500 11px/1 var(--font-sans); letter-spacing:0.16em; text-transform:uppercase; color:var(--gold-deep);">2026 · 5월 22일</div>
+    <div style="font: 400 28px/1.15 var(--font-serif); color: var(--ink-coffee); letter-spacing:-0.01em;">오늘의 다섯 가지</div>
+    <hr class="hr-line" style="margin: 4px 0; border:0; height:1px; background:var(--line-faint)"/>
+    <div style="font:400 15px/1.6 var(--font-sans); color:var(--ink-bark);">
+      AI가 다섯 가지 질문을 던질 거예요. 부담 없이 떠오르는 대로 답해주세요. 3분이면 충분합니다.
+    </div>
+    <div style="display:flex; justify-content:flex-start; padding-top:6px;">
+      <button class="cta" type="button">시작</button>
+    </div>
+  </div>
+  <div class="meta">cream surface · 1px line border · 18px radius · shadow-2 · 24px padding · button presses on :active (scale 0.96 + inset shadow)</div>
+</div></body></html>
