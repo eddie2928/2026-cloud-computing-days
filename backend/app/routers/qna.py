@@ -10,7 +10,7 @@ from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile
-from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAStartRequest, QnAStartResponse
+from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
 
@@ -53,18 +53,23 @@ async def _resume_session(
             status_code=status.HTTP_409_CONFLICT,
             detail="Diary already completed for this date",
         )
+    answered_items = sorted(
+        [i for i in existing.items if i.answer is not None], key=lambda x: x.sequence
+    )
+    history = [
+        QnAHistoryItem(sequence=i.sequence, question=i.question, answer=i.answer)
+        for i in answered_items
+    ]
     unanswered = sorted(
         [i for i in existing.items if i.answer is None], key=lambda x: x.sequence
     )
     if unanswered:
         first = unanswered[0]
         return QnAStartResponse(
-            session_id=existing.id, question=first.question, sequence=first.sequence
+            session_id=existing.id, question=first.question, sequence=first.sequence, history=history
         )
-    answered_seqs = {i.sequence for i in existing.items if i.answer is not None}
-    next_seq = max(answered_seqs, default=0) + 1
+    next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
-    answered_items = [i for i in existing.items if i.answer is not None]
     rag_items = await _get_rag_items(db, user_id, session_id)
     question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq, user_profile=user_profile)
     try:
@@ -77,7 +82,7 @@ async def _resume_session(
         )
         ei = res.scalar_one()
         question, next_seq = ei.question, ei.sequence
-    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq)
+    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq, history=history)
 
 
 @router.post("/start", response_model=QnAStartResponse)

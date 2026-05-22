@@ -205,7 +205,7 @@ frontend/src/
   - `QnAStartResponse.history: list[QnAHistoryItem] = Field(default_factory=list)`.
   - Verify: `python -c "from app.schemas import QnAStartResponse; QnAStartResponse(session_id=1, question='q', sequence=1)"` 에러 없음.
 
-- [ ] **1.2** `backend/app/routers/qna.py`의 `start_qna` / `_resume_session` 갱신
+- [x] **1.2** `backend/app/routers/qna.py`의 `start_qna` / `_resume_session` 갱신 — resume 시 answered items를 QnAHistoryItem으로 빌드, 신규 세션은 history=[] 기본값. 기존 6 테스트 모두 통과
   - 신규 세션 생성 경로: `history=[]` (기본값).
   - resume 경로: `existing.items` 중 `answer is not None`인 항목을 `sequence` 오름차순 정렬해 `QnAHistoryItem` 리스트로 매핑.
   - Verify: 기존 `tests/integration/test_qna.py` 회귀 0 fail (`pytest tests/integration/test_qna.py -v`).
