@@ -267,7 +267,7 @@ frontend/src/
 
 ### Phase 5 — 테스트 갱신 및 신설
 
-- [ ] **5.1** `frontend/tests/handlers.ts`에 history 핸들러 베이스 갱신
+- [x] **5.1** `frontend/tests/handlers.ts`에 history 핸들러 베이스 갱신 — /qna/start 응답에 history:[] 추가, 기존 18 passed 회귀 없음
   - 기본 `/qna/start` 응답에 `history: []` 추가 (안전한 디폴트).
   - Verify: 기존 테스트 회귀 0 fail.
 

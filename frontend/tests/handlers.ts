@@ -34,6 +34,7 @@ export const handlers = [
       session_id: 1,
       question: '오늘 가장 기억에 남는 일은 무엇인가요?',
       sequence: 1,
+      history: [],
     })
   }),
 
