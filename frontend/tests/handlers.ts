@@ -1,6 +1,19 @@
 import { http, HttpResponse } from 'msw'
 
 export const handlers = [
+  http.get('/api/profile', () => {
+    return HttpResponse.json({ detail: 'Profile not found' }, { status: 404 })
+  }),
+
+  http.put('/api/profile', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+
+  http.post('/api/logout', () => {
+    return HttpResponse.json({ ok: true })
+  }),
+
   http.post('/api/login', async ({ request }) => {
     const body = await request.json() as { password: string }
     if (body.password === 'inha-nxt') {
@@ -59,5 +72,17 @@ export const handlers = [
       return HttpResponse.json({ date: '2026-05-01', body: '오늘의 일기 내용입니다.', emotion: 'happy' })
     }
     return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+  }),
+
+  http.patch('/api/diary/:date/emotion', async ({ params, request }) => {
+    const { date } = params
+    const body = await request.json() as { emotion: string }
+    return HttpResponse.json({ date, body: '오늘의 일기 내용입니다.', emotion: body.emotion })
+  }),
+
+  http.patch('/api/diary/:date/body', async ({ params, request }) => {
+    const { date } = params
+    const body = await request.json() as { body: string }
+    return HttpResponse.json({ date, body: body.body, emotion: 'happy' })
   }),
 ]

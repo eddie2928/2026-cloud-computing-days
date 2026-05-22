@@ -21,11 +21,23 @@ function renderLogin() {
 }
 
 describe('Login page', () => {
-  it('correct password navigates to /qna', async () => {
+  it('로그인 성공 + GET /profile 404 → /onboarding으로 이동', async () => {
     renderLogin()
     await userEvent.type(screen.getByLabelText('비밀번호'), 'inha-nxt')
     await userEvent.click(screen.getByRole('button', { name: '로그인' }))
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/qna'))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/onboarding'))
+  })
+
+  it('로그인 성공 + GET /profile 200 → /으로 이동', async () => {
+    server.use(
+      http.get('/api/profile', () =>
+        HttpResponse.json({ nickname: '홍길동', gender: 'male', age: 30, hobbies: [], interests: [] })
+      )
+    )
+    renderLogin()
+    await userEvent.type(screen.getByLabelText('비밀번호'), 'inha-nxt')
+    await userEvent.click(screen.getByRole('button', { name: '로그인' }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'))
   })
 
   it('wrong password shows error message', async () => {

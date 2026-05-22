@@ -9,7 +9,7 @@ from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnASession
-from app.schemas import DiaryResponse, EmotionUpdate
+from app.schemas import DiaryBodyUpdate, DiaryResponse, EmotionUpdate
 
 router = APIRouter(prefix="/api/diary", tags=["diary"])
 
@@ -79,6 +79,28 @@ async def update_emotion(
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
     entry.emotion = body.emotion
+    await db.commit()
+    await db.refresh(entry)
+    return DiaryResponse(date=entry.diary_date, body=entry.body, emotion=entry.emotion)
+
+
+@router.patch("/{diary_date}/body", response_model=DiaryResponse)
+async def update_body(
+    diary_date: date,
+    body: DiaryBodyUpdate,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.diary_date == diary_date,
+        )
+    )
+    entry = result.scalar_one_or_none()
+    if entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
+    entry.body = body.body
     await db.commit()
     await db.refresh(entry)
     return DiaryResponse(date=entry.diary_date, body=entry.body, emotion=entry.emotion)

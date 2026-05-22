@@ -70,3 +70,7 @@ class UserProfileOut(BaseModel):
 
 class EmotionUpdate(BaseModel):
     emotion: str = Field(..., pattern="^(happy|sad|angry|neutral|bored)$")
+
+
+class DiaryBodyUpdate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=5000)
