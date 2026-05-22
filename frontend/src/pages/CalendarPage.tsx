@@ -16,7 +16,8 @@ export function CalendarPage() {
     const month = `${mid.getFullYear()}-${String(mid.getMonth() + 1).padStart(2, '0')}`
     try {
       const resp = await client.get('/calendar', { params: { month } })
-      const dates: string[] = resp.data.dates
+      // TODO Task-3: render emotion emoji per entry
+      const dates: string[] = resp.data.entries.map((e: { date: string; emotion: string }) => e.date)
       setEvents(dates.map((d) => ({ id: d, title: '일기 확인', start: d, allDay: true })))
     } catch {
       // ignore

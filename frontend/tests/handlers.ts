@@ -43,15 +43,20 @@ export const handlers = [
     const url = new URL(request.url)
     const month = url.searchParams.get('month')
     if (month === '2026-05') {
-      return HttpResponse.json({ dates: ['2026-05-01', '2026-05-15'] })
+      return HttpResponse.json({
+        entries: [
+          { date: '2026-05-01', emotion: 'happy' },
+          { date: '2026-05-15', emotion: 'neutral' },
+        ],
+      })
     }
-    return HttpResponse.json({ dates: [] })
+    return HttpResponse.json({ entries: [] })
   }),
 
   http.get('/api/diary/:date', ({ params }) => {
     const { date } = params
     if (date === '2026-05-01') {
-      return HttpResponse.json({ date: '2026-05-01', body: '오늘의 일기 내용입니다.' })
+      return HttpResponse.json({ date: '2026-05-01', body: '오늘의 일기 내용입니다.', emotion: 'happy' })
     }
     return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
   }),

@@ -32,6 +32,7 @@ async def test_get_diary_after_completion(client, bedrock_mock):
     data = resp.json()
     assert data["body"]
     assert data["date"] == "2026-06-01"
+    assert data["emotion"] == "neutral"
 
 
 @pytest.mark.asyncio
@@ -48,8 +49,11 @@ async def test_calendar_includes_completed_date(client, bedrock_mock):
 
     resp = await client.get("/api/calendar", params={"month": "2026-07"})
     assert resp.status_code == 200
-    dates = resp.json()["dates"]
+    entries = resp.json()["entries"]
+    dates = [e["date"] for e in entries]
     assert "2026-07-15" in dates
+    entry = next(e for e in entries if e["date"] == "2026-07-15")
+    assert entry["emotion"] == "neutral"
 
 
 @pytest.mark.asyncio
@@ -59,5 +63,6 @@ async def test_calendar_excludes_other_month(client, bedrock_mock):
 
     resp = await client.get("/api/calendar", params={"month": "2026-07"})
     assert resp.status_code == 200
-    dates = resp.json()["dates"]
+    entries = resp.json()["entries"]
+    dates = [e["date"] for e in entries]
     assert "2026-08-20" not in dates

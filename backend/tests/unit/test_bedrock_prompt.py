@@ -54,3 +54,21 @@ def test_session_partial_includes_only_answered():
     assert "A1" in result
     assert "A2" in result
     assert "Q3" not in result or "A3" not in result
+
+
+def test_profile_block_with_profile():
+    from app.bedrock import _build_profile_block
+
+    profile = {"nickname": "수진", "occupation": "개발자", "interests": ["커리어", "건강"], "hobbies": ["독서"]}
+    result = _build_profile_block(profile)
+    assert "수진" in result
+    assert "개발자" in result
+    assert "커리어" in result
+    assert "독서" in result
+
+
+def test_profile_block_without_profile():
+    from app.bedrock import _build_profile_block
+
+    result = _build_profile_block(None)
+    assert result == ""

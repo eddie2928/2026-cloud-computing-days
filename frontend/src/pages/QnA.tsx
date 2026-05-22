@@ -155,6 +155,7 @@ export function QnA() {
         <form onSubmit={handleStart}>
           <input
             type="date"
+            aria-label="날짜 선택"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required

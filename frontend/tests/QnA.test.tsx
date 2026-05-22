@@ -36,7 +36,7 @@ describe('QnA page', () => {
     for (let i = 1; i <= 5; i++) {
       await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
       await userEvent.type(screen.getByRole('textbox'), `답변 ${i}`)
-      await userEvent.click(screen.getByRole('button', { name: '제출' }))
+      await userEvent.click(screen.getByRole('button', { name: '전송' }))
     }
 
     await waitFor(() => {
@@ -51,7 +51,7 @@ describe('QnA page', () => {
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
     await userEvent.type(screen.getByRole('textbox'), '첫 답변')
-    await userEvent.click(screen.getByRole('button', { name: '제출' }))
+    await userEvent.click(screen.getByRole('button', { name: '전송' }))
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('qna:2026-05-12') || '[]')

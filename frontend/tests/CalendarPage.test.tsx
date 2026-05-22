@@ -12,7 +12,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 vi.mock('../src/api/client', () => ({
   default: {
-    get: vi.fn().mockResolvedValue({ data: { dates: ['2026-05-01', '2026-05-15'] } }),
+    get: vi.fn().mockResolvedValue({ data: { entries: [{ date: '2026-05-01', emotion: 'happy' }, { date: '2026-05-15', emotion: 'neutral' }] } }),
   },
 }))
 
