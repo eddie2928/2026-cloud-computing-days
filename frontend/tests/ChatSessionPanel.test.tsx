@@ -53,4 +53,59 @@ describe('ChatSessionPanel', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('이미 완료된 날짜입니다.')
     })
   })
+
+  it('history 응답 시 이전 Q/A가 화면에 복원되고 마지막 미답변 질문이 표시된다', async () => {
+    server.use(
+      http.post('/api/qna/start', () =>
+        HttpResponse.json({
+          session_id: 1,
+          question: '세 번째 질문입니다.',
+          sequence: 3,
+          history: [
+            { sequence: 1, question: '첫 번째 질문이에요.', answer: '첫 번째 답변이에요.' },
+            { sequence: 2, question: '두 번째 질문이에요.', answer: '두 번째 답변이에요.' },
+          ],
+        })
+      )
+    )
+    renderPanel('2026-05-12')
+    await waitFor(() => {
+      expect(screen.getByText('첫 번째 질문이에요.')).toBeInTheDocument()
+      expect(screen.getByText('첫 번째 답변이에요.')).toBeInTheDocument()
+      expect(screen.getByText('두 번째 질문이에요.')).toBeInTheDocument()
+      expect(screen.getByText('두 번째 답변이에요.')).toBeInTheDocument()
+      expect(screen.getByText('세 번째 질문입니다.')).toBeInTheDocument()
+    })
+  })
+
+  it('5번째 답변 전송 시 finalizing 로딩 UI가 표시된다', async () => {
+    server.use(
+      http.post('/api/qna/start', () =>
+        HttpResponse.json({
+          session_id: 1,
+          question: '다섯 번째 질문입니다.',
+          sequence: 5,
+          history: [],
+        })
+      ),
+      http.post('/api/qna/answer', () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(HttpResponse.json({ completed: true, diary: '일기 내용' })), 100)
+        )
+      )
+    )
+    const { onComplete } = renderPanel('2026-05-13')
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByRole('textbox'), '다섯 번째 답변')
+    await userEvent.click(screen.getByRole('button', { name: '전송' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/당신의 일기를 만들고 있어요/)).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledWith('일기 내용')
+    })
+  })
 })

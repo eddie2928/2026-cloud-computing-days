@@ -271,7 +271,7 @@ frontend/src/
   - 기본 `/qna/start` 응답에 `history: []` 추가 (안전한 디폴트).
   - Verify: 기존 테스트 회귀 0 fail.
 
-- [ ] **5.2** `frontend/tests/ChatSessionPanel.test.tsx` 갱신 (기존 3 케이스 유지 + 2 추가)
+- [x] **5.2** `frontend/tests/ChatSessionPanel.test.tsx` 갱신 (기존 3 케이스 유지 + 2 추가) — history 복원, finalizing UI 케이스 추가. 5 passed
   - 기존 케이스 갱신: phase/error 구조 변경에 맞춰 셀렉터 조정.
   - (신규 a) `history` 응답 시 이전 Q/A가 화면에 표시되고 마지막 미답변 질문에 답변 가능.
   - (신규 b) 5번째 답변 전송 시 "당신의 일기를 만들고 있어요" 로딩 UI 노출 → `completed=true` 응답 후 사라지고 `onComplete` 호출.
