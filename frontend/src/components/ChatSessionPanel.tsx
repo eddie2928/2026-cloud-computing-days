@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
 import client from '../api/client'
+import Spinner from './Spinner'
+
+type Phase = 'idle' | 'thinking' | 'finalizing'
 
 interface Message {
   role: 'ai' | 'user'
@@ -57,17 +60,17 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
   const [answer, setAnswer] = useState('')
   const [error, setError] = useState('')
   const [completed, setCompleted] = useState(false)
-  const [thinking, setThinking] = useState(false)
+  const [phase, setPhase] = useState<Phase>('idle')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, thinking])
+  }, [messages, phase])
 
   // 마운트 시 자동으로 세션 시작
   useEffect(() => {
     let cancelled = false
-    setThinking(true)
+    setPhase('thinking')
     client.post('/qna/start', { diary_date: date })
       .then((resp) => {
         if (cancelled) return
@@ -91,19 +94,20 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
         }
       })
       .finally(() => {
-        if (!cancelled) setThinking(false)
+        if (!cancelled) setPhase('idle')
       })
     return () => { cancelled = true }
   }, [date])
 
   const handleAnswer = async (e: FormEvent) => {
     e.preventDefault()
-    if (!qnaState || !answer.trim() || thinking) return
+    if (!qnaState || !answer.trim() || phase !== 'idle') return
     setError('')
     const submittedAnswer = answer.trim()
     setAnswer('')
     setMessages((prev) => [...prev, { role: 'user', text: submittedAnswer }])
-    setThinking(true)
+    const isFinal = qnaState.sequence >= 5
+    setPhase(isFinal ? 'finalizing' : 'thinking')
     try {
       const resp = await client.post('/qna/answer', {
         session_id: qnaState.sessionId,
@@ -112,13 +116,8 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
       })
       const data = resp.data
 
-      const stored = JSON.parse(localStorage.getItem(`qna:${date}`) || '[]')
-      localStorage.setItem(
-        `qna:${date}`,
-        JSON.stringify([...stored, { seq: qnaState.sequence, a: submittedAnswer }])
-      )
-
       if (data.completed) {
+        setPhase('idle')
         setCompleted(true)
         onComplete(data.diary ?? '')
       } else {
@@ -127,13 +126,13 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
           { role: 'ai', text: data.next_question, seq: data.sequence },
         ])
         setQnaState({ ...qnaState, sequence: data.sequence })
+        setPhase('idle')
       }
     } catch {
       setError('답변 제출 중 오류가 발생했습니다.')
       setMessages((prev) => prev.slice(0, -1))
       setAnswer(submittedAnswer)
-    } finally {
-      setThinking(false)
+      setPhase('idle')
     }
   }
 
@@ -158,7 +157,7 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
           </div>
         ))}
 
-        {thinking && (
+        {phase === 'thinking' && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={avatar}>AI</div>
             <div style={{ ...bubble.ai, color: '#9ca3af', fontStyle: 'italic' }}>Thinking...</div>
@@ -167,6 +166,22 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
 
         <div ref={bottomRef} />
       </div>
+
+      {phase === 'finalizing' && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 12, padding: '24px 16px', background: '#f8f7ff', borderRadius: 12,
+            border: '1px solid #e0deff', margin: '8px 0', textAlign: 'center',
+          }}
+        >
+          <Spinner size={32} />
+          <p style={{ margin: 0, fontWeight: 600, color: '#4f46e5' }}>✨ 당신의 일기를 만들고 있어요...</p>
+          <small style={{ color: '#9ca3af' }}>10초 이상 걸릴 수 있어요</small>
+        </div>
+      )}
 
       {error && <p role="alert" style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}</p>}
 
@@ -178,8 +193,8 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={2}
-              disabled={thinking || completed}
-              placeholder={thinking ? '' : '답변 입력 (Enter 전송 / Shift+Enter 줄바꿈)'}
+              disabled={phase !== 'idle' || completed}
+              placeholder={phase !== 'idle' ? '' : '답변 입력 (Enter 전송 / Shift+Enter 줄바꿈)'}
               style={{
                 flex: 1,
                 padding: '10px 12px',
@@ -192,14 +207,14 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
             />
             <button
               type="submit"
-              disabled={!answer.trim() || thinking || completed}
+              disabled={!answer.trim() || phase !== 'idle' || completed}
               style={{
                 padding: '0 18px',
                 borderRadius: 8,
-                background: !answer.trim() || thinking ? '#e5e7eb' : '#4f46e5',
-                color: !answer.trim() || thinking ? '#9ca3af' : 'white',
+                background: !answer.trim() || phase !== 'idle' ? '#e5e7eb' : '#4f46e5',
+                color: !answer.trim() || phase !== 'idle' ? '#9ca3af' : 'white',
                 border: 'none',
-                cursor: !answer.trim() || thinking ? 'not-allowed' : 'pointer',
+                cursor: !answer.trim() || phase !== 'idle' ? 'not-allowed' : 'pointer',
                 fontSize: 14,
                 fontWeight: 600,
                 alignSelf: 'stretch',

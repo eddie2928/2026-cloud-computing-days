@@ -228,7 +228,7 @@ frontend/src/
   - 빈 `history`는 기존 동작과 동일.
   - Verify: `npm run build` 통과.
 
-- [ ] **3.2** `phase` 상태로 thinking / finalizing 분리
+- [x] **3.2** `phase` 상태로 thinking / finalizing 분리 — thinking 제거, phase: 'idle'|'thinking'|'finalizing' 도입, finalizing 중 Spinner+안내 박스 표시, textarea/전송 비활성화. 빌드 통과
   - `phase: 'idle' | 'thinking' | 'finalizing'` 도입, 기존 `thinking` 제거.
   - 5번째 답변 제출 시 `phase='finalizing'` → `completed=true` 응답 후 `phase='idle'`.
   - finalizing 동안: textarea/전송 disabled + 입력값 클리어, "Thinking..." 말풍선 대신 중앙 박스 + Spinner.
