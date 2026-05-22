@@ -223,7 +223,7 @@ frontend/src/
 
 ### Phase 3 — ChatSessionPanel 보강
 
-- [ ] **3.1** `ChatSessionPanel.tsx`에 history 응답 처리 추가
+- [x] **3.1** `ChatSessionPanel.tsx`에 history 응답 처리 추가 — history flatMap으로 기존 Q/A 메시지 prepend, 빈 history는 기존 동작과 동일. 빌드 통과
   - `/qna/start` 응답에서 `history` 읽어 messages 초기 상태에 prepend.
   - 빈 `history`는 기존 동작과 동일.
   - Verify: `npm run build` 통과.

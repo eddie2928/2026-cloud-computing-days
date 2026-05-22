@@ -73,7 +73,12 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
         if (cancelled) return
         const data = resp.data
         setQnaState({ sessionId: data.session_id, sequence: data.sequence })
-        setMessages([{ role: 'ai', text: data.question, seq: data.sequence }])
+        const history: Array<{ sequence: number; question: string; answer: string }> = data.history ?? []
+        const historyMessages: Message[] = history.flatMap((h) => ([
+          { role: 'ai' as const, text: h.question, seq: h.sequence },
+          { role: 'user' as const, text: h.answer },
+        ]))
+        setMessages([...historyMessages, { role: 'ai', text: data.question, seq: data.sequence }])
       })
       .catch((err: unknown) => {
         if (cancelled) return
