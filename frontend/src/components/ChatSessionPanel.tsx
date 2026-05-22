@@ -24,6 +24,8 @@ interface Props {
   date: string
   onComplete: (diaryBody: string) => void
   onClose: () => void
+  onProgressChange?: (n: number) => void
+  onFinalizingChange?: (finalizing: boolean) => void
 }
 
 const bubble: Record<'ai' | 'user', React.CSSProperties> = {
@@ -59,7 +61,7 @@ const avatar: React.CSSProperties = {
   flexShrink: 0,
 }
 
-export function ChatSessionPanel({ date, onComplete }: Props) {
+export function ChatSessionPanel({ date, onComplete, onProgressChange, onFinalizingChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [qnaState, setQnaState] = useState<QnAState | null>(null)
   const [answer, setAnswer] = useState('')
@@ -112,7 +114,12 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
     setError(null)
     setMessages((prev) => [...prev, { role: 'user', text: submittedAnswer }])
     const isFinal = currentQnaState.sequence >= 5
-    setPhase(isFinal ? 'finalizing' : 'thinking')
+    if (isFinal) {
+      setPhase('finalizing')
+      onFinalizingChange?.(true)
+    } else {
+      setPhase('thinking')
+    }
     try {
       const resp = await client.post('/qna/answer', {
         session_id: currentQnaState.sessionId,
@@ -123,6 +130,9 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
 
       if (data.completed) {
         setPhase('idle')
+        onFinalizingChange?.(false)
+        const answeredCount = currentQnaState.sequence
+        onProgressChange?.(answeredCount)
         setCompleted(true)
         onComplete(data.diary ?? '')
       } else {
@@ -131,6 +141,7 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
           { role: 'ai', text: data.next_question, seq: data.sequence },
         ])
         setQnaState({ ...currentQnaState, sequence: data.sequence })
+        onProgressChange?.(currentQnaState.sequence)
         setPhase('idle')
       }
     } catch (err: unknown) {
@@ -141,6 +152,7 @@ export function ChatSessionPanel({ date, onComplete }: Props) {
       setMessages((prev) => prev.slice(0, -1))
       setAnswer(submittedAnswer)
       setPhase('idle')
+      onFinalizingChange?.(false)
     }
   }
 

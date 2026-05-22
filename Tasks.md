@@ -246,7 +246,7 @@ frontend/src/
   - 409는 `retry=null`.
   - Verify: `npm run build` 통과.
 
-- [ ] **3.4** `onProgressChange?: (n: number) => void`, `onFinalizingChange?: (b: boolean) => void` 옵셔널 prop 추가
+- [x] **3.4** `onProgressChange?: (n: number) => void`, `onFinalizingChange?: (b: boolean) => void` 옵셔널 prop 추가 — submitAnswer에서 콜백 호출, 기존 호출자 영향 없음. 빌드 통과
   - 답변 완료 시마다 `onProgressChange(answeredCount)` 호출.
   - `phase === 'finalizing'` 진입/이탈 시 `onFinalizingChange(true/false)` 호출.
   - 둘 다 옵셔널이므로 기존 호출자 영향 없음.
