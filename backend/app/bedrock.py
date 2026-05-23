@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import time
+from datetime import date
 from typing import Any
 
 import boto3
@@ -23,15 +24,11 @@ def _build_profile_block(user_profile: dict | None) -> str:
     return "사용자 정보: " + " / ".join(parts)
 
 
-def _build_rag_block(rag_items: list[QnAItem]) -> str:
-    if not rag_items:
+def _build_rag_block(rag_summaries: list[tuple[date, str]]) -> str:
+    if not rag_summaries:
         return "이전 일기 없음"
-    sorted_items = sorted(rag_items, key=lambda x: x.asked_at, reverse=True)
-    lines = []
-    for item in sorted_items:
-        if item.answer:
-            lines.append(f"[{item.asked_at.date()}] Q: {item.question} / A: {item.answer}")
-    return "\n".join(lines) if lines else "이전 일기 없음"
+    lines = [f"[{d}] {summary}" for d, summary in rag_summaries]
+    return "\n".join(lines)
 
 
 def _build_session_block(session_items: list[QnAItem]) -> str:
@@ -78,13 +75,13 @@ class BedrockClient:
 
     async def generate_question(
         self,
-        rag_items: list[QnAItem],
+        rag_summaries: list[tuple[date, str]],
         session_so_far: list[QnAItem],
         next_sequence: int,
         user_profile: dict | None = None,
     ) -> tuple[str, dict]:
         profile_block = _build_profile_block(user_profile)
-        rag_block = _build_rag_block(rag_items)
+        rag_block = _build_rag_block(rag_summaries)
         session_block = _build_session_block(session_so_far)
         profile_line = f"{profile_block}\n" if profile_block else ""
         prompt = (

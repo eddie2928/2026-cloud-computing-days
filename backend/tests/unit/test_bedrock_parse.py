@@ -1,10 +1,11 @@
-"""Unit tests for bedrock generate_diary response parsing (todo #8.4)."""
+"""Unit tests for bedrock parsing (todos #8.4, #13.2)."""
 import re
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.bedrock import BedrockClient
+from app.bedrock import BedrockClient, _build_rag_block
 
 
 def _make_client():
@@ -70,3 +71,20 @@ async def test_generate_diary_markdown_mixed():
 
     assert body == "마크다운 혼합 일기 내용입니다."
     assert summary == "마크다운 혼합 요약."
+
+
+def test_build_rag_block_with_summaries():
+    """rag_summaries list serialized as [YYYY-MM-DD] summary lines."""
+    summaries = [
+        (date(2026, 5, 20), "첫 번째 요약"),
+        (date(2026, 5, 19), "두 번째 요약"),
+    ]
+    result = _build_rag_block(summaries)
+    assert "[2026-05-20] 첫 번째 요약" in result
+    assert "[2026-05-19] 두 번째 요약" in result
+
+
+def test_build_rag_block_empty():
+    """Empty list returns fallback string."""
+    result = _build_rag_block([])
+    assert result == "이전 일기 없음"

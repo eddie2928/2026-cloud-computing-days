@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,21 +25,19 @@ def test_empty_rag_contains_no_previous():
     assert "이전 일기 없음" in result
 
 
-def test_rag_items_sorted_newest_first():
+def test_rag_summaries_sorted_newest_first():
     from app.bedrock import _build_rag_block
 
-    items = [
-        _make_item(1, "Q1", "A1", days_ago=5),
-        _make_item(2, "Q2", "A2", days_ago=1),
-        _make_item(3, "Q3", "A3", days_ago=3),
+    summaries = [
+        (date(2026, 5, 25), "최근 요약"),
+        (date(2026, 5, 22), "중간 요약"),
+        (date(2026, 5, 20), "오래된 요약"),
     ]
-    result = _build_rag_block(items)
-    lines = [l for l in result.split("\n") if l.strip()]
-    texts = [l for l in lines]
-    a2_pos = next(i for i, t in enumerate(texts) if "A2" in t)
-    a3_pos = next(i for i, t in enumerate(texts) if "A3" in t)
-    a1_pos = next(i for i, t in enumerate(texts) if "A1" in t)
-    assert a2_pos < a3_pos < a1_pos, "Items should be sorted newest first"
+    result = _build_rag_block(summaries)
+    pos_recent = result.index("최근 요약")
+    pos_mid = result.index("중간 요약")
+    pos_old = result.index("오래된 요약")
+    assert pos_recent < pos_mid < pos_old, "Summaries should appear newest first"
 
 
 def test_session_partial_includes_only_answered():
