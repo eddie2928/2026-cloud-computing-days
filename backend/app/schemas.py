@@ -50,6 +50,7 @@ class CalendarResponse(BaseModel):
 class DiaryResponse(BaseModel):
     date: date
     body: str
+    summary: str
     emotion: str
 
 
