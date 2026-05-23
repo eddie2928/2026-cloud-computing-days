@@ -88,6 +88,18 @@ class DiaryBodyUpdate(BaseModel):
     body: str = Field(..., min_length=1, max_length=5000)
 
 
+class ShareCreateResponse(BaseModel):
+    token: str
+    url: str
+    expires_at: str
+
+
+class SharedDiaryResponse(BaseModel):
+    date: date
+    body: str
+    emotion: str
+
+
 class PetResponse(BaseModel):
     level: int
     xp: int
