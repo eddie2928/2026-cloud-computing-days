@@ -40,7 +40,15 @@ describe('Onboarding page', () => {
     })
   })
 
-  it('3 스텝 완주 후 PUT /profile 호출 → navigate("/hub")', async () => {
+  it('3 스텝 완주 후 PUT /profile 호출 → navigate("/hub"), notification_time 키 없음', async () => {
+    let capturedBody: Record<string, unknown> = {}
+    server.use(
+      http.put('/api/profile', async ({ request }) => {
+        capturedBody = await request.json() as Record<string, unknown>
+        return HttpResponse.json(capturedBody)
+      })
+    )
+
     renderOnboarding()
     await waitFor(() => {
       expect(screen.getByText('기본 정보를 알려주세요')).toBeInTheDocument()
@@ -56,12 +64,14 @@ describe('Onboarding page', () => {
     await waitFor(() => expect(screen.getByText('어떤 일을 하세요?')).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: '다음' }))
 
-    // Step 3
-    await waitFor(() => expect(screen.getByText('관심사와 알림 시간')).toBeInTheDocument())
+    // Step 3 — notification_time 입력 없음
+    await waitFor(() => expect(screen.getByText('관심사를 알려주세요')).toBeInTheDocument())
+    expect(screen.queryByLabelText('알림 시간')).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: '시작하기' }))
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/hub')
     })
+    expect(capturedBody).not.toHaveProperty('notification_time')
   })
 })

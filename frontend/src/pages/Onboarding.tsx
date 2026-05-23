@@ -17,7 +17,6 @@ interface FormData {
   occupation: string
   hobbies: string[]
   interests: string[]
-  notification_time: string
 }
 
 export function Onboarding() {
@@ -32,7 +31,6 @@ export function Onboarding() {
     occupation: '',
     hobbies: [],
     interests: [],
-    notification_time: '22:00',
   })
 
   useEffect(() => {
@@ -53,7 +51,6 @@ export function Onboarding() {
         occupation: form.occupation,
         hobbies: form.hobbies,
         interests: form.interests,
-        notification_time: form.notification_time || null,
       })
       navigate('/hub')
     } catch {
@@ -75,7 +72,7 @@ export function Onboarding() {
           <h2 style={{ margin: 0, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'var(--t-xl)', color: 'var(--sage-ink)', letterSpacing: '-0.01em' }}>
             {step === 1 && '기본 정보를 알려주세요'}
             {step === 2 && '어떤 일을 하세요?'}
-            {step === 3 && '관심사와 알림 시간'}
+            {step === 3 && '관심사를 알려주세요'}
           </h2>
         </div>
 
@@ -132,10 +129,12 @@ export function Onboarding() {
                   ariaLabel="관심사"
                 />
               </div>
+              {/* TODO: Phase 3 추후 구현 예정
               <div>
                 <FieldLabel>일기 알림 시간</FieldLabel>
                 <BoxInput value={form.notification_time} onChange={v => setForm(f => ({ ...f, notification_time: v }))} type="time" ariaLabel="알림 시간" />
               </div>
+              */}
             </>
           )}
         </div>
