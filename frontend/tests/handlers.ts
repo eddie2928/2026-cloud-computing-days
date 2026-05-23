@@ -100,4 +100,8 @@ export const handlers = [
   http.get('/api/user/streak', () => HttpResponse.json({ streak: 0 })),
 
   http.get('/api/pet', () => HttpResponse.json({ level: 1, xp: 0, xp_to_next: 100 })),
+
+  http.post('/api/diary/:date/share', () =>
+    HttpResponse.json({ token: 'test-token', url: '/share/test-token', expires_at: '2099-01-01T00:00:00Z' })
+  ),
 ]

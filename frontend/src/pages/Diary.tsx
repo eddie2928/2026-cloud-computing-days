@@ -18,6 +18,7 @@ export function Diary() {
   const navigate = useNavigate()
   const [diary, setDiary] = useState<DiaryData | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [shareToast, setShareToast] = useState('')
 
   useEffect(() => {
     if (!date) return
@@ -27,6 +28,23 @@ export function Diary() {
       if (e.response?.status === 404) setNotFound(true)
     })
   }, [date])
+
+  const handleShare = async () => {
+    if (!date) return
+    try {
+      const res = await client.post(`/diary/${date}/share`)
+      const url = `${window.location.origin}${res.data.url}`
+      try {
+        await navigator.clipboard.writeText(url)
+        setShareToast('링크가 복사되었어요!')
+      } catch {
+        window.prompt('링크를 복사하세요:', url)
+      }
+    } catch {
+      setShareToast('공유 링크 생성에 실패했어요.')
+    }
+    setTimeout(() => setShareToast(''), 3000)
+  }
 
   if (notFound) {
     return (
@@ -57,11 +75,18 @@ export function Diary() {
       <div style={{ padding: '0 16px' }}>
         <DiaryBodyCard body={diary.body} />
       </div>
+      {shareToast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--sage-ink)', color: '#fff', borderRadius: 20,
+          padding: '8px 20px', fontFamily: 'var(--font-sans)', fontSize: 14,
+          zIndex: 2000,
+        }}>
+          {shareToast}
+        </div>
+      )}
       <div style={{ padding: '8px 16px 16px', display: 'flex', gap: 12 }}>
-        <PillButton variant="ghost" onClick={() => navigate(`/qna/${date}`)} style={{ flex: 1 }}>
-          다시 작성하기
-        </PillButton>
-        <PillButton variant="ghost" onClick={() => {}} style={{ flex: 1 }} disabled>
+        <PillButton variant="ghost" onClick={handleShare} style={{ flex: 1 }}>
           공유
         </PillButton>
       </div>
