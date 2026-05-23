@@ -1,9 +1,10 @@
 from datetime import date
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
-from app.models import DiaryEntry
+from app.models import DiaryEntry, Pet
+from app.routers.pet import XP_PER_DIARY
 
 
 async def _login(client):
@@ -166,3 +167,30 @@ async def test_diary_summary_saved_after_completion(client, bedrock_mock, db_ses
     entry = result.scalar_one_or_none()
     assert entry is not None
     assert entry.summary == "오늘 하루 요약."
+
+
+@pytest.mark.asyncio
+async def test_pet_xp_grows_after_diary_completion(client, bedrock_mock, db_session):
+    """Pet xp increases by XP_PER_DIARY after completing a diary."""
+    await _login(client)
+    await db_session.execute(delete(Pet).where(Pet.user_id == 1))
+    await db_session.commit()
+
+    start = await client.post("/api/qna/start", json={"diary_date": "2026-05-11"})
+    assert start.status_code == 200
+    body = start.json()
+    session_id = body["session_id"]
+    seq = body["sequence"]
+
+    for i in range(1, 6):
+        resp = await client.post(
+            "/api/qna/answer",
+            json={"session_id": session_id, "sequence": seq, "answer": f"답변 {i}"},
+        )
+        data = resp.json()
+        if not data.get("completed"):
+            seq = data["sequence"]
+
+    resp = await client.get("/api/pet")
+    assert resp.status_code == 200
+    assert resp.json()["xp"] == XP_PER_DIARY

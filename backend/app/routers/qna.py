@@ -10,6 +10,7 @@ from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
+from app.routers.pet import grow_pet
 from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
@@ -248,6 +249,7 @@ async def answer_qna(
 
         try:
             diary_entry = await finalize_session(session_id, db, user_profile=user_profile)
+            await grow_pet(db, user_id)
             await db.commit()
         except IntegrityError:
             await db.rollback()
