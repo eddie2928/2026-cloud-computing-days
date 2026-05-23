@@ -27,13 +27,14 @@ async def finalize_session(
     session = result.scalar_one()
 
     client = BedrockClient()
-    diary_body, meta = await client.generate_diary(session.items, user_profile=user_profile)
+    diary_body, diary_summary, meta = await client.generate_diary(session.items, user_profile=user_profile)
 
     entry = DiaryEntry(
         session_id=session.id,
         user_id=session.user_id,
         diary_date=session.diary_date,
         body=diary_body,
+        summary=diary_summary,
         emotion="neutral",
         bedrock_meta=meta,
     )

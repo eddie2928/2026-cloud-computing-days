@@ -86,7 +86,7 @@ async def client(app) -> AsyncGenerator[AsyncClient, None]:
 def bedrock_mock():
     mock_client = AsyncMock()
     mock_client.generate_question.return_value = ("오늘 어떤 일이 있었나요?", {"model_id": "test"})
-    mock_client.generate_diary.return_value = ("오늘 하루를 돌아보며...", {"model_id": "test"})
+    mock_client.generate_diary.return_value = ("오늘 하루를 돌아보며...", "오늘 하루 요약.", {"model_id": "test"})
     with patch("app.routers.qna._get_bedrock", return_value=mock_client):
         with patch("app.routers.diary.BedrockClient", return_value=mock_client):
             yield mock_client

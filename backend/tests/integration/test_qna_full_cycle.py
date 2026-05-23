@@ -1,4 +1,9 @@
+from datetime import date
+
 import pytest
+from sqlalchemy import select
+
+from app.models import DiaryEntry
 
 
 async def _login(client):
@@ -133,3 +138,31 @@ async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
     )
     assert user_profile_arg is not None
     assert user_profile_arg.get("nickname") == "테스트유저"
+
+
+@pytest.mark.asyncio
+async def test_diary_summary_saved_after_completion(client, bedrock_mock, db_session):
+    """DiaryEntry.summary is populated when finalize_session runs."""
+    await _login(client)
+    start = await client.post("/api/qna/start", json={"diary_date": "2026-05-10"})
+    assert start.status_code == 200
+    body = start.json()
+    session_id = body["session_id"]
+    seq = body["sequence"]
+
+    for i in range(1, 6):
+        resp = await client.post(
+            "/api/qna/answer",
+            json={"session_id": session_id, "sequence": seq, "answer": f"답변 {i}"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        if not data.get("completed"):
+            seq = data["sequence"]
+
+    result = await db_session.execute(
+        select(DiaryEntry).where(DiaryEntry.diary_date == date(2026, 5, 10))
+    )
+    entry = result.scalar_one_or_none()
+    assert entry is not None
+    assert entry.summary == "오늘 하루 요약."
