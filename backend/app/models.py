@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     UniqueConstraint,
 )
@@ -111,3 +112,17 @@ class DiaryEntry(Base):
 
     session: Mapped["QnASession"] = relationship(back_populates="diary_entry")
     user: Mapped["User"] = relationship(back_populates="diary_entries")
+
+
+class UserSchedule(Base):
+    __tablename__ = "user_schedules"
+    __table_args__ = (
+        Index("ix_user_schedules_user_period", "user_id", "period_start", "period_end"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    period_start: Mapped[date] = mapped_column(DATE, nullable=False)
+    period_end: Mapped[date] = mapped_column(DATE, nullable=False)
+    situation: Mapped[str] = mapped_column(TEXT, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
