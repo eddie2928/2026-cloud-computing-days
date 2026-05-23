@@ -1,11 +1,11 @@
-"""Unit tests for bedrock parsing (todos #8.4, #13.2)."""
+"""Unit tests for bedrock parsing (todos #8.4, #13.2, #10.3)."""
 import re
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.bedrock import BedrockClient, _build_rag_block
+from app.bedrock import BedrockClient, _build_rag_block, _parse_schedules
 
 
 def _make_client():
@@ -88,3 +88,27 @@ def test_build_rag_block_empty():
     """Empty list returns fallback string."""
     result = _build_rag_block([])
     assert result == "이전 일기 없음"
+
+
+def test_parse_schedules_normal():
+    """Normal schedule lines parsed correctly."""
+    raw = "<question>질문</question>\n<schedules>\n2026-06-01|2026-06-07|기말 시험\n2026-06-10|2026-06-12|여행\n</schedules>"
+    result = _parse_schedules(raw)
+    assert len(result) == 2
+    assert result[0] == {"period_start": "2026-06-01", "period_end": "2026-06-07", "situation": "기말 시험"}
+    assert result[1] == {"period_start": "2026-06-10", "period_end": "2026-06-12", "situation": "여행"}
+
+
+def test_parse_schedules_empty_body():
+    """Empty schedules block returns empty list."""
+    raw = "<question>질문</question>\n<schedules></schedules>"
+    result = _parse_schedules(raw)
+    assert result == []
+
+
+def test_parse_schedules_malformed_line_skipped():
+    """Malformed lines are skipped; valid lines still parsed."""
+    raw = "<schedules>\n잘못된줄\n2026-06-01|2026-06-07|정상 일정\n</schedules>"
+    result = _parse_schedules(raw)
+    assert len(result) == 1
+    assert result[0]["situation"] == "정상 일정"

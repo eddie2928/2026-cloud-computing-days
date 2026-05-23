@@ -58,6 +58,28 @@ def _build_session_block(session_items: list[QnAItem]) -> str:
     return "\n".join(lines)
 
 
+def _parse_schedules(raw: str) -> list[dict]:
+    schedules_match = re.search(r"<schedules>(.*?)</schedules>", raw, re.DOTALL)
+    if not schedules_match:
+        return []
+    body = schedules_match.group(1).strip()
+    if not body:
+        return []
+    result = []
+    for line in body.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split("|")
+        if len(parts) != 3:
+            continue
+        period_start, period_end, situation = (p.strip() for p in parts)
+        if not period_start or not period_end or not situation:
+            continue
+        result.append({"period_start": period_start, "period_end": period_end, "situation": situation})
+    return result
+
+
 def _invoke_claude(client: Any, model_id: str, prompt: str) -> tuple[str, dict]:
     body = {
         "anthropic_version": "bedrock-2023-05-31",
@@ -98,7 +120,7 @@ class BedrockClient:
         next_sequence: int,
         user_profile: dict | None = None,
         active_schedules: list[str] | None = None,
-    ) -> tuple[str, dict]:
+    ) -> tuple[str, list[dict], dict]:
         profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_summaries)
         session_block = _build_session_block(session_so_far)
@@ -117,7 +139,8 @@ class BedrockClient:
         raw = text.strip()
         question_match = re.search(r"<question>(.*?)</question>", raw, re.DOTALL)
         question = question_match.group(1).strip() if question_match else raw
-        return question, meta
+        schedules = _parse_schedules(raw)
+        return question, schedules, meta
 
     async def generate_diary(
         self,
