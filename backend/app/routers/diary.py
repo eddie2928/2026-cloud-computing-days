@@ -9,7 +9,7 @@ from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnASession
-from app.schemas import DiaryBodyUpdate, DiaryResponse, EmotionUpdate
+from app.schemas import DiaryBodyUpdate, DiaryResponse, DiarySearchResponse, DiarySearchItem, EmotionUpdate
 
 router = APIRouter(prefix="/api/diary", tags=["diary"])
 
@@ -43,6 +43,34 @@ async def finalize_session(
     session.completed_at = datetime.now(tz=timezone.utc)
     await db.flush()
     return entry
+
+
+@router.get("/search", response_model=DiarySearchResponse)
+async def search_diary(
+    q: str,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    if not q.strip():
+        return DiarySearchResponse(results=[])
+    result = await db.execute(
+        select(DiaryEntry)
+        .where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.body.ilike(f"%{q}%"),
+        )
+        .order_by(DiaryEntry.diary_date.desc())
+        .limit(50)
+    )
+    entries = result.scalars().all()
+    items = []
+    for entry in entries:
+        idx = entry.body.lower().find(q.lower())
+        start = max(0, idx - 20)
+        end = min(len(entry.body), start + 60)
+        snippet = entry.body[start:end]
+        items.append(DiarySearchItem(date=entry.diary_date, snippet=snippet, emotion=entry.emotion))
+    return DiarySearchResponse(results=items)
 
 
 @router.get("/{diary_date}", response_model=DiaryResponse)
