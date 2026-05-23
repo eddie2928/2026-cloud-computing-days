@@ -88,6 +88,12 @@ class DiaryBodyUpdate(BaseModel):
     body: str = Field(..., min_length=1, max_length=5000)
 
 
+class PetResponse(BaseModel):
+    level: int
+    xp: int
+    xp_to_next: int
+
+
 class DiarySearchItem(BaseModel):
     date: date
     snippet: str
