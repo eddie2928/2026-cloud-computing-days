@@ -1,11 +1,11 @@
-export type Mood = 'happy' | 'sad' | 'angry' | 'neutral' | 'tired';
+export type Mood = 'happy' | 'sad' | 'angry' | 'neutral' | 'bored';
 
 const MOOD_EMOJI: Record<Mood, string> = {
   happy:   '😊',
   sad:     '😭',
   angry:   '😠',
   neutral: '😐',
-  tired:   '😩',
+  bored:   '😩',
 };
 
 interface MoodEmojiProps {

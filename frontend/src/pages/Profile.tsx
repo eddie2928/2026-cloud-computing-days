@@ -108,7 +108,7 @@ export function Profile() {
                 ))}
               </div>
               <BoxInput value={String(draft.age)} onChange={v => setDraft(f => f && ({ ...f, age: v === '' ? '' : Number(v) }))} placeholder="나이" type="number" ariaLabel="나이 수정" />
-              <PillButton onClick={save} disabled={saving}>{saving ? '저장 중...' : '저장'}</PillButton>
+              <PillButton onClick={save} disabled={saving || !draft.age || Number(draft.age) <= 0}>{saving ? '저장 중...' : '저장'}</PillButton>
             </div>
           }
         >

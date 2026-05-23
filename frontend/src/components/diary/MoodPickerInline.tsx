@@ -2,7 +2,7 @@ import { useState } from 'react';
 import client from '../../api/client';
 import { MoodEmoji, type Mood, MOOD_EMOJI } from '../days/MoodEmoji';
 
-const MOODS: Mood[] = ['happy', 'sad', 'angry', 'neutral', 'tired'];
+const MOODS: Mood[] = ['happy', 'sad', 'angry', 'neutral', 'bored'];
 
 interface MoodPickerInlineProps {
   date: string;
