@@ -7,6 +7,7 @@ import { Qna } from './pages/QnA'
 import { Profile } from './pages/Profile'
 import { Onboarding } from './pages/Onboarding'
 import { Admin } from './pages/Admin'
+import { Share } from './pages/Share'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/qna/:date" element={<ProtectedRoute><AppLayout><Qna /></AppLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AppLayout><Admin /></AppLayout></ProtectedRoute>} />
+        <Route path="/share/:token" element={<Share />} />
         <Route path="*" element={<Navigate to="/hub" replace />} />
       </Routes>
     </BrowserRouter>
