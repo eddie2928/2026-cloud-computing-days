@@ -1,24 +1,18 @@
-export type Mood = 'happy' | 'sad' | 'angry' | 'neutral' | 'bored';
+import { EMOTION_EMOJI, type EmotionKey } from '../../lib/emotions'
 
-const MOOD_EMOJI: Record<Mood, string> = {
-  happy:   '😊',
-  sad:     '😭',
-  angry:   '😠',
-  neutral: '😐',
-  bored:   '😩',
-};
+export type Mood = EmotionKey
 
 interface MoodEmojiProps {
-  mood: Mood;
-  size?: number;
+  mood: Mood
+  size?: number
 }
 
 export function MoodEmoji({ mood, size = 24 }: MoodEmojiProps) {
   return (
     <span style={{ fontSize: size, lineHeight: 1, display: 'inline-block' }} aria-label={mood}>
-      {MOOD_EMOJI[mood]}
+      {EMOTION_EMOJI[mood]}
     </span>
-  );
+  )
 }
 
-export { MOOD_EMOJI };
+export { EMOTION_EMOJI as MOOD_EMOJI }

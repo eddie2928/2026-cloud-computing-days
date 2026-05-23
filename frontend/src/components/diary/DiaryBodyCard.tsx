@@ -4,11 +4,10 @@ const MAX_CHARS = 5000
 
 interface DiaryBodyCardProps {
   body: string
-  date?: string
   onSave?: (newBody: string) => Promise<void>
 }
 
-export function DiaryBodyCard({ body, date, onSave }: DiaryBodyCardProps) {
+export function DiaryBodyCard({ body, onSave }: DiaryBodyCardProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(body)
   const [saving, setSaving] = useState(false)
