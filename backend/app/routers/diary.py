@@ -1,4 +1,5 @@
-from datetime import date, datetime, timezone
+import secrets
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,8 +9,8 @@ from sqlalchemy.orm import selectinload
 from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
-from app.models import DiaryEntry, QnASession
-from app.schemas import DiaryBodyUpdate, DiaryResponse, DiarySearchResponse, DiarySearchItem, EmotionUpdate
+from app.models import DiaryEntry, QnASession, ShareLink
+from app.schemas import DiaryBodyUpdate, DiaryResponse, DiarySearchResponse, DiarySearchItem, EmotionUpdate, ShareCreateResponse
 
 router = APIRouter(prefix="/api/diary", tags=["diary"])
 
@@ -133,3 +134,40 @@ async def update_body(
     await db.commit()
     await db.refresh(entry)
     return DiaryResponse(date=entry.diary_date, body=entry.body, summary=entry.summary, emotion=entry.emotion)
+
+
+@router.post("/{diary_date}/share", response_model=ShareCreateResponse)
+async def create_share(
+    diary_date: date,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DiaryEntry).where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.diary_date == diary_date,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diary not found")
+
+    existing = await db.execute(
+        select(ShareLink).where(
+            ShareLink.user_id == user_id,
+            ShareLink.diary_date == diary_date,
+        )
+    )
+    link = existing.scalar_one_or_none()
+    if link is None:
+        token = secrets.token_urlsafe(24)
+        expires_at = datetime.now(tz=timezone.utc) + timedelta(days=7)
+        link = ShareLink(user_id=user_id, diary_date=diary_date, token=token, expires_at=expires_at)
+        db.add(link)
+        await db.commit()
+        await db.refresh(link)
+
+    return ShareCreateResponse(
+        token=link.token,
+        url=f"/share/{link.token}",
+        expires_at=link.expires_at.isoformat(),
+    )
