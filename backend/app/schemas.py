@@ -65,7 +65,7 @@ class UserProfileIn(BaseModel):
     occupation: Optional[str] = None
     hobbies: list[str] = []
     interests: list[str] = []
-    notification_time: Optional[time] = None
+    notification_time: Optional[time] = None  # TODO: Phase 3 추후 구현 예정
 
 
 class UserProfileOut(BaseModel):
