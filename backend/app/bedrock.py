@@ -97,24 +97,27 @@ class BedrockClient:
         session_so_far: list[QnAItem],
         next_sequence: int,
         user_profile: dict | None = None,
+        active_schedules: list[str] | None = None,
     ) -> tuple[str, dict]:
         profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_summaries)
         session_block = _build_session_block(session_so_far)
-        profile_line = f"{profile_block}\n" if profile_block else ""
-        prompt = (
-            f"당신은 사용자의 하루를 일기로 기록하는 AI입니다.\n"
-            f"{profile_line}"
-            f"사용자의 과거 일기 참고:\n{rag_block}\n\n"
-            f"오늘 지금까지의 대화:\n{session_block}\n\n"
-            f"위 내용을 바탕으로 {next_sequence}번째 질문을 한 문장으로 작성하세요. "
-            f"총 5개의 질문을 통해 하루 일기를 완성합니다.\n"
-            f"규칙: 마크다운(**, *, #, ` 등) 절대 사용 금지. 이모지 절대 사용 금지. 순수 텍스트 한 문장만 출력."
+        schedules_block = "\n".join(active_schedules) if active_schedules else ""
+        prompt = _load_prompt(
+            "question",
+            user_profile=profile_block,
+            rag_summaries=rag_block,
+            active_schedules=schedules_block,
+            session_so_far=session_block,
+            next_sequence=str(next_sequence),
         )
         text, meta = await asyncio.to_thread(
             _invoke_claude, self._client, self._model_id, prompt
         )
-        return text.strip(), meta
+        raw = text.strip()
+        question_match = re.search(r"<question>(.*?)</question>", raw, re.DOTALL)
+        question = question_match.group(1).strip() if question_match else raw
+        return question, meta
 
     async def generate_diary(
         self,
@@ -126,15 +129,10 @@ class BedrockClient:
         qa_text = "\n".join(
             f"Q{i.sequence}: {i.question}\nA{i.sequence}: {i.answer}" for i in sorted_items
         )
-        profile_line = f"{profile_block}\n" if profile_block else ""
-        prompt = (
-            f"아래 질문과 답변을 바탕으로 한국어 일기와 요약을 작성하세요.\n"
-            f"자연스럽고 감성적인 문체로, 1인칭 시점으로 작성합니다.\n"
-            f"{profile_line}\n"
-            f"{qa_text}\n\n"
-            f"반드시 아래 형식으로만 응답하세요(다른 텍스트 금지):\n"
-            f"<diary>500자 이내 일기 본문</diary>\n"
-            f"<summary>100자 이내 요약문</summary>"
+        prompt = _load_prompt(
+            "diary",
+            user_profile=profile_block,
+            qa_text=qa_text,
         )
         text, meta = await asyncio.to_thread(
             _invoke_claude, self._client, self._model_id, prompt
