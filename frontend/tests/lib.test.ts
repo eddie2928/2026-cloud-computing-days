@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { getWeekWindow } from '../src/lib/week'
-import { searchEntries } from '../src/lib/search'
+import { searchDiaries } from '../src/lib/search'
 import { fetchStreak } from '../src/lib/streak'
 
 const MAY_ENTRIES = Array.from({ length: 31 }, (_, i) => ({
@@ -11,7 +11,16 @@ const MAY_ENTRIES = Array.from({ length: 31 }, (_, i) => ({
 }))
 
 const server = setupServer(
-  http.get('/api/user/streak', () => HttpResponse.json({ streak: 5 }))
+  http.get('/api/user/streak', () => HttpResponse.json({ streak: 5 })),
+  http.get('/api/diary/search', ({ request }) => {
+    const q = new URL(request.url).searchParams.get('q') ?? ''
+    if (!q) return HttpResponse.json({ results: [] })
+    return HttpResponse.json({
+      results: [
+        { date: '2026-05-15', snippet: `...${q}...`, emotion: 'happy' },
+      ],
+    })
+  }),
 )
 
 beforeAll(() => server.listen())
@@ -33,14 +42,16 @@ describe('lib/week', () => {
 })
 
 describe('lib/search', () => {
-  it("q='05-2' → '2026-05-2x' 항목만 반환", () => {
-    const result = searchEntries(MAY_ENTRIES, '05-2')
-    expect(result.every(e => e.date.includes('05-2'))).toBe(true)
-    expect(result.length).toBeGreaterThan(0)
+  it('searchDiaries(q) returns results from API', async () => {
+    const results = await searchDiaries('산책')
+    expect(results).toHaveLength(1)
+    expect(results[0].snippet).toContain('산책')
+    expect(results[0].date).toBe('2026-05-15')
   })
 
-  it('q=빈 문자열 → 빈 배열', () => {
-    expect(searchEntries(MAY_ENTRIES, '')).toHaveLength(0)
+  it('searchDiaries("") returns empty without API call', async () => {
+    const results = await searchDiaries('')
+    expect(results).toHaveLength(0)
   })
 })
 
