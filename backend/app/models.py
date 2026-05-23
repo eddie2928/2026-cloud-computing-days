@@ -104,6 +104,7 @@ class DiaryEntry(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     diary_date: Mapped[date] = mapped_column(DATE, nullable=False)
     body: Mapped[str] = mapped_column(TEXT, nullable=False)
+    summary: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="")
     emotion: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="neutral")
     bedrock_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
