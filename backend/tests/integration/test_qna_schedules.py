@@ -1,6 +1,6 @@
-"""Integration tests for schedule extraction + INSERT + duplicate skip (todo #10.4)."""
+"""Integration tests for schedule extraction + INSERT + duplicate skip (todos #10.4, #10.6)."""
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock, call
 
 import pytest
 from sqlalchemy import select
@@ -90,3 +90,31 @@ async def test_empty_schedules_no_insert(client, bedrock_mock, db_session):
     )
     rows = result.scalars().all()
     assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_active_schedules_passed_to_generate_question(client, bedrock_mock):
+    """Active schedules are passed as active_schedules to generate_question.
+
+    Step 1: Start a QnA that makes Bedrock return a schedule for Oct 2026.
+    Step 2: Start a QnA on a date within that schedule's period.
+    Step 3: Verify active_schedules includes that situation.
+    """
+    await _login(client)
+
+    # Step 1: QnA that inserts a schedule (Oct 2026 period)
+    bedrock_mock.generate_question.return_value = (
+        "오늘 어떤 일이 있었나요?",
+        [{"period_start": "2026-10-01", "period_end": "2026-10-31", "situation": "10월 프로젝트"}],
+        {"model_id": "test"},
+    )
+    await client.post("/api/qna/start", json={"diary_date": "2026-11-01"})
+
+    # Step 2: QnA on a date within the Oct schedule
+    bedrock_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
+    await client.post("/api/qna/start", json={"diary_date": "2026-10-15"})
+
+    # Step 3: Check that generate_question was called with active_schedules
+    call_kwargs = bedrock_mock.generate_question.call_args
+    active_schedules_arg = call_kwargs.kwargs.get("active_schedules") or []
+    assert "10월 프로젝트" in active_schedules_arg
