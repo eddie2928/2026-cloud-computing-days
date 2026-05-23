@@ -58,7 +58,6 @@ export function Profile() {
         occupation: draft.occupation,
         hobbies: draft.hobbies,
         interests: draft.interests,
-        notification_time: draft.notification_time,
       })
       setData({ ...draft })
     } finally {
@@ -159,6 +158,7 @@ export function Profile() {
           <FieldRow label="관심사" value={data.interests.join(', ')} />
         </SectionCard>
 
+        {/* TODO: Phase 3 추후 구현 예정
         <SectionCard
           title="알림"
           editContent={
@@ -170,6 +170,7 @@ export function Profile() {
         >
           <FieldRow label="알림 시간" value={data.notification_time ?? ''} />
         </SectionCard>
+        */}
 
         <PillButton variant="danger" onClick={handleLogout}>로그아웃</PillButton>
       </div>

@@ -62,6 +62,24 @@ describe('Profile page', () => {
     expect((capturedBody as { nickname: string }).nickname).toBe('새이름')
   })
 
+  it('알림 시간 섹션 미표시 + PUT 페이로드에 notification_time 키 없음', async () => {
+    let capturedBody: Record<string, unknown> = {}
+    server.use(
+      http.put('/api/profile', async ({ request }) => {
+        capturedBody = await request.json() as Record<string, unknown>
+        return HttpResponse.json(capturedBody)
+      })
+    )
+    renderProfile()
+    await waitFor(() => expect(screen.getAllByText('홍길동').length).toBeGreaterThan(0))
+    expect(screen.queryByLabelText('알림 시간 수정')).toBeNull()
+
+    await userEvent.click(screen.getAllByRole('button', { name: '수정' })[0])
+    await userEvent.click(screen.getAllByRole('button', { name: '저장' })[0])
+    await waitFor(() => expect(capturedBody).not.toEqual({}))
+    expect(capturedBody).not.toHaveProperty('notification_time')
+  })
+
   it('로그아웃 버튼 클릭 시 navigate("/login")', async () => {
     renderProfile()
     await waitFor(() => expect(screen.getByRole('button', { name: '로그아웃' })).toBeInTheDocument())
