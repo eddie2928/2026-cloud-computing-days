@@ -114,6 +114,18 @@ class DiaryEntry(Base):
     user: Mapped["User"] = relationship(back_populates="diary_entries")
 
 
+class Pet(Base):
+    __tablename__ = "pet"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    xp: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    last_grew_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship()
+
+
 class UserSchedule(Base):
     __tablename__ = "user_schedules"
     __table_args__ = (
