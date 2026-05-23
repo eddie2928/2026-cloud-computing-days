@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -32,6 +32,23 @@ async def _get_user_profile(db: AsyncSession, user_id: int) -> dict | None:
         "hobbies": profile.hobbies,
         "interests": profile.interests,
     }
+
+
+async def _get_recent_summaries(
+    db: AsyncSession, user_id: int, diary_date: date, days: int = 30
+) -> list[tuple[date, str]]:
+    start = diary_date - timedelta(days=days)
+    end = diary_date - timedelta(days=1)
+    result = await db.execute(
+        select(DiaryEntry.diary_date, DiaryEntry.summary)
+        .where(
+            DiaryEntry.user_id == user_id,
+            DiaryEntry.diary_date >= start,
+            DiaryEntry.diary_date <= end,
+        )
+        .order_by(DiaryEntry.diary_date.desc())
+    )
+    return list(result.all())
 
 
 async def _get_rag_items(db: AsyncSession, user_id: int, exclude_session_id: int) -> list[QnAItem]:
