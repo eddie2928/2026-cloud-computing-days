@@ -86,3 +86,13 @@ class EmotionUpdate(BaseModel):
 
 class DiaryBodyUpdate(BaseModel):
     body: str = Field(..., min_length=1, max_length=5000)
+
+
+class DiarySearchItem(BaseModel):
+    date: date
+    snippet: str
+    emotion: str
+
+
+class DiarySearchResponse(BaseModel):
+    results: list[DiarySearchItem]
