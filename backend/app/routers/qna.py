@@ -51,6 +51,18 @@ async def _get_recent_summaries(
     return list(result.all())
 
 
+async def _get_active_schedules(db: AsyncSession, user_id: int, today: date) -> list[str]:
+    result = await db.execute(
+        select(UserSchedule.situation)
+        .where(
+            UserSchedule.user_id == user_id,
+            UserSchedule.period_start <= today,
+            UserSchedule.period_end >= today,
+        )
+    )
+    return [row[0] for row in result.all()]
+
+
 async def _insert_schedules(db: AsyncSession, user_id: int, schedules: list[dict]) -> None:
     for sched in schedules:
         try:
