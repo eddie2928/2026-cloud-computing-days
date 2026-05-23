@@ -73,21 +73,40 @@ NGINX
 # Remove default nginx config
 rm -f /etc/nginx/conf.d/default.conf
 
-# 7. Alembic migration
-cd /opt/app/backend
-DB_URL="${db_url}" APP_PASSWORD="${app_password}" SESSION_SECRET="${session_secret}" \
-  BEDROCK_MODEL_ID="${bedrock_model_id}" AWS_REGION="${aws_region}" \
-  .venv/bin/alembic upgrade head
+# 7. Write env file (used by systemd unit and redeploy.sh)
+mkdir -p /etc/qna-diary
+cat > /etc/qna-diary/env <<'ENVEOF'
+APP_PASSWORD=${app_password}
+SESSION_SECRET=${session_secret}
+DB_URL=${db_url}
+BEDROCK_MODEL_ID=${bedrock_model_id}
+AWS_REGION=${aws_region}
+ENVEOF
+chmod 600 /etc/qna-diary/env
+chown root:root /etc/qna-diary/env
 
-# 8. Set up cron for schedule expiry
+# 8. Alembic migration
+cd /opt/app/backend
+set -a; source /etc/qna-diary/env; set +a
+.venv/bin/alembic upgrade head
+
+# 10. Set up cron for schedule expiry
 touch /var/log/qna-diary-cron.log
 chown ec2-user /var/log/qna-diary-cron.log
 cat > /etc/cron.d/qna-diary-schedules <<'CRONFILE'
-50 23 * * * ec2-user cd /opt/app/backend && DB_URL=${db_url} .venv/bin/python -m scripts.expire_schedules >> /var/log/qna-diary-cron.log 2>&1
+50 23 * * * ec2-user set -a; source /etc/qna-diary/env; set +a; cd /opt/app/backend && .venv/bin/python -m scripts.expire_schedules >> /var/log/qna-diary-cron.log 2>&1
 CRONFILE
 chmod 644 /etc/cron.d/qna-diary-schedules
 
-# 9. Enable and start services
+# 11. systemd unit env file reference
+# Patch the unit to use EnvironmentFile instead of inline Environment=
+sed -i 's|^Environment=APP_PASSWORD=.*||;s|^Environment=SESSION_SECRET=.*||;s|^Environment=DB_URL=.*||;s|^Environment=BEDROCK_MODEL_ID=.*||;s|^Environment=AWS_REGION=.*||' \
+  /etc/systemd/system/qna-api.service 2>/dev/null || true
+
+# Replace inline env vars with EnvironmentFile in the service unit
+sed -i "/^ExecStart=/i EnvironmentFile=/etc/qna-diary/env" /etc/systemd/system/qna-api.service
+
+# 12. Enable and start services
 systemctl daemon-reload
 systemctl enable nginx qna-api crond
 systemctl start nginx qna-api crond

@@ -22,3 +22,14 @@ output "ssh_command" {
   description = "SSH command to connect to EC2"
   value       = "ssh -i ${local_sensitive_file.private_key.filename} ec2-user@${aws_instance.app.public_ip}"
 }
+
+output "ssh_private_key_path" {
+  description = "Path to the generated SSH private key PEM file"
+  value       = local_sensitive_file.private_key.filename
+}
+
+output "ssh_private_key_pem" {
+  description = "EC2 SSH access private key in PEM format"
+  value       = tls_private_key.app.private_key_pem
+  sensitive   = true
+}

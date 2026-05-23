@@ -31,13 +31,10 @@ sudo -u ec2-user npm ci
 sudo -u ec2-user npm run build
 sudo -u ec2-user rm -rf node_modules
 
-# 5. Alembic migration (load env from systemd unit so secrets stay in one place)
+# 5. Alembic migration
 cd "$APP_DIR/backend"
-ENV_ARGS=()
-while IFS= read -r line; do
-  [ -n "$line" ] && ENV_ARGS+=("$line")
-done < <(systemctl show qna-api --property=Environment --value | tr ' ' '\n')
-env "${ENV_ARGS[@]}" .venv/bin/alembic upgrade head
+set -a; source /etc/qna-diary/env; set +a
+.venv/bin/alembic upgrade head
 
 # 6. Restart services
 systemctl daemon-reload
