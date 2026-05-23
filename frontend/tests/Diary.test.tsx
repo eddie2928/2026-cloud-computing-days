@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
@@ -58,6 +58,28 @@ describe('Diary page', () => {
     await userEvent.click(screen.getByRole('button', { name: '공유' }))
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/share/abc123'))
+    })
+  })
+
+  it('편집 → 저장 → PATCH /diary/:date/body 호출', async () => {
+    let patchBody: Record<string, unknown> = {}
+    server.use(
+      http.get('/api/diary/:date', () =>
+        HttpResponse.json({ date: '2026-05-01', body: '기존 본문', emotion: 'neutral' })
+      ),
+      http.patch('/api/diary/:date/body', async ({ request }) => {
+        patchBody = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ date: '2026-05-01', body: patchBody.body, emotion: 'neutral' })
+      })
+    )
+    renderDiary('2026-05-01')
+    await waitFor(() => expect(screen.getByText('기존 본문')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: '편집' }))
+    const textarea = screen.getByLabelText('일기 본문 편집') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: '수정된 본문' } })
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => {
+      expect(patchBody).toEqual({ body: '수정된 본문' })
     })
   })
 

@@ -29,6 +29,12 @@ export function Diary() {
     })
   }, [date])
 
+  const handleBodySave = async (newBody: string) => {
+    if (!date) return
+    const res = await client.patch(`/diary/${date}/body`, { body: newBody })
+    setDiary(d => d ? { ...d, body: res.data.body } : d)
+  }
+
   const handleShare = async () => {
     if (!date) return
     try {
@@ -73,7 +79,7 @@ export function Diary() {
       <Header title={diary.date} showBack />
       <MoodPickerInline date={diary.date} initial={diary.emotion as Mood | undefined} />
       <div style={{ padding: '0 16px' }}>
-        <DiaryBodyCard body={diary.body} />
+        <DiaryBodyCard body={diary.body} onSave={handleBodySave} />
       </div>
       {shareToast && (
         <div style={{
