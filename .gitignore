@@ -28,4 +28,5 @@ frontend/dist/
 !.env.example
 !**/.env.example
 
+*.pem
 Task*.md
