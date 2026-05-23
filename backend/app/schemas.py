@@ -8,6 +8,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class StreakResponse(BaseModel):
+    streak: int
+
+
 class QnAStartRequest(BaseModel):
     diary_date: date
 
