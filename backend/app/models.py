@@ -114,6 +114,19 @@ class DiaryEntry(Base):
     user: Mapped["User"] = relationship(back_populates="diary_entries")
 
 
+class ShareLink(Base):
+    __tablename__ = "share_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    diary_date: Mapped[date] = mapped_column(DATE, nullable=False)
+    token: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship()
+
+
 class Pet(Base):
     __tablename__ = "pet"
 
