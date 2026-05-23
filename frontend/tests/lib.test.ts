@@ -1,12 +1,22 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { setupServer } from 'msw/node'
 import { getWeekWindow } from '../src/lib/week'
 import { searchEntries } from '../src/lib/search'
-import { getStreak } from '../src/lib/streak'
+import { fetchStreak } from '../src/lib/streak'
 
 const MAY_ENTRIES = Array.from({ length: 31 }, (_, i) => ({
   date: `2026-05-${String(i + 1).padStart(2, '0')}`,
   emotion: 'happy',
 }))
+
+const server = setupServer(
+  http.get('/api/user/streak', () => HttpResponse.json({ streak: 5 }))
+)
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
 
 describe('lib/week', () => {
   it('today=15일 일 때 length=7, 가운데(index 3)가 15일', () => {
@@ -35,23 +45,14 @@ describe('lib/search', () => {
 })
 
 describe('lib/streak', () => {
-  it('오늘 항목 없으면 streak=0 (단절)', () => {
-    const yesterday = '2026-05-14'
-    const today = '2026-05-15'
-    const entries = [{ date: yesterday, emotion: 'happy' }]
-    expect(getStreak(entries, today)).toBe(0)
+  it('fetchStreak() returns streak from API', async () => {
+    const streak = await fetchStreak()
+    expect(streak).toBe(5)
   })
 
-  it('오늘부터 연속 3일 있으면 streak=3', () => {
-    const entries = [
-      { date: '2026-05-13', emotion: 'happy' },
-      { date: '2026-05-14', emotion: 'neutral' },
-      { date: '2026-05-15', emotion: 'sad' },
-    ]
-    expect(getStreak(entries, '2026-05-15')).toBe(3)
-  })
-
-  it('오늘만 있으면 streak=1', () => {
-    expect(getStreak([{ date: '2026-05-15' }], '2026-05-15')).toBe(1)
+  it('fetchStreak() returns 0 when API returns 0', async () => {
+    server.use(http.get('/api/user/streak', () => HttpResponse.json({ streak: 0 })))
+    const streak = await fetchStreak()
+    expect(streak).toBe(0)
   })
 })
