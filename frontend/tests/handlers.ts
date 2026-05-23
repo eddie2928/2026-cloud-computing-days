@@ -86,4 +86,16 @@ export const handlers = [
     const body = await request.json() as { body: string }
     return HttpResponse.json({ date, body: body.body, emotion: 'happy' })
   }),
+
+  http.get('/api/diary/search', ({ request }) => {
+    const q = new URL(request.url).searchParams.get('q') ?? ''
+    if (!q) return HttpResponse.json({ results: [] })
+    return HttpResponse.json({
+      results: [
+        { date: '2026-05-15', snippet: `오늘은 ${q}을 했다`, emotion: 'happy' },
+      ],
+    })
+  }),
+
+  http.get('/api/user/streak', () => HttpResponse.json({ streak: 0 })),
 ]

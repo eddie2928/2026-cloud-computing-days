@@ -63,7 +63,6 @@ export function Hub() {
 
       {searchOpen && (
         <SearchModal
-          entries={entries}
           onClose={() => setSearchOpen(false)}
           onSelect={(date) => {
             setSearchOpen(false)

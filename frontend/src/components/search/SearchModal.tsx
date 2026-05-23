@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
-import { type CalendarEntry } from '../../lib/week'
-import { searchEntries } from '../../lib/search'
+import { useEffect, useState } from 'react'
+import { searchDiaries, type DiarySearchItem } from '../../lib/search'
 import { PillInput } from '../days/PillInput'
 import { Icon } from '../days/Icon'
 
 interface SearchModalProps {
-  entries: CalendarEntry[]
   onClose: () => void
   onSelect: (date: string) => void
 }
 
-export function SearchModal({ entries, onClose, onSelect }: SearchModalProps) {
+export function SearchModal({ onClose, onSelect }: SearchModalProps) {
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [results, setResults] = useState<DiarySearchItem[]>([])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -21,7 +21,18 @@ export function SearchModal({ entries, onClose, onSelect }: SearchModalProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const results = useMemo(() => searchEntries(entries, q), [entries, q])
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(q), 300)
+    return () => clearTimeout(timer)
+  }, [q])
+
+  useEffect(() => {
+    if (!debouncedQ.trim()) {
+      setResults([])
+      return
+    }
+    searchDiaries(debouncedQ).then(setResults).catch(() => setResults([]))
+  }, [debouncedQ])
 
   return (
     <div
@@ -89,12 +100,12 @@ export function SearchModal({ entries, onClose, onSelect }: SearchModalProps) {
         <PillInput
           value={q}
           onChange={setQ}
-          placeholder="날짜로 검색 (예: 05-15)"
+          placeholder="내용으로 검색"
           ariaLabel="일기 검색 입력"
           icon={<Icon name="book" size={16} />}
         />
 
-        {q && results.length === 0 && (
+        {debouncedQ && results.length === 0 && (
           <p
             style={{
               margin: 0,
@@ -110,27 +121,28 @@ export function SearchModal({ entries, onClose, onSelect }: SearchModalProps) {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {results.map((entry) => (
+          {results.map((item) => (
             <button
-              key={entry.date}
+              key={item.date}
               type="button"
-              onClick={() => onSelect(entry.date)}
+              onClick={() => onSelect(item.date)}
               style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 4,
                 padding: '10px 14px',
                 background: 'var(--paper-bone)',
                 border: '1px solid var(--line-faint)',
                 borderRadius: 'var(--r-3)',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-sans)',
-                fontSize: 'var(--t-base)',
                 color: 'var(--ink-body)',
+                textAlign: 'left',
               }}
             >
-              <span>{entry.date}</span>
-              <Icon name="chevron-right" size={16} color="var(--ink-hint)" />
+              <span style={{ fontSize: 'var(--t-sm)', color: 'var(--ink-meta)', fontWeight: 600 }}>{item.date}</span>
+              <span style={{ fontSize: 'var(--t-base)' }}>{item.snippet}</span>
             </button>
           ))}
         </div>
