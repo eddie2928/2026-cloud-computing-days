@@ -6,6 +6,7 @@ import { Diary } from './pages/Diary'
 import { Qna } from './pages/QnA'
 import { Profile } from './pages/Profile'
 import { Onboarding } from './pages/Onboarding'
+import { Admin } from './pages/Admin'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/diary/:date" element={<ProtectedRoute><AppLayout><Diary /></AppLayout></ProtectedRoute>} />
         <Route path="/qna/:date" element={<ProtectedRoute><AppLayout><Qna /></AppLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AppLayout><Admin /></AppLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/hub" replace />} />
       </Routes>
     </BrowserRouter>

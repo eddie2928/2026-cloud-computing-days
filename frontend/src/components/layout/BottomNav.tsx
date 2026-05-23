@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '오늘의 일기', icon: 'sunrise', match: '/qna', action: { kind: 'modal' } },
   { label: '홈', icon: 'home', match: '/hub', action: { kind: 'navigate', path: '/hub' } },
   { label: '캘린더', icon: 'calendar', match: '/calendar', action: { kind: 'navigate', path: '/calendar' } },
+  { label: '개발자', icon: 'settings', match: '/admin', action: { kind: 'navigate', path: '/admin' } },
 ];
 
 export function BottomNav() {
