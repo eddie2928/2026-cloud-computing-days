@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.auth import require_session
 from app.bedrock import BedrockClient
 from app.db import get_db
-from app.models import DiaryEntry, QnAItem, QnASession, UserProfile
+from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
 from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
@@ -51,6 +51,33 @@ async def _get_recent_summaries(
     return list(result.all())
 
 
+async def _insert_schedules(db: AsyncSession, user_id: int, schedules: list[dict]) -> None:
+    for sched in schedules:
+        try:
+            period_start = date.fromisoformat(sched["period_start"])
+            period_end = date.fromisoformat(sched["period_end"])
+        except (KeyError, ValueError):
+            continue
+        situation = sched.get("situation", "").strip()
+        if not situation:
+            continue
+        existing = await db.execute(
+            select(UserSchedule).where(
+                UserSchedule.user_id == user_id,
+                UserSchedule.period_start == period_start,
+                UserSchedule.period_end == period_end,
+                UserSchedule.situation == situation,
+            )
+        )
+        if existing.scalar_one_or_none() is None:
+            db.add(UserSchedule(
+                user_id=user_id,
+                period_start=period_start,
+                period_end=period_end,
+                situation=situation,
+            ))
+
+
 async def _resume_session(
     existing: QnASession, db: AsyncSession, user_id: int, user_profile: dict | None = None
 ) -> QnAStartResponse:
@@ -77,7 +104,8 @@ async def _resume_session(
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
-    question, _schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile)
+    await _insert_schedules(db, user_id, extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
         await db.commit()
@@ -125,7 +153,8 @@ async def start_qna(
         return await _resume_session(result.scalar_one(), db, user_id, user_profile=user_profile)
 
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
-    question, _schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile)
+    await _insert_schedules(db, user_id, extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
         await db.commit()
@@ -216,7 +245,8 @@ async def answer_qna(
 
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
-    question, _schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile)
+    await _insert_schedules(db, user_id, extracted_schedules)
 
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
