@@ -2,8 +2,11 @@
 set -euo pipefail
 exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 
+# 0. Set timezone to KST
+timedatectl set-timezone Asia/Seoul
+
 # 1. Install system packages
-dnf install -y python3.11 python3.11-pip nodejs20 git nginx
+dnf install -y python3.11 python3.11-pip nodejs20 git nginx cronie
 dnf clean all
 
 # 2. Clone repository
@@ -76,7 +79,15 @@ DB_URL="${db_url}" APP_PASSWORD="${app_password}" SESSION_SECRET="${session_secr
   BEDROCK_MODEL_ID="${bedrock_model_id}" AWS_REGION="${aws_region}" \
   .venv/bin/alembic upgrade head
 
-# 8. Enable and start services
+# 8. Set up cron for schedule expiry
+touch /var/log/qna-diary-cron.log
+chown ec2-user /var/log/qna-diary-cron.log
+cat > /etc/cron.d/qna-diary-schedules <<'CRONFILE'
+50 23 * * * ec2-user cd /opt/app/backend && DB_URL=${db_url} .venv/bin/python -m scripts.expire_schedules >> /var/log/qna-diary-cron.log 2>&1
+CRONFILE
+chmod 644 /etc/cron.d/qna-diary-schedules
+
+# 9. Enable and start services
 systemctl daemon-reload
-systemctl enable nginx qna-api
-systemctl start nginx qna-api
+systemctl enable nginx qna-api crond
+systemctl start nginx qna-api crond
