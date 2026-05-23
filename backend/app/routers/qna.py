@@ -51,17 +51,6 @@ async def _get_recent_summaries(
     return list(result.all())
 
 
-async def _get_rag_items(db: AsyncSession, user_id: int, exclude_session_id: int) -> list[QnAItem]:
-    result = await db.execute(
-        select(QnAItem)
-        .join(QnASession)
-        .where(QnASession.user_id == user_id, QnASession.id != exclude_session_id)
-        .order_by(QnAItem.asked_at.desc())
-        .limit(10)
-    )
-    return list(result.scalars().all())
-
-
 async def _resume_session(
     existing: QnASession, db: AsyncSession, user_id: int, user_profile: dict | None = None
 ) -> QnAStartResponse:
@@ -87,8 +76,8 @@ async def _resume_session(
         )
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
-    rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, answered_items, next_seq, user_profile=user_profile)
+    rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
+    question, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
         await db.commit()
@@ -135,8 +124,8 @@ async def start_qna(
         )
         return await _resume_session(result.scalar_one(), db, user_id, user_profile=user_profile)
 
-    rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, [], 1, user_profile=user_profile)
+    rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
+    question, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
         await db.commit()
@@ -204,6 +193,7 @@ async def answer_qna(
     item.answer = body.answer
     item.answered_at = datetime.now(tz=timezone.utc)
     session_id = session.id
+    diary_date = session.diary_date
     is_final = body.sequence >= _MAX_SEQUENCE
     answered_snapshot = [i for i in session.items if i.answer is not None]
 
@@ -225,8 +215,8 @@ async def answer_qna(
         return QnAAnswerResponse(completed=True, diary=diary_entry.body)
 
     next_seq = body.sequence + 1
-    rag_items = await _get_rag_items(db, user_id, session_id)
-    question, meta = await _get_bedrock().generate_question(rag_items, answered_snapshot, next_seq, user_profile=user_profile)
+    rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
+    question, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile)
 
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
