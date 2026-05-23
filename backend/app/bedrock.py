@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import time
 from typing import Any
 
@@ -104,7 +105,7 @@ class BedrockClient:
         self,
         qna_items: list[QnAItem],
         user_profile: dict | None = None,
-    ) -> tuple[str, dict]:
+    ) -> tuple[str, str, dict]:
         profile_block = _build_profile_block(user_profile)
         sorted_items = sorted(qna_items, key=lambda x: x.sequence)
         qa_text = "\n".join(
@@ -112,12 +113,24 @@ class BedrockClient:
         )
         profile_line = f"{profile_block}\n" if profile_block else ""
         prompt = (
-            f"아래 5개의 질문과 답변을 바탕으로 500자 이내의 한국어 일기를 작성하세요.\n"
+            f"아래 질문과 답변을 바탕으로 한국어 일기와 요약을 작성하세요.\n"
             f"자연스럽고 감성적인 문체로, 1인칭 시점으로 작성합니다.\n"
             f"{profile_line}\n"
-            f"{qa_text}"
+            f"{qa_text}\n\n"
+            f"반드시 아래 형식으로만 응답하세요(다른 텍스트 금지):\n"
+            f"<diary>500자 이내 일기 본문</diary>\n"
+            f"<summary>100자 이내 요약문</summary>"
         )
         text, meta = await asyncio.to_thread(
             _invoke_claude, self._client, self._model_id, prompt
         )
-        return text.strip(), meta
+        raw = text.strip()
+        diary_match = re.search(r"<diary>(.*?)</diary>", raw, re.DOTALL)
+        summary_match = re.search(r"<summary>(.*?)</summary>", raw, re.DOTALL)
+        if diary_match and summary_match:
+            body = diary_match.group(1).strip()
+            summary = summary_match.group(1).strip()
+        else:
+            body = raw
+            summary = ""
+        return body, summary, meta
