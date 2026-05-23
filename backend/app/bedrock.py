@@ -3,12 +3,30 @@ import json
 import re
 import time
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import boto3
 
 from app.config import get_settings
 from app.models import QnAItem
+
+_PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
+
+
+@lru_cache(maxsize=None)
+def _read_prompt_file(name: str) -> str:
+    return (_PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
+
+
+def _load_prompt(prompt_name: str, **vars: str) -> str:
+    template = _read_prompt_file(prompt_name)
+    for key, value in vars.items():
+        template = template.replace("{{" + key + "}}", value)
+    # Replace any remaining unreferenced placeholders with empty string.
+    template = re.sub(r"\{\{[^}]+\}\}", "", template)
+    return template
 
 
 def _build_profile_block(user_profile: dict | None) -> str:
