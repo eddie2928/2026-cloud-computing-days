@@ -98,4 +98,6 @@ export const handlers = [
   }),
 
   http.get('/api/user/streak', () => HttpResponse.json({ streak: 0 })),
+
+  http.get('/api/pet', () => HttpResponse.json({ level: 1, xp: 0, xp_to_next: 100 })),
 ]
