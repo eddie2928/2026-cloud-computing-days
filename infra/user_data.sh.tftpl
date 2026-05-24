@@ -14,11 +14,11 @@ mkdir -p /opt/app
 git clone --branch "${git_branch}" "${git_repo_url}" /opt/app
 chown -R ec2-user:ec2-user /opt/app
 
-# 3. Backend: create venv and install dependencies
+# 3. Backend: create venv and install dependencies (as ec2-user so redeploy can pip install later)
 cd /opt/app/backend
-python3.11 -m venv .venv
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+sudo -u ec2-user python3.11 -m venv .venv
+sudo -u ec2-user .venv/bin/pip install --upgrade pip
+sudo -u ec2-user .venv/bin/pip install -r requirements.txt
 
 # 4. Frontend: build
 cd /opt/app/frontend
