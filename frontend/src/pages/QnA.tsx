@@ -6,16 +6,29 @@ import { ChatBubble } from '../components/qna/ChatBubble'
 import { ThinkingDots } from '../components/qna/ThinkingDots'
 import { ChatInput } from '../components/qna/ChatInput'
 import { ProgressBar } from '../components/days/ProgressBar'
+import { ScheduleCard } from '../components/qna/ScheduleCard'
 
 interface Message {
   role: 'ai' | 'user'
   text: string
 }
 
+interface PendingSchedule {
+  period_start: string
+  period_end: string
+  situation: string
+}
+
+function scheduleKey(s: PendingSchedule) {
+  return `${s.period_start}_${s.period_end}_${s.situation}`
+}
+
 export function Qna() {
   const { date } = useParams<{ date: string }>()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
+  const [pendingByMsgIdx, setPendingByMsgIdx] = useState<Map<number, PendingSchedule[]>>(new Map())
+  const [scheduleStatuses, setScheduleStatuses] = useState<Map<string, 'pending' | 'accepted' | 'rejected'>>(new Map())
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sequence, setSequence] = useState(0)
   const [thinking, setThinking] = useState(false)
@@ -27,7 +40,17 @@ export function Qna() {
     client.post('/qna/start', { diary_date: date }).then(res => {
       setSessionId(res.data.session_id)
       setSequence(res.data.sequence)
+      const aiMsgIdx = 0
       setMessages([{ role: 'ai', text: res.data.question }])
+      const pending: PendingSchedule[] = res.data.pending_schedules ?? []
+      if (pending.length > 0) {
+        setPendingByMsgIdx(prev => new Map(prev).set(aiMsgIdx, pending))
+        setScheduleStatuses(prev => {
+          const next = new Map(prev)
+          for (const s of pending) next.set(scheduleKey(s), 'pending')
+          return next
+        })
+      }
     }).catch(() => {})
   }, [date])
 
@@ -52,11 +75,42 @@ export function Qna() {
         setTimeout(() => navigate(`/diary/${date}`), 1200)
       } else {
         setSequence(res.data.sequence)
-        setMessages(m => [...m, { role: 'ai', text: res.data.next_question }])
+        setMessages(m => {
+          const next = [...m, { role: 'ai' as const, text: res.data.next_question }]
+          const aiMsgIdx = next.length - 1
+          const pending: PendingSchedule[] = res.data.pending_schedules ?? []
+          if (pending.length > 0) {
+            setPendingByMsgIdx(prev => new Map(prev).set(aiMsgIdx, pending))
+            setScheduleStatuses(prev => {
+              const statuses = new Map(prev)
+              for (const s of pending) statuses.set(scheduleKey(s), 'pending')
+              return statuses
+            })
+          }
+          return next
+        })
       }
     } catch {
       setThinking(false)
     }
+  }
+
+  const handleAccept = async (s: PendingSchedule) => {
+    const key = scheduleKey(s)
+    try {
+      await client.post('/schedules', {
+        period_start: s.period_start,
+        period_end: s.period_end,
+        situation: s.situation,
+      })
+    } catch {
+      // 409 중복은 무시
+    }
+    setScheduleStatuses(prev => new Map(prev).set(key, 'accepted'))
+  }
+
+  const handleReject = (s: PendingSchedule) => {
+    setScheduleStatuses(prev => new Map(prev).set(scheduleKey(s), 'rejected'))
   }
 
   const totalQuestions = 5
@@ -76,7 +130,18 @@ export function Qna() {
       {/* 채팅 영역 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {messages.map((msg, i) => (
-          <ChatBubble key={i} role={msg.role}>{msg.text}</ChatBubble>
+          <div key={i}>
+            <ChatBubble role={msg.role}>{msg.text}</ChatBubble>
+            {msg.role === 'ai' && (pendingByMsgIdx.get(i) ?? []).map(s => (
+              <ScheduleCard
+                key={scheduleKey(s)}
+                schedule={s}
+                status={scheduleStatuses.get(scheduleKey(s)) ?? 'pending'}
+                onAccept={() => handleAccept(s)}
+                onReject={() => handleReject(s)}
+              />
+            ))}
+          </div>
         ))}
         {thinking && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
