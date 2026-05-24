@@ -13,6 +13,56 @@ const TABLES = [
   'user_schedules',
 ]
 
+const TABLE_FIELD_HINTS: Record<string, Record<string, string>> = {
+  users: { display_name: '예: 홍길동' },
+  user_profiles: {
+    user_id: '정수 (예: 1)',
+    nickname: '예: 길동이',
+    gender: 'male | female | other | private',
+    age: '정수 (예: 25)',
+    occupation: '예: 개발자',
+    hobbies: 'PostgreSQL 배열 (예: {독서,등산})',
+    interests: 'PostgreSQL 배열 (예: {AI,음악})',
+    notification_time: 'HH:MM:SS (예: 09:00:00)',
+  },
+  qna_sessions: {
+    user_id: '정수 (예: 1)',
+    diary_date: 'YYYY-MM-DD (예: 2026-05-24)',
+    status: 'in_progress | completed',
+  },
+  qna_items: {
+    session_id: '정수 (예: 1)',
+    sequence: '1~5',
+    question: '자유 텍스트',
+    answer: '자유 텍스트',
+  },
+  diary_entries: {
+    session_id: '정수 (예: 1)',
+    user_id: '정수 (예: 1)',
+    diary_date: 'YYYY-MM-DD (예: 2026-05-24)',
+    body: '자유 텍스트 (일기 본문)',
+    summary: '자유 텍스트 (한줄 요약)',
+    emotion: 'happy | sad | angry | neutral | bored',
+  },
+  pet: {
+    user_id: '정수 (예: 1)',
+    level: '정수 (예: 1)',
+    xp: '정수 (예: 0)',
+  },
+  share_links: {
+    user_id: '정수 (예: 1)',
+    diary_date: 'YYYY-MM-DD (예: 2026-05-24)',
+    token: '고유 문자열 (예: abc123xyz)',
+    expires_at: 'ISO 8601 (예: 2026-05-25T00:00:00Z)',
+  },
+  user_schedules: {
+    user_id: '정수 (예: 1)',
+    period_start: 'YYYY-MM-DD (예: 2026-05-26)',
+    period_end: 'YYYY-MM-DD (예: 2026-05-28)',
+    situation: '구체적 활동 (예: 교토 신사 방문)',
+  },
+}
+
 type Tab = 'db' | 'bedrock'
 
 interface BedrockLog {
@@ -175,15 +225,13 @@ export function Admin() {
             <button
               onClick={() => { setShowAddForm(!showAddForm); setNewRow({}); setAddError(null) }}
               style={{
-                background: 'var(--gold)',
-                color: '#fff',
+                background: 'transparent',
                 border: 'none',
-                borderRadius: 10,
-                padding: '8px 16px',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
-                fontWeight: 600,
+                color: 'var(--ink-stone)',
                 cursor: 'pointer',
+                padding: '8px 4px',
               }}
             >
               {showAddForm ? '취소' : '행 추가'}
@@ -210,26 +258,38 @@ export function Admin() {
                 새 행 추가 (id, created_at 등 자동 생성 필드는 비워두세요)
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {columns.filter(c => c !== 'id').map(col => (
-                  <div key={col} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-stone)', minWidth: 140 }}>{col}</label>
-                    <input
-                      value={newRow[col] ?? ''}
-                      onChange={e => setNewRow(prev => ({ ...prev, [col]: e.target.value }))}
-                      style={{
-                        flex: 1,
-                        background: 'var(--paper-mist)',
-                        border: '1px solid var(--line-faint)',
-                        borderRadius: 8,
-                        padding: '6px 10px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 12,
-                        color: 'var(--ink-coffee)',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                ))}
+                {columns.filter(c => c !== 'id').map(col => {
+                  const hint = TABLE_FIELD_HINTS[selectedTable]?.[col]
+                  return (
+                    <div key={col} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-stone)', minWidth: 140 }}>{col}</label>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          value={newRow[col] ?? ''}
+                          onChange={e => setNewRow(prev => ({ ...prev, [col]: e.target.value }))}
+                          placeholder={hint ?? ''}
+                          style={{
+                            width: '100%',
+                            background: 'var(--paper-mist)',
+                            border: '1px solid var(--line-faint)',
+                            borderRadius: 8,
+                            padding: '6px 10px',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 12,
+                            color: 'var(--ink-coffee)',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        {hint && (
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-bark)', opacity: 0.7 }}>
+                            {hint}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
               {addError && <p style={{ color: 'var(--clay)', fontFamily: 'var(--font-sans)', fontSize: 13, margin: '8px 0 0' }}>{addError}</p>}
               <button

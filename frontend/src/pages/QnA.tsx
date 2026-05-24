@@ -60,6 +60,7 @@ export function Qna() {
 
   const handleSend = async (text: string) => {
     if (!sessionId || thinking || done) return
+    const aiMsgIdx = messages.length + 1
     setMessages(m => [...m, { role: 'user', text }])
     setThinking(true)
     try {
@@ -75,20 +76,16 @@ export function Qna() {
         setTimeout(() => navigate(`/diary/${date}`), 1200)
       } else {
         setSequence(res.data.sequence)
-        setMessages(m => {
-          const next = [...m, { role: 'ai' as const, text: res.data.next_question }]
-          const aiMsgIdx = next.length - 1
-          const pending: PendingSchedule[] = res.data.pending_schedules ?? []
-          if (pending.length > 0) {
-            setPendingByMsgIdx(prev => new Map(prev).set(aiMsgIdx, pending))
-            setScheduleStatuses(prev => {
-              const statuses = new Map(prev)
-              for (const s of pending) statuses.set(scheduleKey(s), 'pending')
-              return statuses
-            })
-          }
-          return next
-        })
+        setMessages(m => [...m, { role: 'ai' as const, text: res.data.next_question }])
+        const pending: PendingSchedule[] = res.data.pending_schedules ?? []
+        if (pending.length > 0) {
+          setPendingByMsgIdx(prev => new Map(prev).set(aiMsgIdx, pending))
+          setScheduleStatuses(prev => {
+            const statuses = new Map(prev)
+            for (const s of pending) statuses.set(scheduleKey(s), 'pending')
+            return statuses
+          })
+        }
       }
     } catch {
       setThinking(false)
