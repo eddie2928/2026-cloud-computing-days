@@ -70,3 +70,34 @@ def test_profile_block_without_profile():
 
     result = _build_profile_block(None)
     assert result == ""
+
+
+def test_relevant_schedules_substituted():
+    from app.bedrock import _load_prompt
+
+    result = _load_prompt(
+        "question",
+        user_profile="",
+        rag_summaries="",
+        relevant_schedules="[진행중] 테스트 일정 (2026-05-01~2026-05-31)",
+        session_so_far="",
+        next_sequence="1",
+    )
+    assert "진행중" in result
+    assert "테스트 일정" in result
+    assert "active_schedules" not in result
+
+
+def test_empty_relevant_schedules_no_placeholder_left():
+    from app.bedrock import _load_prompt
+
+    result = _load_prompt(
+        "question",
+        user_profile="",
+        rag_summaries="",
+        relevant_schedules="",
+        session_so_far="",
+        next_sequence="1",
+    )
+    assert "{{relevant_schedules}}" not in result
+    assert "{{active_schedules}}" not in result
