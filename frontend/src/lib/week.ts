@@ -3,6 +3,13 @@ export interface CalendarEntry {
   emotion?: string;
 }
 
+export interface ScheduleItem {
+  id: number;
+  period_start: string;
+  period_end: string;
+  situation: string;
+}
+
 export interface WeekDay {
   date: string;
   emotion?: string;

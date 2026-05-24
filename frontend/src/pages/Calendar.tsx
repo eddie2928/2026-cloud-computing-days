@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import client from '../api/client'
 import { MonthGrid } from '../components/calendar/MonthGrid'
-import { type CalendarEntry } from '../lib/week'
+import { type CalendarEntry, type ScheduleItem } from '../lib/week'
 import { useDayModal } from '../hooks/dayModalContext'
 
 const now = new Date()
@@ -11,11 +11,13 @@ export function Calendar() {
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [entries, setEntries] = useState<CalendarEntry[]>([])
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([])
 
   useEffect(() => {
     const m = `${year}-${String(month).padStart(2, '0')}`
     client.get(`/calendar?month=${m}`).then(res => {
       setEntries(res.data.entries ?? [])
+      setSchedules(res.data.schedules ?? [])
     }).catch(() => {})
   }, [year, month])
 
@@ -35,6 +37,7 @@ export function Calendar() {
         year={year}
         month={month}
         entries={entries}
+        schedules={schedules}
         onPrev={goPrev}
         onNext={goNext}
         onCellClick={date => openDayModal(date)}

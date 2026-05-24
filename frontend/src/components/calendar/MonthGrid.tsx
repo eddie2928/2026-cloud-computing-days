@@ -1,4 +1,4 @@
-import { type CalendarEntry } from '../../lib/week';
+import { type CalendarEntry, type ScheduleItem } from '../../lib/week';
 import { MoodEmoji, type Mood } from '../days/MoodEmoji';
 import { Icon } from '../days/Icon';
 
@@ -6,15 +6,75 @@ interface MonthGridProps {
   year: number;
   month: number;
   entries: CalendarEntry[];
+  schedules?: ScheduleItem[];
   onPrev: () => void;
   onNext: () => void;
   onCellClick: (date: string) => void;
+  onScheduleClick?: (schedule: ScheduleItem) => void;
 }
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const TODAY = new Date().toISOString().split('T')[0];
 
-export function MonthGrid({ year, month, entries, onPrev, onNext, onCellClick }: MonthGridProps) {
+interface ScheduleBar {
+  schedule: ScheduleItem;
+  colStart: number; // 1-indexed grid column start
+  colEnd: number;   // 1-indexed grid column end (exclusive)
+  rowIndex: number; // stack offset for overlap
+}
+
+function getScheduleBars(
+  cells: Array<{ date: string; inMonth: boolean }>,
+  schedules: ScheduleItem[],
+): ScheduleBar[][] {
+  // Returns an array of bars per week row (6 rows max)
+  const weeks: ScheduleBar[][] = Array.from({ length: 6 }, () => []);
+
+  for (const schedule of schedules) {
+    const startDate = schedule.period_start;
+    const endDate = schedule.period_end;
+
+    for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+      const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
+      const weekDates = weekCells.map(c => c.date);
+
+      const firstOverlap = weekDates.findIndex(d => d >= startDate && d <= endDate);
+      const lastOverlap = (() => {
+        for (let i = 6; i >= 0; i--) {
+          if (weekDates[i] >= startDate && weekDates[i] <= endDate) return i;
+        }
+        return -1;
+      })();
+
+      if (firstOverlap === -1) continue;
+
+      // Find a row slot that doesn't overlap with existing bars
+      const existingBars = weeks[weekIdx];
+      let rowIndex = 0;
+      while (
+        existingBars.some(
+          b =>
+            b.rowIndex === rowIndex &&
+            b.colStart <= lastOverlap + 1 &&
+            b.colEnd > firstOverlap + 1,
+        )
+      ) {
+        rowIndex++;
+      }
+
+      weeks[weekIdx].push({
+        schedule,
+        colStart: firstOverlap + 1,
+        colEnd: lastOverlap + 2,
+        rowIndex,
+      });
+    }
+  }
+
+  return weeks;
+}
+
+export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext, onCellClick, onScheduleClick }: MonthGridProps) {
   const entryMap = new Map(entries.map(e => [e.date, e.emotion]));
   const firstDay = new Date(year, month - 1, 1);
   const startOffset = firstDay.getDay();
@@ -40,6 +100,11 @@ export function MonthGrid({ year, month, entries, onPrev, onNext, onCellClick }:
   for (let d = 1; d <= remaining; d++) {
     cells.push({ date: `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`, inMonth: false });
   }
+
+  const weekBars = getScheduleBars(cells, schedules);
+  const CELL_HEIGHT = 56; // approximate px height of each date cell row
+  const BAR_HEIGHT = 20;
+  const BAR_GAP = 2;
 
   return (
     <div>
@@ -73,37 +138,81 @@ export function MonthGrid({ year, month, entries, onPrev, onNext, onCellClick }:
         ))}
       </div>
 
-      {/* 날짜 셀 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }} data-testid="month-grid">
-        {cells.map(({ date, inMonth }) => {
-          const isToday = date === TODAY;
-          const emotion = entryMap.get(date);
-          return (
+      {/* 날짜 셀 그리드 + 일정 바 오버레이 */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }} data-testid="month-grid">
+          {cells.map(({ date, inMonth }) => {
+            const isToday = date === TODAY;
+            const emotion = entryMap.get(date);
+            return (
+              <button
+                key={date}
+                aria-label={date}
+                onClick={() => inMonth && onCellClick(date)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: '6px 2px',
+                  minHeight: CELL_HEIGHT,
+                  borderRadius: 'var(--r-2)',
+                  border: isToday ? '1.5px solid var(--sage-leaf)' : '1px solid transparent',
+                  background: inMonth ? 'var(--cal-day-bg, var(--paper-pure))' : 'transparent',
+                  cursor: inMonth ? 'pointer' : 'default',
+                  opacity: inMonth ? 1 : 0.35,
+                  transition: 'background var(--dur-1)',
+                }}
+              >
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: isToday ? 'var(--sage-leaf)' : 'var(--ink-body)', fontWeight: isToday ? 700 : 400 }}>
+                  {new Date(date).getDate()}
+                </span>
+                {emotion ? <MoodEmoji mood={emotion as Mood} size={12} /> : <span style={{ width: 12, height: 12 }} />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 일정 바 오버레이 (주 단위) */}
+        {weekBars.map((bars, weekIdx) =>
+          bars.map((bar, barIdx) => (
             <button
-              key={date}
-              aria-label={date}
-              onClick={() => inMonth && onCellClick(date)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: '6px 2px',
-                borderRadius: 'var(--r-2)',
-                border: isToday ? '1.5px solid var(--sage-leaf)' : '1px solid transparent',
-                background: inMonth ? 'var(--cal-day-bg, var(--paper-pure))' : 'transparent',
-                cursor: inMonth ? 'pointer' : 'default',
-                opacity: inMonth ? 1 : 0.35,
-                transition: 'background var(--dur-1)',
+              key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
+              onClick={e => {
+                e.stopPropagation();
+                onScheduleClick?.(bar.schedule);
               }}
+              title={bar.schedule.situation}
+              style={{
+                position: 'absolute',
+                top: weekIdx * (CELL_HEIGHT + 2) + 28 + bar.rowIndex * (BAR_HEIGHT + BAR_GAP),
+                left: `calc(${(bar.colStart - 1) / 7 * 100}% + 2px)`,
+                width: `calc(${(bar.colEnd - bar.colStart) / 7 * 100}% - 4px)`,
+                height: BAR_HEIGHT,
+                background: 'var(--gold-glow, #F4E5B6)',
+                borderRadius: 'var(--r-2, 8px)',
+                border: 'none',
+                padding: '0 6px',
+                cursor: onScheduleClick ? 'pointer' : 'default',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 500,
+                fontSize: 11,
+                lineHeight: `${BAR_HEIGHT}px`,
+                color: 'var(--ink-walnut, #5C4A32)',
+                transition: 'background var(--dur-2)',
+                animation: 'days-fade-in 200ms var(--ease-out) both',
+                pointerEvents: onScheduleClick ? 'auto' : 'none',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--gold-mist, #EDD98A)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--gold-glow, #F4E5B6)'; }}
             >
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: isToday ? 'var(--sage-leaf)' : 'var(--ink-body)', fontWeight: isToday ? 700 : 400 }}>
-                {new Date(date).getDate()}
-              </span>
-              {emotion ? <MoodEmoji mood={emotion as Mood} size={12} /> : <span style={{ width: 12, height: 12 }} />}
+              {bar.schedule.situation}
             </button>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );
