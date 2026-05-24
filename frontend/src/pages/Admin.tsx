@@ -53,6 +53,9 @@ export function Admin() {
   const [columns, setColumns] = useState<string[]>([])
   const [dbLoading, setDbLoading] = useState(false)
   const [dbError, setDbError] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newRow, setNewRow] = useState<Record<string, string>>({})
+  const [addError, setAddError] = useState<string | null>(null)
 
   // Bedrock 로그 탭
   const [bedrockLogs, setBedrockLogs] = useState<BedrockLog[]>([])
@@ -60,8 +63,7 @@ export function Admin() {
   const [bedrockError, setBedrockError] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (tab !== 'db') return
+  const fetchTable = useCallback(() => {
     setDbLoading(true)
     setDbError(null)
     client
@@ -73,7 +75,42 @@ export function Admin() {
       })
       .catch(() => setDbError('데이터를 불러오지 못했습니다.'))
       .finally(() => setDbLoading(false))
-  }, [selectedTable, tab])
+  }, [selectedTable])
+
+  useEffect(() => {
+    if (tab !== 'db') return
+    fetchTable()
+  }, [selectedTable, tab, fetchTable])
+
+  const handleDelete = async (id: unknown) => {
+    if (!confirm(`ID ${id} 행을 삭제하시겠습니까?`)) return
+    try {
+      await client.delete(`/admin/tables/${selectedTable}/${id}`)
+      fetchTable()
+    } catch {
+      alert('삭제 실패')
+    }
+  }
+
+  const handleAdd = async () => {
+    setAddError(null)
+    const payload: Record<string, string> = {}
+    for (const [k, v] of Object.entries(newRow)) {
+      if (v.trim() !== '') payload[k] = v.trim()
+    }
+    if (Object.keys(payload).length === 0) {
+      setAddError('최소 한 개 필드를 입력하세요.')
+      return
+    }
+    try {
+      await client.post(`/admin/tables/${selectedTable}`, payload)
+      setShowAddForm(false)
+      setNewRow({})
+      fetchTable()
+    } catch {
+      setAddError('추가 실패. 입력값을 확인하세요.')
+    }
+  }
 
   const fetchBedrockLogs = useCallback(() => {
     setBedrockLoading(true)
@@ -110,30 +147,110 @@ export function Admin() {
       {/* DB 조회 탭 */}
       {tab === 'db' && (
         <div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-stone)', display: 'block', marginBottom: 6 }}>
-              테이블
-            </label>
-            <select
-              value={selectedTable}
-              onChange={e => setSelectedTable(e.target.value)}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-stone)', display: 'block', marginBottom: 6 }}>
+                테이블
+              </label>
+              <select
+                value={selectedTable}
+                onChange={e => { setSelectedTable(e.target.value); setShowAddForm(false); setNewRow({}) }}
+                style={{
+                  background: 'var(--paper-mist)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 12,
+                  padding: '8px 12px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  color: 'var(--ink-coffee)',
+                  outline: 'none',
+                  minWidth: 200,
+                }}
+              >
+                {TABLES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => { setShowAddForm(!showAddForm); setNewRow({}); setAddError(null) }}
               style={{
-                background: 'var(--paper-mist)',
-                border: '1px solid var(--line)',
-                borderRadius: 12,
-                padding: '8px 12px',
+                background: 'var(--gold)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                padding: '8px 16px',
                 fontFamily: 'var(--font-sans)',
-                fontSize: 14,
-                color: 'var(--ink-coffee)',
-                outline: 'none',
-                minWidth: 200,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
               }}
             >
-              {TABLES.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+              {showAddForm ? '취소' : '행 추가'}
+            </button>
+            <button
+              onClick={fetchTable}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13,
+                color: 'var(--ink-stone)',
+                cursor: 'pointer',
+                padding: '8px 4px',
+              }}
+            >
+              새로고침
+            </button>
           </div>
+
+          {showAddForm && (
+            <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--ink-walnut)', margin: '0 0 12px' }}>
+                새 행 추가 (id, created_at 등 자동 생성 필드는 비워두세요)
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {columns.filter(c => c !== 'id').map(col => (
+                  <div key={col} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-stone)', minWidth: 140 }}>{col}</label>
+                    <input
+                      value={newRow[col] ?? ''}
+                      onChange={e => setNewRow(prev => ({ ...prev, [col]: e.target.value }))}
+                      style={{
+                        flex: 1,
+                        background: 'var(--paper-mist)',
+                        border: '1px solid var(--line-faint)',
+                        borderRadius: 8,
+                        padding: '6px 10px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 12,
+                        color: 'var(--ink-coffee)',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              {addError && <p style={{ color: 'var(--clay)', fontFamily: 'var(--font-sans)', fontSize: 13, margin: '8px 0 0' }}>{addError}</p>}
+              <button
+                onClick={handleAdd}
+                style={{
+                  marginTop: 12,
+                  background: 'var(--sage)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '8px 20px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                추가
+              </button>
+            </div>
+          )}
 
           {dbLoading && (
             <div style={{ padding: '16px 0' }}>
@@ -149,6 +266,9 @@ export function Admin() {
               <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>
+                    <th style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'center', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
+                      삭제
+                    </th>
                     {columns.map(col => (
                       <th key={col} style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'left', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
                         {col}
@@ -159,6 +279,23 @@ export function Admin() {
                 <tbody>
                   {rows.map((row, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--line-faint)' }}>
+                      <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleDelete(row['id'])}
+                          style={{
+                            background: 'none',
+                            border: '1px solid var(--clay)',
+                            borderRadius: 6,
+                            padding: '2px 8px',
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: 11,
+                            color: 'var(--clay)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          삭제
+                        </button>
+                      </td>
                       {columns.map(col => (
                         <td key={col} style={{ padding: '6px 12px', color: 'var(--ink-coffee)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {String(row[col] ?? '')}

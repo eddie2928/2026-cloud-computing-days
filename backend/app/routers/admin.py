@@ -8,6 +8,8 @@ from app.models import QnAItem
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+_PK_COLUMN = "id"
+
 _ALLOWED_TABLES = {
     "users",
     "user_profiles",
@@ -70,3 +72,45 @@ async def get_table_rows(
     result = await db.execute(text(f"SELECT * FROM {name} LIMIT :limit"), {"limit": limit})
     rows = result.mappings().all()
     return [dict(row) for row in rows]
+
+
+@router.delete("/tables/{name}/{row_id}")
+async def delete_table_row(
+    name: str,
+    row_id: int,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    if name not in _ALLOWED_TABLES:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Table '{name}' not found")
+    result = await db.execute(
+        text(f"DELETE FROM {name} WHERE {_PK_COLUMN} = :row_id RETURNING {_PK_COLUMN}"),
+        {"row_id": row_id},
+    )
+    deleted = result.fetchone()
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Row not found")
+    await db.commit()
+    return {"deleted_id": row_id}
+
+
+@router.post("/tables/{name}")
+async def insert_table_row(
+    name: str,
+    row: dict,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    if name not in _ALLOWED_TABLES:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Table '{name}' not found")
+    if not row:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty row data")
+    columns = ", ".join(row.keys())
+    placeholders = ", ".join(f":{k}" for k in row.keys())
+    result = await db.execute(
+        text(f"INSERT INTO {name} ({columns}) VALUES ({placeholders}) RETURNING *"),
+        row,
+    )
+    inserted = result.mappings().fetchone()
+    await db.commit()
+    return dict(inserted)
