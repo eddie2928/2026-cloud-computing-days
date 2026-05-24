@@ -35,6 +35,7 @@ export const handlers = [
       question: '오늘 가장 기억에 남는 일은 무엇인가요?',
       sequence: 1,
       history: [],
+      pending_schedules: [],
     })
   }),
 
@@ -44,12 +45,14 @@ export const handlers = [
       return HttpResponse.json({
         completed: true,
         diary: '오늘 하루를 돌아보며 작성된 일기입니다.',
+        pending_schedules: [],
       })
     }
     return HttpResponse.json({
       next_question: `다음 질문 ${body.sequence + 1}번입니다.`,
       sequence: body.sequence + 1,
       completed: false,
+      pending_schedules: [],
     })
   }),
 
@@ -62,9 +65,35 @@ export const handlers = [
           { date: '2026-05-01', emotion: 'happy' },
           { date: '2026-05-15', emotion: 'neutral' },
         ],
+        schedules: [],
       })
     }
-    return HttpResponse.json({ entries: [] })
+    return HttpResponse.json({ entries: [], schedules: [] })
+  }),
+
+  http.get('/api/schedules', ({ request }) => {
+    const url = new URL(request.url)
+    const month = url.searchParams.get('month')
+    if (month === '2026-05') {
+      return HttpResponse.json([
+        { id: 1, period_start: '2026-05-01', period_end: '2026-05-15', situation: '테스트 일정' },
+      ])
+    }
+    return HttpResponse.json([])
+  }),
+
+  http.post('/api/schedules', async ({ request }) => {
+    const body = await request.json() as { period_start: string; period_end: string; situation: string }
+    return HttpResponse.json({ id: 99, ...body }, { status: 201 })
+  }),
+
+  http.patch('/api/schedules/:id', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>
+    return HttpResponse.json({ id: Number(params.id), period_start: '2026-05-01', period_end: '2026-05-31', situation: '수정됨', ...body })
+  }),
+
+  http.delete('/api/schedules/:id', () => {
+    return new HttpResponse(null, { status: 204 })
   }),
 
   http.get('/api/diary/:date', ({ params }) => {
