@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import client from '../api/client'
 import { MonthGrid } from '../components/calendar/MonthGrid'
+import { SchedulePopup } from '../components/calendar/SchedulePopup'
 import { type CalendarEntry, type ScheduleItem } from '../lib/week'
 import { useDayModal } from '../hooks/dayModalContext'
 
@@ -12,14 +13,19 @@ export function Calendar() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null)
 
-  useEffect(() => {
+  const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, '0')}`
     client.get(`/calendar?month=${m}`).then(res => {
       setEntries(res.data.entries ?? [])
       setSchedules(res.data.schedules ?? [])
     }).catch(() => {})
   }, [year, month])
+
+  useEffect(() => {
+    fetchCalendar()
+  }, [fetchCalendar])
 
   const goPrev = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -41,7 +47,15 @@ export function Calendar() {
         onPrev={goPrev}
         onNext={goNext}
         onCellClick={date => openDayModal(date)}
+        onScheduleClick={s => setSelectedSchedule(s)}
       />
+      {selectedSchedule && (
+        <SchedulePopup
+          schedule={selectedSchedule}
+          onClose={() => setSelectedSchedule(null)}
+          onUpdated={() => { setSelectedSchedule(null); fetchCalendar() }}
+        />
+      )}
     </div>
   )
 }
