@@ -6,7 +6,7 @@ exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&
 timedatectl set-timezone Asia/Seoul
 
 # 1. Install system packages
-dnf install -y python3.11 python3.11-pip nodejs20 git nginx cronie
+dnf install -y python3.11 python3.11-pip nodejs20 git nginx
 dnf clean all
 
 # 2. Clone repository
@@ -90,15 +90,7 @@ cd /opt/app/backend
 set -a; source /etc/qna-diary/env; set +a
 .venv/bin/alembic upgrade head
 
-# 10. Set up cron for schedule expiry
-touch /var/log/qna-diary-cron.log
-chown ec2-user /var/log/qna-diary-cron.log
-cat > /etc/cron.d/qna-diary-schedules <<'CRONFILE'
-50 23 * * * ec2-user set -a; source /etc/qna-diary/env; set +a; cd /opt/app/backend && .venv/bin/python -m scripts.expire_schedules >> /var/log/qna-diary-cron.log 2>&1
-CRONFILE
-chmod 644 /etc/cron.d/qna-diary-schedules
-
-# 11. systemd unit env file reference
+# 10. systemd unit env file reference
 # Patch the unit to use EnvironmentFile instead of inline Environment=
 sed -i 's|^Environment=APP_PASSWORD=.*||;s|^Environment=SESSION_SECRET=.*||;s|^Environment=DB_URL=.*||;s|^Environment=BEDROCK_MODEL_ID=.*||;s|^Environment=AWS_REGION=.*||' \
   /etc/systemd/system/qna-api.service 2>/dev/null || true
@@ -108,5 +100,5 @@ sed -i "/^ExecStart=/i EnvironmentFile=/etc/qna-diary/env" /etc/systemd/system/q
 
 # 12. Enable and start services
 systemctl daemon-reload
-systemctl enable nginx qna-api crond
-systemctl start nginx qna-api crond
+systemctl enable nginx qna-api
+systemctl start nginx qna-api
