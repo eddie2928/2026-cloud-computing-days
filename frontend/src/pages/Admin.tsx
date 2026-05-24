@@ -20,6 +20,8 @@ interface BedrockLog {
   session_id: number
   sequence: number
   question: string
+  answer: string | null
+  answered_at: string | null
   asked_at: string | null
   prompt: string | null
   raw_response: string | null
@@ -218,9 +220,14 @@ export function Admin() {
                 <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, color: 'var(--gold-deep)', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Q{log.sequence} · {log.asked_at ? new Date(log.asked_at).toLocaleString('ko-KR') : '—'}
                 </p>
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-coffee)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
-                  {log.question}
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-coffee)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
+                  <span style={{ color: 'var(--gold-deep)', fontWeight: 600 }}>Q</span> {log.question}
                 </p>
+                {log.answer && (
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-bark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
+                    <span style={{ color: 'var(--sage)', fontWeight: 600 }}>A</span> {log.answer}
+                  </p>
+                )}
 
                 {expandedLogId === log.id && (
                   <div style={{ marginTop: 16 }}>

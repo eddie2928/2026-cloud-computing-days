@@ -122,13 +122,16 @@ class BedrockClient:
         next_sequence: int,
         user_profile: dict | None = None,
         relevant_schedules: list[str] | None = None,
+        today: date | None = None,
     ) -> tuple[str, list[dict], dict]:
         profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_summaries)
         session_block = _build_session_block(session_so_far)
         schedules_block = "\n".join(relevant_schedules) if relevant_schedules else ""
+        today_str = str(today or date.today())
         prompt = _load_prompt(
             "question",
+            today_date=today_str,
             user_profile=profile_block,
             rag_summaries=rag_block,
             relevant_schedules=schedules_block,

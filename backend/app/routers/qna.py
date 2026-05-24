@@ -116,7 +116,7 @@ async def _resume_session(
     session_id = existing.id
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date)
     pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
@@ -167,7 +167,7 @@ async def start_qna(
 
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds, today=body.diary_date)
     pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
@@ -262,7 +262,7 @@ async def answer_qna(
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date)
     pending = _to_pending_schedules(extracted_schedules)
 
     try:

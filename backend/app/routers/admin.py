@@ -45,6 +45,8 @@ async def get_bedrock_logs(
             "session_id": item.session_id,
             "sequence": item.sequence,
             "question": item.question,
+            "answer": item.answer,
+            "answered_at": item.answered_at.isoformat() if item.answered_at else None,
             "asked_at": item.asked_at.isoformat() if item.asked_at else None,
             "prompt": meta.get("prompt"),
             "raw_response": meta.get("raw_response"),
