@@ -22,11 +22,18 @@ class QnAHistoryItem(BaseModel):
     answer: str
 
 
+class PendingSchedule(BaseModel):
+    period_start: str
+    period_end: str
+    situation: str
+
+
 class QnAStartResponse(BaseModel):
     session_id: int
     question: str
     sequence: int
     history: list[QnAHistoryItem] = Field(default_factory=list)
+    pending_schedules: list[PendingSchedule] = []
 
 
 class QnAAnswerRequest(BaseModel):
@@ -40,6 +47,28 @@ class QnAAnswerResponse(BaseModel):
     sequence: int | None = None
     completed: bool
     diary: str | None = None
+    pending_schedules: list[PendingSchedule] = []
+
+
+class ScheduleOut(BaseModel):
+    id: int
+    period_start: date
+    period_end: date
+    situation: str
+
+    model_config = {"from_attributes": True}
+
+
+class ScheduleUpdate(BaseModel):
+    period_start: date | None = None
+    period_end: date | None = None
+    situation: str | None = None
+
+
+class ScheduleConfirm(BaseModel):
+    period_start: date
+    period_end: date
+    situation: str
 
 
 class CalendarEntry(BaseModel):
@@ -49,6 +78,7 @@ class CalendarEntry(BaseModel):
 
 class CalendarResponse(BaseModel):
     entries: list[CalendarEntry]
+    schedules: list[ScheduleOut] = []
 
 
 class DiaryResponse(BaseModel):
