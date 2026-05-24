@@ -102,6 +102,8 @@ def _invoke_claude(client: Any, model_id: str, prompt: str) -> tuple[str, dict]:
         "input_tokens": usage.get("input_tokens"),
         "output_tokens": usage.get("output_tokens"),
         "latency_ms": latency_ms,
+        "prompt": prompt,
+        "raw_response": text,
     }
     return text, meta
 
