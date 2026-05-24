@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import admin, auth, calendar, diary, pet, profile, qna, share, user
+from app.routers import admin, auth, calendar, diary, pet, profile, qna, schedules, share, user
 
 app = FastAPI(title="QnA Diary API")
 
@@ -25,6 +25,7 @@ app.include_router(profile.router)
 app.include_router(admin.router)
 app.include_router(user.router)
 app.include_router(pet.router)
+app.include_router(schedules.router)
 app.include_router(share.router)
 
 
