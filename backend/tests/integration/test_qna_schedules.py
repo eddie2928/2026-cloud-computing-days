@@ -1,6 +1,5 @@
-"""Integration tests for schedule extraction + INSERT + duplicate skip (todos #10.4, #10.6)."""
+"""Integration tests for schedule flow: pending_schedules in response, no auto-insert."""
 from datetime import date
-from unittest.mock import patch, AsyncMock, call
 
 import pytest
 from sqlalchemy import select
@@ -13,26 +12,9 @@ async def _login(client):
     assert resp.status_code == 200
 
 
-async def _full_qna(client, bedrock_mock, diary_date: str):
-    start = await client.post("/api/qna/start", json={"diary_date": diary_date})
-    assert start.status_code == 200
-    data = start.json()
-    session_id = data["session_id"]
-    seq = data["sequence"]
-    for i in range(1, 6):
-        resp = await client.post(
-            "/api/qna/answer",
-            json={"session_id": session_id, "sequence": seq, "answer": f"답변 {i}"},
-        )
-        assert resp.status_code == 200
-        resp_data = resp.json()
-        if not resp_data.get("completed"):
-            seq = resp_data["sequence"]
-
-
 @pytest.mark.asyncio
-async def test_schedules_inserted_from_bedrock(client, bedrock_mock, db_session):
-    """Schedules extracted by Bedrock are inserted into user_schedules."""
+async def test_pending_schedules_in_response(client, bedrock_mock, db_session):
+    """Bedrock returns schedules → no auto-insert, pending_schedules in start response."""
     await _login(client)
     bedrock_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
@@ -43,38 +25,25 @@ async def test_schedules_inserted_from_bedrock(client, bedrock_mock, db_session)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-07-10"})
     assert start.status_code == 200
 
+    # DB에 자동 삽입 없음
     result = await db_session.execute(
         select(UserSchedule).where(UserSchedule.situation == "기말 시험")
     )
     rows = result.scalars().all()
-    assert len(rows) >= 1
-    assert rows[0].period_start == date(2026, 7, 1)
-    assert rows[0].period_end == date(2026, 7, 7)
+    assert len(rows) == 0, "Bedrock schedules must NOT be auto-inserted"
+
+    # 응답에 pending_schedules 포함
+    data = start.json()
+    pending = data.get("pending_schedules", [])
+    assert len(pending) == 1
+    assert pending[0]["situation"] == "기말 시험"
+    assert pending[0]["period_start"] == "2026-07-01"
+    assert pending[0]["period_end"] == "2026-07-07"
 
 
 @pytest.mark.asyncio
-async def test_duplicate_schedule_skipped(client, bedrock_mock, db_session):
-    """Duplicate (user_id, period_start, period_end, situation) is not inserted twice."""
-    await _login(client)
-    bedrock_mock.generate_question.return_value = (
-        "오늘 어떤 일이 있었나요?",
-        [{"period_start": "2026-08-01", "period_end": "2026-08-05", "situation": "중복 테스트"}],
-        {"model_id": "test"},
-    )
-
-    await client.post("/api/qna/start", json={"diary_date": "2026-08-10"})
-    await client.post("/api/qna/start", json={"diary_date": "2026-08-11"})
-
-    result = await db_session.execute(
-        select(UserSchedule).where(UserSchedule.situation == "중복 테스트")
-    )
-    rows = result.scalars().all()
-    assert len(rows) == 1, "Duplicate schedule should not be inserted twice"
-
-
-@pytest.mark.asyncio
-async def test_empty_schedules_no_insert(client, bedrock_mock, db_session):
-    """Empty schedules list from Bedrock results in no UserSchedule INSERT."""
+async def test_empty_schedules_no_pending(client, bedrock_mock, db_session):
+    """Empty schedules from Bedrock → pending_schedules is empty list."""
     await _login(client)
     bedrock_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
@@ -85,6 +54,9 @@ async def test_empty_schedules_no_insert(client, bedrock_mock, db_session):
     start = await client.post("/api/qna/start", json={"diary_date": "2026-09-10"})
     assert start.status_code == 200
 
+    data = start.json()
+    assert data.get("pending_schedules", []) == []
+
     result = await db_session.execute(
         select(UserSchedule).where(UserSchedule.period_start == date(2026, 9, 10))
     )
@@ -93,28 +65,75 @@ async def test_empty_schedules_no_insert(client, bedrock_mock, db_session):
 
 
 @pytest.mark.asyncio
-async def test_active_schedules_passed_to_generate_question(client, bedrock_mock):
-    """Active schedules are passed as active_schedules to generate_question.
-
-    Step 1: Start a QnA that makes Bedrock return a schedule for Oct 2026.
-    Step 2: Start a QnA on a date within that schedule's period.
-    Step 3: Verify active_schedules includes that situation.
-    """
+async def test_relevant_schedules_passed(client, bedrock_mock, db_session):
+    """Manually inserted schedules are passed with correct labels to generate_question."""
     await _login(client)
 
-    # Step 1: QnA that inserts a schedule (Oct 2026 period)
-    bedrock_mock.generate_question.return_value = (
-        "오늘 어떤 일이 있었나요?",
-        [{"period_start": "2026-10-01", "period_end": "2026-10-31", "situation": "10월 프로젝트"}],
-        {"model_id": "test"},
+    # Manually insert a schedule for Oct 2026 (진행 중 on 2026-10-15)
+    result = await db_session.execute(select(UserSchedule).limit(0))
+    from sqlalchemy import text
+    await db_session.execute(
+        text(
+            "INSERT INTO user_schedules (user_id, period_start, period_end, situation) "
+            "SELECT u.id, '2026-10-01', '2026-10-31', '10월 프로젝트' "
+            "FROM users u LIMIT 1"
+        )
     )
-    await client.post("/api/qna/start", json={"diary_date": "2026-11-01"})
+    await db_session.commit()
 
-    # Step 2: QnA on a date within the Oct schedule
     bedrock_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-10-15"})
 
-    # Step 3: Check that generate_question was called with relevant_schedules
     call_kwargs = bedrock_mock.generate_question.call_args
     relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
     assert any("10월 프로젝트" in s for s in relevant_schedules_arg)
+    assert any("[진행중]" in s for s in relevant_schedules_arg)
+
+
+@pytest.mark.asyncio
+async def test_recently_ended_schedule_included(client, bedrock_mock, db_session):
+    """Schedule ended within 7 days is included with [N일 전 종료] label."""
+    await _login(client)
+
+    from sqlalchemy import text
+    # Insert schedule ending 3 days before diary date
+    await db_session.execute(
+        text(
+            "INSERT INTO user_schedules (user_id, period_start, period_end, situation) "
+            "SELECT u.id, '2026-11-01', '2026-11-12', '종료 일정' "
+            "FROM users u LIMIT 1"
+        )
+    )
+    await db_session.commit()
+
+    bedrock_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    await client.post("/api/qna/start", json={"diary_date": "2026-11-15"})
+
+    call_kwargs = bedrock_mock.generate_question.call_args
+    relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
+    assert any("종료 일정" in s for s in relevant_schedules_arg)
+    assert any("전 종료" in s for s in relevant_schedules_arg)
+
+
+@pytest.mark.asyncio
+async def test_old_ended_schedule_excluded(client, bedrock_mock, db_session):
+    """Schedule ended more than 7 days ago is excluded from relevant_schedules."""
+    await _login(client)
+
+    from sqlalchemy import text
+    # Insert schedule ending 10 days before diary date
+    await db_session.execute(
+        text(
+            "INSERT INTO user_schedules (user_id, period_start, period_end, situation) "
+            "SELECT u.id, '2026-12-01', '2026-12-05', '오래된 일정' "
+            "FROM users u LIMIT 1"
+        )
+    )
+    await db_session.commit()
+
+    bedrock_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    await client.post("/api/qna/start", json={"diary_date": "2026-12-20"})
+
+    call_kwargs = bedrock_mock.generate_question.call_args
+    relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
+    assert not any("오래된 일정" in s for s in relevant_schedules_arg)

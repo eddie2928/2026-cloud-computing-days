@@ -11,7 +11,7 @@ from app.bedrock import BedrockClient
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
 from app.routers.pet import grow_pet
-from app.schemas import QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
+from app.schemas import PendingSchedule, QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
 
@@ -72,31 +72,21 @@ async def _get_relevant_schedules(db: AsyncSession, user_id: int, today: date) -
     return labels
 
 
-async def _insert_schedules(db: AsyncSession, user_id: int, schedules: list[dict]) -> None:
-    for sched in schedules:
+
+def _to_pending_schedules(extracted: list[dict]) -> list[PendingSchedule]:
+    result = []
+    for sched in extracted:
         try:
-            period_start = date.fromisoformat(sched["period_start"])
-            period_end = date.fromisoformat(sched["period_end"])
+            ps = PendingSchedule(
+                period_start=sched["period_start"],
+                period_end=sched["period_end"],
+                situation=sched.get("situation", "").strip(),
+            )
+            if ps.situation:
+                result.append(ps)
         except (KeyError, ValueError):
             continue
-        situation = sched.get("situation", "").strip()
-        if not situation:
-            continue
-        existing = await db.execute(
-            select(UserSchedule).where(
-                UserSchedule.user_id == user_id,
-                UserSchedule.period_start == period_start,
-                UserSchedule.period_end == period_end,
-                UserSchedule.situation == situation,
-            )
-        )
-        if existing.scalar_one_or_none() is None:
-            db.add(UserSchedule(
-                user_id=user_id,
-                period_start=period_start,
-                period_end=period_end,
-                situation=situation,
-            ))
+    return result
 
 
 async def _resume_session(
@@ -127,7 +117,7 @@ async def _resume_session(
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
     question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
-    await _insert_schedules(db, user_id, extracted_schedules)
+    pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
         await db.commit()
@@ -138,7 +128,8 @@ async def _resume_session(
         )
         ei = res.scalar_one()
         question, next_seq = ei.question, ei.sequence
-    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq, history=history)
+        pending = []
+    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq, history=history, pending_schedules=pending)
 
 
 @router.post("/start", response_model=QnAStartResponse)
@@ -177,7 +168,7 @@ async def start_qna(
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
     question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds)
-    await _insert_schedules(db, user_id, extracted_schedules)
+    pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
         await db.commit()
@@ -188,7 +179,8 @@ async def start_qna(
         )
         ei = res.scalar_one()
         question = ei.question
-    return QnAStartResponse(session_id=session_id, question=question, sequence=1)
+        pending = []
+    return QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending)
 
 
 @router.post("/answer", response_model=QnAAnswerResponse)
@@ -271,7 +263,7 @@ async def answer_qna(
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
     question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
-    await _insert_schedules(db, user_id, extracted_schedules)
+    pending = _to_pending_schedules(extracted_schedules)
 
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
@@ -285,5 +277,6 @@ async def answer_qna(
         )
         ei = res.scalar_one()
         question, next_seq = ei.question, ei.sequence
+        pending = []
 
-    return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False)
+    return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False, pending_schedules=pending)
