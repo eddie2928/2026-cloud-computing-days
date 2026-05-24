@@ -52,16 +52,24 @@ async def _get_recent_summaries(
     return list(result.all())
 
 
-async def _get_active_schedules(db: AsyncSession, user_id: int, today: date) -> list[str]:
+async def _get_relevant_schedules(db: AsyncSession, user_id: int, today: date) -> list[str]:
+    cutoff = today - timedelta(days=7)
     result = await db.execute(
-        select(UserSchedule.situation)
+        select(UserSchedule)
         .where(
             UserSchedule.user_id == user_id,
-            UserSchedule.period_start <= today,
-            UserSchedule.period_end >= today,
+            UserSchedule.period_end >= cutoff,
         )
     )
-    return [row[0] for row in result.all()]
+    schedules = result.scalars().all()
+    labels: list[str] = []
+    for s in schedules:
+        if s.period_end >= today:
+            labels.append(f"[진행중] {s.situation} ({s.period_start}~{s.period_end})")
+        else:
+            days_ago = (today - s.period_end).days
+            labels.append(f"[{days_ago}일 전 종료] {s.situation} ({s.period_start}~{s.period_end})")
+    return labels
 
 
 async def _insert_schedules(db: AsyncSession, user_id: int, schedules: list[dict]) -> None:
@@ -117,8 +125,8 @@ async def _resume_session(
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
-    active_scheds = await _get_active_schedules(db, user_id, existing.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, active_schedules=active_scheds)
+    relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
     await _insert_schedules(db, user_id, extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
@@ -167,8 +175,8 @@ async def start_qna(
         return await _resume_session(result.scalar_one(), db, user_id, user_profile=user_profile)
 
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
-    active_scheds = await _get_active_schedules(db, user_id, body.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, active_schedules=active_scheds)
+    relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds)
     await _insert_schedules(db, user_id, extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
@@ -261,8 +269,8 @@ async def answer_qna(
 
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
-    active_scheds = await _get_active_schedules(db, user_id, diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, active_schedules=active_scheds)
+    relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds)
     await _insert_schedules(db, user_id, extracted_schedules)
 
     try:
