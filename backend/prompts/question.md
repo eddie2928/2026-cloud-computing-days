@@ -6,8 +6,8 @@
 최근 일기 요약 (없으면 빈칸):
 {{rag_summaries}}
 
-현재 진행 중인 일정 (없으면 빈칸):
-{{active_schedules}}
+관련 일정 (진행 중 및 최근 종료, 없으면 빈칸):
+{{relevant_schedules}}
 
 오늘 지금까지의 대화:
 {{session_so_far}}
