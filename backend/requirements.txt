@@ -7,3 +7,5 @@ pydantic-settings
 boto3
 python-multipart
 itsdangerous
+pywebpush>=2.2
+apscheduler>=3.10,<4.0

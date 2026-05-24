@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Response, status
 
 from app.auth import create_session_cookie, verify_password
+from app.config import get_settings
 from app.schemas import LoginRequest
 
 router = APIRouter(prefix="/api", tags=["auth"])
@@ -20,6 +21,7 @@ async def login(body: LoginRequest, response: Response):
         httponly=True,
         samesite="lax",
         max_age=_COOKIE_MAX_AGE,
+        secure=get_settings().cookie_secure,
     )
     return {"ok": True}
 

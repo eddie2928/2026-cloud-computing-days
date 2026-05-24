@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import { CloudLeaf } from '../components/days/CloudLeaf'
 import { Icon } from '../components/days/Icon'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
 
 export function Login() {
   const [password, setPassword] = useState('')
@@ -11,6 +12,7 @@ export function Login() {
   const [btnHover, setBtnHover] = useState(false)
   const [btnPress, setBtnPress] = useState(false)
   const navigate = useNavigate()
+  const { canInstall, isIOS, isStandalone, promptInstall } = useInstallPrompt()
 
   const disabled = !password
 
@@ -223,6 +225,53 @@ export function Login() {
           </button>
         </form>
       </div>
+
+      {/* 설치 안내 */}
+      {!isStandalone && (canInstall || isIOS) && (
+        <div
+          style={{
+            marginTop: 24,
+            width: '100%',
+            maxWidth: 400,
+            textAlign: 'center',
+            animation: 'days-fade-in 500ms var(--ease-out) 300ms both',
+          }}
+        >
+          {canInstall ? (
+            <button
+              onClick={() => { void promptInstall() }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 20px',
+                borderRadius: 999,
+                border: '1.5px solid var(--sage-leaf)',
+                background: 'transparent',
+                color: 'var(--sage-forest)',
+                font: '500 14px/1 var(--font-sans)',
+                cursor: 'pointer',
+                letterSpacing: '0.005em',
+              }}
+            >
+              앱으로 설치하기
+            </button>
+          ) : isIOS ? (
+            <p
+              style={{
+                margin: 0,
+                font: '400 13px/1.6 var(--font-sans)',
+                color: 'var(--ink-meta)',
+              }}
+            >
+              Safari 하단의{' '}
+              <span style={{ fontWeight: 600 }}>공유 버튼 →</span>{' '}
+              <span style={{ fontWeight: 600 }}>홈 화면에 추가</span>
+              {' '}로 앱처럼 사용할 수 있어요
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }

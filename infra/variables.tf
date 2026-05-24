@@ -75,3 +75,28 @@ variable "git_branch" {
   type        = string
   default     = "main"
 }
+
+variable "vapid_public_key" {
+  description = "VAPID public key (base64url uncompressed) for Web Push"
+  type        = string
+  default     = ""
+}
+
+variable "vapid_private_key" {
+  description = "VAPID private key (base64-encoded PEM) for Web Push"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "vapid_subject" {
+  description = "VAPID subject claim (mailto: or https:)"
+  type        = string
+  default     = "mailto:admin@example.com"
+}
+
+variable "cookie_secure" {
+  description = "Set Secure flag on session cookie (true in prod, false for HTTP-only local)"
+  type        = bool
+  default     = false
+}

@@ -1,13 +1,26 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import admin, auth, calendar, diary, pet, profile, qna, schedules, share, user
+from app.routers import admin, auth, calendar, diary, pet, profile, push, qna, schedules, share, user
+from app.scheduler import create_scheduler
 
-app = FastAPI(title="QnA Diary API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler, _ = create_scheduler()
+    scheduler.start()
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="QnA Diary API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +40,7 @@ app.include_router(user.router)
 app.include_router(pet.router)
 app.include_router(schedules.router)
 app.include_router(share.router)
+app.include_router(push.router)
 
 
 @app.get("/api/health")

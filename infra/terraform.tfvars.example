@@ -25,3 +25,12 @@ session_secret = "change-me-random-secret-key-at-least-32-chars"
 
 # Optional: Bedrock model ID (default: global.anthropic.claude-sonnet-4-6)
 # bedrock_model_id = "global.anthropic.claude-sonnet-4-6"
+
+# Required for push notifications: VAPID key pair
+# Generate with: npx web-push generate-vapid-keys
+vapid_public_key  = "BYour87CharBase64UrlPublicKeyHere..."
+vapid_private_key = "base64EncodedPEMPrivateKeyHere..."
+vapid_subject     = "mailto:your@email.com"
+
+# Required in production (HTTPS via CloudFront)
+cookie_secure = true

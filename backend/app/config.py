@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     db_url: str
     bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
     aws_region: str = "us-east-1"
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
+    cookie_secure: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -20,6 +20,21 @@ if (typeof localStorage === 'undefined' || localStorage === null) {
 // jsdom does not implement scrollIntoView.
 window.HTMLElement.prototype.scrollIntoView = function () {}
 
+// jsdom does not implement window.matchMedia.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+})
+
 export const server = setupServer(...handlers)
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))

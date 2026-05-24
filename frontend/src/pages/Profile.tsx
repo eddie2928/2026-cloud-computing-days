@@ -10,6 +10,7 @@ import { Chip } from '../components/days/Chip'
 import { PillButton } from '../components/days/PillButton'
 import { CloudLeaf } from '../components/days/CloudLeaf'
 import { TagInput } from '../components/days/TagInput'
+import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
 
 interface ProfileData {
   nickname: string
@@ -27,6 +28,8 @@ export function Profile() {
   const [data, setData] = useState<ProfileData | null>(null)
   const [draft, setDraft] = useState<ProfileData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [pushState, setPushState] = useState<PushState>('default')
+  const [pushLoading, setPushLoading] = useState(false)
 
   useEffect(() => {
     client.get('/profile').then((res) => {
@@ -62,6 +65,26 @@ export function Profile() {
       setData({ ...draft })
     } finally {
       setSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    getPushState().then(setPushState)
+  }, [])
+
+  const handlePushToggle = async () => {
+    setPushLoading(true)
+    try {
+      if (pushState === 'subscribed') {
+        await unsubscribePush()
+      } else {
+        await subscribePush()
+      }
+      setPushState(await getPushState())
+    } catch {
+      setPushState(await getPushState())
+    } finally {
+      setPushLoading(false)
     }
   }
 
@@ -158,7 +181,6 @@ export function Profile() {
           <FieldRow label="관심사" value={data.interests.join(', ')} />
         </SectionCard>
 
-        {/* TODO: Phase 3 추후 구현 예정
         <SectionCard
           title="알림"
           editContent={
@@ -168,9 +190,22 @@ export function Profile() {
             </div>
           }
         >
-          <FieldRow label="알림 시간" value={data.notification_time ?? ''} />
+          <FieldRow label="알림 시간" value={data.notification_time ?? '미설정'} />
+          <div style={{ marginTop: 8 }}>
+            {pushState === 'unsupported' ? (
+              <span style={{ fontSize: 13, color: 'var(--color-text-secondary, #888)' }}>이 브라우저는 푸시 알림을 지원하지 않습니다.</span>
+            ) : pushState === 'denied' ? (
+              <span style={{ fontSize: 13, color: 'var(--color-text-secondary, #888)' }}>알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.</span>
+            ) : (
+              <PillButton
+                onClick={handlePushToggle}
+                disabled={pushLoading}
+              >
+                {pushLoading ? '처리 중...' : pushState === 'subscribed' ? '알림 끄기' : '알림 켜기'}
+              </PillButton>
+            )}
+          </div>
         </SectionCard>
-        */}
 
         <PillButton variant="danger" onClick={handleLogout}>로그아웃</PillButton>
       </div>

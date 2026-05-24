@@ -23,6 +23,7 @@ python3.11 -m venv .venv
 # 4. Frontend: build
 cd /opt/app/frontend
 npm ci
+export VITE_VAPID_PUBLIC_KEY="${vapid_public_key}"
 npm run build
 rm -rf node_modules
 
@@ -81,6 +82,10 @@ SESSION_SECRET=${session_secret}
 DB_URL=${db_url}
 BEDROCK_MODEL_ID=${bedrock_model_id}
 AWS_REGION=${aws_region}
+VAPID_PUBLIC_KEY=${vapid_public_key}
+VAPID_PRIVATE_KEY=${vapid_private_key}
+VAPID_SUBJECT=${vapid_subject}
+COOKIE_SECURE=${cookie_secure}
 ENVEOF
 chmod 600 /etc/qna-diary/env
 chown root:root /etc/qna-diary/env

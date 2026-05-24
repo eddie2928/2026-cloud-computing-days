@@ -144,3 +144,17 @@ class DiarySearchItem(BaseModel):
 
 class DiarySearchResponse(BaseModel):
     results: list[DiarySearchItem]
+
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionIn(BaseModel):
+    endpoint: str
+    keys: PushSubscriptionKeys
+
+
+class PushPublicKeyOut(BaseModel):
+    public_key: str

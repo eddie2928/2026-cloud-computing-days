@@ -14,8 +14,19 @@ output "rds_endpoint" {
 }
 
 output "app_url" {
-  description = "Application URL"
+  # CloudFront 적용 후 https://<cloudfront_domain> 사용
+  description = "Application URL (EC2 direct — use cloudfront_domain_name for prod)"
   value       = "http://${aws_instance.app.public_ip}"
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name (HTTPS endpoint)"
+  value       = aws_cloudfront_distribution.app.domain_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.app.id
 }
 
 output "ssh_command" {

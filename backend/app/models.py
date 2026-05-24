@@ -151,3 +151,16 @@ class UserSchedule(Base):
     period_end: Mapped[date] = mapped_column(DATE, nullable=False)
     situation: Mapped[str] = mapped_column(TEXT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    endpoint: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
+    p256dh: Mapped[str] = mapped_column(TEXT, nullable=False)
+    auth: Mapped[str] = mapped_column(TEXT, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship()
