@@ -114,7 +114,7 @@ async def test_active_schedules_passed_to_generate_question(client, bedrock_mock
     bedrock_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-10-15"})
 
-    # Step 3: Check that generate_question was called with active_schedules
+    # Step 3: Check that generate_question was called with relevant_schedules
     call_kwargs = bedrock_mock.generate_question.call_args
-    active_schedules_arg = call_kwargs.kwargs.get("active_schedules") or []
-    assert "10월 프로젝트" in active_schedules_arg
+    relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
+    assert any("10월 프로젝트" in s for s in relevant_schedules_arg)

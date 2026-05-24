@@ -119,17 +119,17 @@ class BedrockClient:
         session_so_far: list[QnAItem],
         next_sequence: int,
         user_profile: dict | None = None,
-        active_schedules: list[str] | None = None,
+        relevant_schedules: list[str] | None = None,
     ) -> tuple[str, list[dict], dict]:
         profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_summaries)
         session_block = _build_session_block(session_so_far)
-        schedules_block = "\n".join(active_schedules) if active_schedules else ""
+        schedules_block = "\n".join(relevant_schedules) if relevant_schedules else ""
         prompt = _load_prompt(
             "question",
             user_profile=profile_block,
             rag_summaries=rag_block,
-            active_schedules=schedules_block,
+            relevant_schedules=schedules_block,
             session_so_far=session_block,
             next_sequence=str(next_sequence),
         )
