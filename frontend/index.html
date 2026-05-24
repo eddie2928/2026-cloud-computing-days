@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>Days</title>
+    <script>
+      (function () {
+        var stored = localStorage.getItem('days_mock_date');
+        var m = (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored))
+          ? parseInt(stored.substring(5, 7), 10)
+          : new Date().getMonth() + 1;
+        document.documentElement.dataset.season =
+          m <= 2 || m === 12 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

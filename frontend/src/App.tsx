@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Login } from './pages/Login'
 import { Hub } from './pages/Hub'
@@ -10,8 +11,16 @@ import { Admin } from './pages/Admin'
 import { Share } from './pages/Share'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
+import { useMockDate } from './hooks/useMockDate'
+import { applySeason } from './lib/season'
 
 export default function App() {
+  const today = useMockDate()
+
+  useEffect(() => {
+    applySeason(today)
+  }, [today])
+
   return (
     <BrowserRouter>
       <Routes>

@@ -1,0 +1,185 @@
+/* Days — Seasonal Themes
+ * Apply with data-season on <html>. Auto-set by season-detect script in index.html.
+ * Default (no attribute) = spring.
+ *
+ *   spring  봄  3–5월   sage leaf green
+ *   summer  여름 6–8월   clear-sky blue
+ *   autumn  가을 9–11월  fallen-leaf orange
+ *   winter  겨울 12–2월  snow / frost slate
+ */
+
+/* ── SPRING (explicit, same as :root defaults) ─────────────────── */
+[data-season="spring"] {
+  --sage-ink:     #2E3B1F;
+  --sage-forest:  #475A33;
+  --sage-leaf:    #7D9D6A;
+  --sage-fern:    #A2BA8D;
+  --sage-mist:    #C8DFCA;
+  --sage-wash:    #E3F2E4;
+  --sage-cloud:   #EBEFE8;
+  --sage-paper:   #F0F4E5;
+
+  --paper-bone:   #FCF6EC;
+  --paper-warm:   #FBF3E8;
+  --paper-mist:   #F9F6E6;
+  --paper-pure:   #FFFFFF;
+  --paper-soft:   #FDFBF5;
+
+  --ink-deep:     #1F2818;
+  --ink-body:     #3D4A30;
+  --ink-meta:     #6E7A5E;
+  --ink-hint:     #9BA590;
+  --ink-soft:     #C5CCB8;
+
+  --line-faint:   #EFEEE5;
+  --line:         #DDDED0;
+  --line-strong:  #C2C8B3;
+
+  --bubble-user:          #7D9D6A;
+  --bubble-ai:            #FFFFFF;
+  --bubble-text-user:     #FCFCF8;
+  --bubble-text-ai:       #2E3B1F;
+  --bubble-border-ai:     rgba(31, 40, 24, 0.04);
+
+  --cal-today-ring:       #7D9D6A;
+
+  --cloud-1: #C8DFCA;
+  --cloud-2: #DCE7CC;
+  --cloud-3: #EBEFE8;
+  --leaf-1:  #98BD8F;
+  --leaf-2:  #B7C9A6;
+
+  --shadow-ring: 0 0 0 3px rgba(125, 157, 106, 0.22);
+}
+
+/* ── SUMMER · 여름 · 6–8월 · clear-sky blue ────────────────────── */
+[data-season="summer"] {
+  --sage-ink:     #15324A;
+  --sage-forest:  #2C5F8D;
+  --sage-leaf:    #4FA3D6;
+  --sage-fern:    #7DBEE0;
+  --sage-mist:    #B3D7EC;
+  --sage-wash:    #B2D5EE;
+  --sage-cloud:   #E7F1F8;
+  --sage-paper:   #ECF4FB;
+
+  --paper-bone:   #F4FAFE;
+  --paper-warm:   #EEF6FC;
+  --paper-mist:   #F1F7FC;
+  --paper-pure:   #FFFFFF;
+  --paper-soft:   #F8FBFD;
+
+  --ink-deep:     #142638;
+  --ink-body:     #2F4A66;
+  --ink-meta:     #5C7A92;
+  --ink-hint:     #93A8BB;
+  --ink-soft:     #BFCCD8;
+
+  --line-faint:   #E4EEF4;
+  --line:         #C9D9E4;
+  --line-strong:  #A6BBCC;
+
+  --bubble-user:          #4FA3D6;
+  --bubble-ai:            #FFFFFF;
+  --bubble-text-user:     #FBFEFF;
+  --bubble-text-ai:       #15324A;
+  --bubble-border-ai:     rgba(21, 50, 74, 0.04);
+
+  --cal-today-ring:       #4FA3D6;
+
+  --cloud-1: #7BBDE3;
+  --cloud-2: #A3CDE8;
+  --cloud-3: #C3DFF2;
+  --leaf-1:  #7FBADE;
+  --leaf-2:  #A4D2E8;
+
+  --shadow-ring: 0 0 0 3px rgba(79, 163, 214, 0.26);
+}
+
+/* ── AUTUMN · 가을 · 9–11월 · fallen-leaf orange ───────────────── */
+[data-season="autumn"] {
+  --sage-ink:     #4A2615;
+  --sage-forest:  #8C4A1F;
+  --sage-leaf:    #D88444;
+  --sage-fern:    #E5A472;
+  --sage-mist:    #F1C9A1;
+  --sage-wash:    #F8E0C4;
+  --sage-cloud:   #FCEEDB;
+  --sage-paper:   #F8E9CE;
+
+  --paper-bone:   #FDF5E6;
+  --paper-warm:   #FBEFD9;
+  --paper-mist:   #FBF3E2;
+  --paper-pure:   #FFFFFF;
+  --paper-soft:   #FDF9F0;
+
+  --ink-deep:     #2E1A0E;
+  --ink-body:     #5C3826;
+  --ink-meta:     #8A6549;
+  --ink-hint:     #B79880;
+  --ink-soft:     #D9C2A8;
+
+  --line-faint:   #F1E3C9;
+  --line:         #DCC4A0;
+  --line-strong:  #C2A276;
+
+  --bubble-user:          #D88444;
+  --bubble-ai:            #FFFFFF;
+  --bubble-text-user:     #FFFBF5;
+  --bubble-text-ai:       #4A2615;
+  --bubble-border-ai:     rgba(74, 38, 21, 0.04);
+
+  --cal-today-ring:       #D88444;
+
+  --cloud-1: #F4C996;
+  --cloud-2: #F7DDB7;
+  --cloud-3: #FAEAD0;
+  --leaf-1:  #E89D5C;
+  --leaf-2:  #EFB783;
+
+  --shadow-ring: 0 0 0 3px rgba(216, 132, 68, 0.28);
+}
+
+/* ── WINTER · 겨울 · 12–2월 · snow / frost ─────────────────────── */
+[data-season="winter"] {
+  --sage-ink:     #232936;
+  --sage-forest:  #475260;
+  --sage-leaf:    #8194AB;
+  --sage-fern:    #A6B5C7;
+  --sage-mist:    #CFD7E1;
+  --sage-wash:    #C4CEDB;
+  --sage-cloud:   #EDF1F5;
+  --sage-paper:   #F1F4F7;
+
+  --paper-bone:   #FAFBFC;
+  --paper-warm:   #F5F7F9;
+  --paper-mist:   #F8F9FB;
+  --paper-pure:   #FFFFFF;
+  --paper-soft:   #FBFCFD;
+
+  --ink-deep:     #1B2029;
+  --ink-body:     #3A4351;
+  --ink-meta:     #6A7484;
+  --ink-hint:     #99A2AF;
+  --ink-soft:     #C2C8D1;
+
+  --line-faint:   #ECEEF2;
+  --line:         #D6DBE3;
+  --line-strong:  #B2BAC6;
+
+  --bubble-user:          #8194AB;
+  --bubble-ai:            #FFFFFF;
+  --bubble-text-user:     #FCFDFE;
+  --bubble-text-ai:       #232936;
+  --bubble-border-ai:     rgba(35, 41, 54, 0.06);
+
+  --cal-today-ring:       #8194AB;
+
+  --cloud-1: #AEBCCA;
+  --cloud-2: #C0CAD4;
+  --cloud-3: #D2D9E2;
+  --leaf-1:  #B7C3D2;
+  --leaf-2:  #CCD5DF;
+
+  --shadow-ring: 0 0 0 3px rgba(129, 148, 171, 0.22);
+}

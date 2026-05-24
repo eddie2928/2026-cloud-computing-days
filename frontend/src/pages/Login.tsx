@@ -50,13 +50,13 @@ export function Login() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '48px 24px',
-        /* bg-clouds: 초록 blob 그라데이션 */
+        /* bg-clouds: 계절별 blob 그라데이션 */
         background: `
           radial-gradient(circle at 78% 22%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 18%),
-          radial-gradient(ellipse 480px 320px at 18% 78%, #C8DFCA 0%, transparent 55%),
-          radial-gradient(ellipse 360px 260px at 88% 88%, #DCE7CC 0%, transparent 55%),
-          radial-gradient(ellipse 280px 220px at 12% 28%, #EBEFE8 0%, transparent 55%),
-          linear-gradient(180deg, #FCF6EC 0%, #E3F2E4 100%)
+          radial-gradient(ellipse 480px 320px at 18% 78%, var(--cloud-1) 0%, transparent 55%),
+          radial-gradient(ellipse 360px 260px at 88% 88%, var(--cloud-2) 0%, transparent 55%),
+          radial-gradient(ellipse 280px 220px at 12% 28%, var(--cloud-3) 0%, transparent 55%),
+          linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-wash) 100%)
         `,
         animation: 'days-fade-in 600ms var(--ease-out) both',
       }}

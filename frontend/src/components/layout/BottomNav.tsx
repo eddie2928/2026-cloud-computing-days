@@ -1,8 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../days/Icon';
 import { useDayModal } from '../../hooks/dayModalContext';
-
-const TODAY = new Date().toISOString().split('T')[0];
+import { useMockDate } from '../../hooks/useMockDate';
 
 type NavAction = { kind: 'navigate'; path: string } | { kind: 'modal' };
 
@@ -24,6 +23,7 @@ export function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { openDayModal } = useDayModal();
+  const TODAY = useMockDate();
 
   return (
     <nav

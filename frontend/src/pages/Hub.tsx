@@ -8,36 +8,36 @@ import { SearchModal } from '../components/search/SearchModal'
 import { getWeekWindow, type CalendarEntry } from '../lib/week'
 import { fetchStreak } from '../lib/streak'
 import { useDayModal } from '../hooks/dayModalContext'
-
-const TODAY = new Date().toISOString().split('T')[0]
-const THIS_MONTH = TODAY.slice(0, 7)
+import { useMockDate } from '../hooks/useMockDate'
 
 export function Hub() {
   const { openDayModal } = useDayModal()
+  const today = useMockDate()
+  const thisMonth = today.slice(0, 7)
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [diaryBody, setDiaryBody] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [streak, setStreak] = useState<number | null>(null)
 
   useEffect(() => {
-    client.get(`/calendar?month=${THIS_MONTH}`).then(res => {
+    client.get(`/calendar?month=${thisMonth}`).then(res => {
       setEntries(res.data.entries ?? [])
     }).catch(() => {})
-  }, [])
+  }, [thisMonth])
 
   useEffect(() => {
-    client.get(`/diary/${TODAY}`).then(res => {
+    client.get(`/diary/${today}`).then(res => {
       setDiaryBody(res.data.body ?? '')
     }).catch(() => {
       setDiaryBody(null)
     })
-  }, [])
+  }, [today])
 
   useEffect(() => {
     fetchStreak().then(setStreak).catch(() => setStreak(null))
   }, [])
 
-  const weekDays = getWeekWindow(entries, TODAY)
+  const weekDays = getWeekWindow(entries, today)
   const hasDiary = diaryBody !== null
 
   return (
@@ -47,11 +47,11 @@ export function Hub() {
           🔥 {streak}일 연속
         </div>
       )}
-      <WeekStrip days={weekDays} today={TODAY} />
+      <WeekStrip days={weekDays} today={today} />
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <TodayDiaryCard
-          today={TODAY}
+          today={today}
           hasDiary={hasDiary}
           summary={diaryBody ?? undefined}
           onOpen={openDayModal}

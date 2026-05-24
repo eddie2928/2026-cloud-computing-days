@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import client from '../api/client'
 import { ThinkingDots } from '../components/qna/ThinkingDots'
+import { getMockDate, setMockDate, clearMockDate, hasMockDate } from '../lib/mockDate'
 
 const TABLES = [
   'users',
@@ -63,7 +64,7 @@ const TABLE_FIELD_HINTS: Record<string, Record<string, string>> = {
   },
 }
 
-type Tab = 'db' | 'bedrock'
+type Tab = 'db' | 'bedrock' | 'date'
 
 interface BedrockLog {
   id: number
@@ -84,12 +85,12 @@ interface BedrockLog {
 const tabStyle = (active: boolean): React.CSSProperties => ({
   background: 'none',
   border: 'none',
-  borderBottom: active ? '2px solid var(--gold)' : '2px solid transparent',
+  borderBottom: active ? '2px solid var(--sage-leaf)' : '2px solid transparent',
   padding: '10px 4px',
   fontFamily: 'var(--font-sans)',
   fontWeight: 500,
   fontSize: 14,
-  color: active ? 'var(--gold-deep)' : 'var(--ink-stone)',
+  color: active ? 'var(--sage-forest)' : 'var(--ink-stone)',
   cursor: 'pointer',
   transition: 'color var(--dur-1)',
 })
@@ -112,6 +113,10 @@ export function Admin() {
   const [bedrockLoading, setBedrockLoading] = useState(false)
   const [bedrockError, setBedrockError] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
+
+  // 날짜 탭
+  const [mockDateInput, setMockDateInput] = useState(getMockDate())
+  const [isMockActive, setIsMockActive] = useState(hasMockDate())
 
   const fetchTable = useCallback(() => {
     setDbLoading(true)
@@ -183,8 +188,8 @@ export function Admin() {
   }, [tab, fetchBedrockLogs])
 
   return (
-    <div style={{ padding: '16px 16px 40px', background: 'var(--paper-bone)', minHeight: '100vh' }}>
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 24, lineHeight: 1.2, color: 'var(--ink-coffee)', margin: '0 0 20px' }}>
+    <div style={{ padding: '16px 16px 40px' }}>
+      <h1 style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 24, lineHeight: 1.2, color: 'var(--sage-forest)', margin: '0 0 20px' }}>
         관리자
       </h1>
 
@@ -192,6 +197,9 @@ export function Admin() {
       <div style={{ display: 'flex', gap: 20, borderBottom: '1px solid var(--line-faint)', marginBottom: 20 }}>
         <button style={tabStyle(tab === 'db')} onClick={() => setTab('db')}>DB 조회</button>
         <button style={tabStyle(tab === 'bedrock')} onClick={() => setTab('bedrock')}>Bedrock 로그</button>
+        <button style={tabStyle(tab === 'date')} onClick={() => setTab('date')}>
+          날짜{isMockActive ? ' ●' : ''}
+        </button>
       </div>
 
       {/* DB 조회 탭 */}
@@ -370,6 +378,104 @@ export function Admin() {
         </div>
       )}
 
+      {/* 날짜 설정 탭 */}
+      {tab === 'date' && (
+        <div style={{ maxWidth: 360 }}>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            "오늘"로 인식할 날짜를 지정합니다.<br />
+            홈 화면, 일기 시작, 일기 조회에 반영됩니다.
+          </p>
+
+          {isMockActive && (
+            <div style={{
+              background: 'var(--sage-wash)',
+              border: '1px solid var(--sage-mist)',
+              borderRadius: 'var(--r-3)',
+              padding: '10px 14px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--sage-forest)', fontWeight: 600 }}>
+                {getMockDate()}
+              </span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)' }}>으로 설정됨</span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-body)', display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                날짜 선택
+              </label>
+              <input
+                type="date"
+                value={mockDateInput}
+                onChange={e => setMockDateInput(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'var(--paper-pure)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 14,
+                  color: 'var(--ink-deep)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  if (!mockDateInput) return
+                  setMockDate(mockDateInput)
+                  setIsMockActive(true)
+                }}
+                style={{
+                  flex: 1,
+                  background: 'var(--sage-leaf)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                적용
+              </button>
+              <button
+                onClick={() => {
+                  clearMockDate()
+                  const real = new Date().toISOString().split('T')[0]
+                  setMockDateInput(real)
+                  setIsMockActive(false)
+                }}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: 'var(--ink-meta)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                오늘로 초기화
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bedrock 로그 탭 */}
       {tab === 'bedrock' && (
         <div>
@@ -414,11 +520,11 @@ export function Admin() {
                 }}
                 onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
               >
-                <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, color: 'var(--gold-deep)', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, color: 'var(--sage-forest)', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Q{log.sequence} · {log.asked_at ? new Date(log.asked_at).toLocaleString('ko-KR') : '—'}
                 </p>
                 <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-coffee)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
-                  <span style={{ color: 'var(--gold-deep)', fontWeight: 600 }}>Q</span> {log.question}
+                  <span style={{ color: 'var(--sage-forest)', fontWeight: 600 }}>Q</span> {log.question}
                 </p>
                 {log.answer && (
                   <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-bark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
