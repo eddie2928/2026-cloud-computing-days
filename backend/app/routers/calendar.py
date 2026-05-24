@@ -1,11 +1,14 @@
+from calendar import monthrange
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_session
 from app.db import get_db
-from app.models import DiaryEntry
-from app.schemas import CalendarEntry, CalendarResponse
+from app.models import DiaryEntry, UserSchedule
+from app.schemas import CalendarEntry, CalendarResponse, ScheduleOut
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
@@ -36,4 +39,16 @@ async def get_calendar(
         [CalendarEntry(date=row.diary_date, emotion=row.emotion) for row in rows],
         key=lambda e: e.date,
     )
-    return CalendarResponse(entries=entries)
+
+    month_first = date(year, mon, 1)
+    month_last = date(year, mon, monthrange(year, mon)[1])
+    sched_result = await db.execute(
+        select(UserSchedule).where(
+            UserSchedule.user_id == user_id,
+            UserSchedule.period_start <= month_last,
+            UserSchedule.period_end >= month_first,
+        )
+    )
+    schedules = [ScheduleOut.model_validate(s) for s in sched_result.scalars().all()]
+
+    return CalendarResponse(entries=entries, schedules=schedules)
