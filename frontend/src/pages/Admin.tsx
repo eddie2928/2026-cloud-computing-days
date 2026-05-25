@@ -133,6 +133,8 @@ export function Admin() {
   const [serverSubs, setServerSubs] = useState<unknown[]>([])
   const [serverSubsLoading, setServerSubsLoading] = useState(false)
   const [testPushRaw, setTestPushRaw] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null)
+  const [debugLoading, setDebugLoading] = useState(false)
 
   const refreshPushStatus = useCallback(async () => {
     const state = await getPushState()
@@ -162,6 +164,7 @@ export function Admin() {
       await refreshPushStatus()
     } catch (e) {
       setSubscribeMsg(`오류: ${e instanceof Error ? e.message : String(e)}`)
+      await refreshPushStatus()
     } finally {
       setSubscribeLoading(false)
     }
@@ -191,12 +194,25 @@ export function Admin() {
     }
   }, [])
 
+  const fetchDebugInfo = useCallback(async () => {
+    setDebugLoading(true)
+    try {
+      const res = await client.get('/push/debug')
+      setDebugInfo(res.data)
+    } catch {
+      setDebugInfo(null)
+    } finally {
+      setDebugLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (tab === 'push') {
       refreshPushStatus()
       fetchServerSubs()
+      fetchDebugInfo()
     }
-  }, [tab, refreshPushStatus, fetchServerSubs])
+  }, [tab, refreshPushStatus, fetchServerSubs, fetchDebugInfo])
 
   const fetchTable = useCallback(() => {
     setDbLoading(true)
@@ -657,18 +673,64 @@ export function Admin() {
                 </pre>
               ) : (
                 <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px' }}>
-                  {(testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean }> }).results?.length === 0 ? (
+                  {(testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean; error: string | null; status_code: number | null; traceback: string | null }> }).results?.length === 0 ? (
                     <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)', margin: 0 }}>구독 없음</p>
                   ) : (
-                    (testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean }> }).results?.map((r, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: r.success ? 'var(--sage-forest)' : 'var(--clay)', fontWeight: 600 }}>{r.success ? '성공' : r.expired ? '만료' : '실패'}</span>
+                    (testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean; error: string | null; status_code: number | null; traceback: string | null }> }).results?.map((r, i) => (
+                      <div key={i} style={{ borderBottom: '1px solid var(--line-faint)', paddingBottom: 8, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</span>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 4,
+                            background: r.success ? 'var(--sage-wash, #e8f5e9)' : 'var(--clay-wash, #fff3f0)',
+                            color: r.success ? 'var(--sage-forest)' : 'var(--clay)',
+                          }}>
+                            {r.success ? '성공' : r.expired ? '만료' : '실패'}
+                          </span>
+                          {r.status_code != null && (
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)' }}>HTTP {r.status_code}</span>
+                          )}
+                        </div>
+                        {r.error && (
+                          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--clay)', margin: '4px 0 0', wordBreak: 'break-word' }}>{r.error}</p>
+                        )}
+                        {r.traceback && (
+                          <details style={{ marginTop: 4 }}>
+                            <summary style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer' }}>Traceback</summary>
+                            <pre style={{ background: 'var(--paper-mist)', borderRadius: 6, padding: '8px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-coffee)', margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 200, overflowY: 'auto' }}>
+                              {r.traceback}
+                            </pre>
+                          </details>
+                        )}
                       </div>
                     ))
                   )}
                 </div>
               )
+            )}
+          </div>
+
+          {/* 서버 진단 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>서버 진단</p>
+              <button onClick={fetchDebugInfo} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
+            </div>
+            {debugLoading ? (
+              <ThinkingDots visible />
+            ) : debugInfo == null ? (
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>진단 정보를 불러오지 못했습니다.</p>
+            ) : (
+              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {Object.entries(debugInfo).map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 200 }}>{k}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-deep)', fontWeight: typeof v === 'boolean' ? 600 : 400, wordBreak: 'break-all' }}>
+                      {v == null ? '—' : String(v)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
