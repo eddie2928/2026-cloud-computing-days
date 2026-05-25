@@ -9,7 +9,7 @@ interface SchedulePopupProps {
 }
 
 export function SchedulePopup({ schedule, onClose, onUpdated }: SchedulePopupProps) {
-  const [mode, setMode] = useState<'view' | 'edit' | 'delete-confirm'>('view')
+  const [mode, setMode] = useState<'view' | 'edit' | 'delete-confirm'>('edit')
   const [situation, setSituation] = useState(schedule.situation)
   const [periodStart, setPeriodStart] = useState(schedule.period_start)
   const [periodEnd, setPeriodEnd] = useState(schedule.period_end)
