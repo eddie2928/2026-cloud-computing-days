@@ -109,8 +109,14 @@ async def _resume_session(
     )
     if unanswered:
         first = unanswered[0]
+        restored_pending = []
+        meta = first.bedrock_meta
+        if meta and meta.get("raw_response"):
+            from app.bedrock import _parse_schedules
+            restored_pending = _to_pending_schedules(_parse_schedules(meta["raw_response"]))
         return QnAStartResponse(
-            session_id=existing.id, question=first.question, sequence=first.sequence, history=history
+            session_id=existing.id, question=first.question, sequence=first.sequence,
+            history=history, pending_schedules=restored_pending
         )
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
