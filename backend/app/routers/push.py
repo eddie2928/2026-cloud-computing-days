@@ -6,6 +6,7 @@ from app.auth import require_session
 from app.config import get_settings
 from app.db import get_db
 from app.models import PushSubscription
+from app.push import send_one
 from app.schemas import PushPublicKeyOut, PushSubscriptionIn
 
 router = APIRouter(prefix="/api/push", tags=["push"])
@@ -60,3 +61,46 @@ async def unsubscribe(
     if result.rowcount == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
     await db.commit()
+
+
+@router.post("/test")
+async def test_push(
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(PushSubscription).where(PushSubscription.user_id == user_id)
+    )
+    subscriptions = result.scalars().all()
+
+    results = []
+    for sub in subscriptions:
+        expired = send_one(
+            sub.endpoint,
+            sub.p256dh,
+            sub.auth,
+            {"title": "Days Test", "body": "테스트 푸시입니다 🔔"},
+        )
+        results.append({"endpoint": sub.endpoint, "success": not expired, "expired": expired})
+
+    return {"results": results}
+
+
+@router.get("/subscriptions")
+async def list_subscriptions(
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(PushSubscription).where(PushSubscription.user_id == user_id)
+    )
+    subscriptions = result.scalars().all()
+
+    return [
+        {
+            "id": sub.id,
+            "endpoint": sub.endpoint,
+            "created_at": sub.created_at.isoformat() if sub.created_at else None,
+        }
+        for sub in subscriptions
+    ]
