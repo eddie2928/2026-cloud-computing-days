@@ -112,7 +112,6 @@ export function Qna() {
         period_start: s.period_start,
         period_end: s.period_end,
         situation: s.situation,
-<<<<<<< HEAD
       });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
