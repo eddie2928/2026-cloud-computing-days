@@ -20,14 +20,18 @@ from app.push import send_one
 def test_send_one_success(mock_webpush):
     mock_webpush.return_value = MagicMock(status_code=201)
 
-    should_delete = send_one(
+    result = send_one(
         endpoint="https://fcm.googleapis.com/test",
         p256dh="p256dh_value",
         auth="auth_value",
         payload={"title": "Test", "body": "Hello"},
     )
 
-    assert should_delete is False
+    assert result["success"] is True
+    assert result["expired"] is False
+    assert result["error"] is None
+    assert result["status_code"] is None
+    assert result["traceback"] is None
     mock_webpush.assert_called_once()
     call_kwargs = mock_webpush.call_args.kwargs
     assert call_kwargs["subscription_info"]["endpoint"] == "https://fcm.googleapis.com/test"
@@ -43,14 +47,17 @@ def test_send_one_expired_subscription(mock_webpush, status_code):
     fake_response = MagicMock(status_code=status_code)
     mock_webpush.side_effect = WebPushException("Gone", response=fake_response)
 
-    should_delete = send_one(
+    result = send_one(
         endpoint="https://fcm.googleapis.com/expired",
         p256dh="p256dh",
         auth="auth",
         payload={"title": "T", "body": "B"},
     )
 
-    assert should_delete is True
+    assert result["success"] is False
+    assert result["expired"] is True
+    assert result["status_code"] == status_code
+    assert result["error"] is not None
 
 
 @patch("app.push.webpush")
@@ -60,11 +67,14 @@ def test_send_one_other_error_no_delete(mock_webpush):
     fake_response = MagicMock(status_code=500)
     mock_webpush.side_effect = WebPushException("Server Error", response=fake_response)
 
-    should_delete = send_one(
+    result = send_one(
         endpoint="https://fcm.googleapis.com/test",
         p256dh="p256dh",
         auth="auth",
         payload={"title": "T", "body": "B"},
     )
 
-    assert should_delete is False
+    assert result["success"] is False
+    assert result["expired"] is False
+    assert result["status_code"] == 500
+    assert result["error"] is not None

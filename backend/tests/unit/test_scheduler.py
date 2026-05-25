@@ -43,7 +43,7 @@ async def test_run_notification_job_only_sends_to_matching_users():
     # _get_matching_profiles returns user_id=1 only
     with patch("app.scheduler._get_matching_profiles", new=AsyncMock(return_value=[1])):
         with patch("app.scheduler._get_user_subscriptions", new=AsyncMock(return_value=[])):
-            with patch("app.scheduler.send_one", return_value=False) as mock_send:
+            with patch("app.scheduler.send_one", return_value={"success": True, "expired": False, "error": None, "status_code": None, "traceback": None}) as mock_send:
                 with freeze_time("2026-05-25 00:00:00", tz_offset=0):  # KST 09:00
                     await _run_notification_job(session_factory)
 
@@ -70,7 +70,7 @@ async def test_run_notification_job_deduplication():
 
     with patch("app.scheduler._get_matching_profiles", new=AsyncMock(return_value=[1])):
         with patch("app.scheduler._get_user_subscriptions", new=AsyncMock(return_value=[fake_sub])):
-            with patch("app.scheduler.send_one", return_value=False) as mock_send:
+            with patch("app.scheduler.send_one", return_value={"success": True, "expired": False, "error": None, "status_code": None, "traceback": None}) as mock_send:
                 with freeze_time("2026-05-25 00:00:00", tz_offset=0):
                     await _run_notification_job(session_factory)
                     call_count_first = mock_send.call_count
