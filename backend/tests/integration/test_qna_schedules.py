@@ -137,3 +137,36 @@ async def test_old_ended_schedule_excluded(client, bedrock_mock, db_session):
     call_kwargs = bedrock_mock.generate_question.call_args
     relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
     assert not any("오래된 일정" in s for s in relevant_schedules_arg)
+
+
+@pytest.mark.asyncio
+async def test_resume_session_preserves_pending_schedules(client, bedrock_mock):
+    """Session resume restores pending_schedules from bedrock_meta raw_response."""
+    await _login(client)
+
+    raw_response = (
+        "<question>오늘 어떤 일이 있었나요?</question>\n"
+        "<schedules>\n"
+        "2026-08-01|2026-08-07|여름 방학\n"
+        "</schedules>"
+    )
+    bedrock_mock.generate_question.return_value = (
+        "오늘 어떤 일이 있었나요?",
+        [{"period_start": "2026-08-01", "period_end": "2026-08-07", "situation": "여름 방학"}],
+        {"model_id": "test", "raw_response": raw_response},
+    )
+
+    first = await client.post("/api/qna/start", json={"diary_date": "2026-08-10"})
+    assert first.status_code == 200
+    assert len(first.json().get("pending_schedules", [])) == 1
+
+    # 세션 재개: 같은 날짜로 재호출
+    bedrock_mock.generate_question.reset_mock()
+    resumed = await client.post("/api/qna/start", json={"diary_date": "2026-08-10"})
+    assert resumed.status_code == 200
+
+    pending = resumed.json().get("pending_schedules", [])
+    assert len(pending) == 1, "세션 재개 시 pending_schedules가 복원되어야 함"
+    assert pending[0]["situation"] == "여름 방학"
+    assert pending[0]["period_start"] == "2026-08-01"
+    assert pending[0]["period_end"] == "2026-08-07"
