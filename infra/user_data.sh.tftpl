@@ -23,7 +23,6 @@ sudo -u ec2-user .venv/bin/pip install -r requirements.txt
 # 4. Frontend: build
 cd /opt/app/frontend
 npm ci
-export VITE_VAPID_PUBLIC_KEY="${vapid_public_key}"
 npm run build
 rm -rf node_modules
 
