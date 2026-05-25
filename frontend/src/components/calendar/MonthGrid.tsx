@@ -143,12 +143,15 @@ export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }} data-testid="month-grid">
           {cells.map(({ date, inMonth }) => {
             const isToday = date === TODAY;
+            const isFuture = date > TODAY;
             const emotion = entryMap.get(date);
+            const clickable = inMonth && !isFuture;
             return (
               <button
                 key={date}
                 aria-label={date}
-                onClick={() => inMonth && onCellClick(date)}
+                disabled={isFuture}
+                onClick={() => clickable && onCellClick(date)}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -158,13 +161,13 @@ export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext
                   minHeight: CELL_HEIGHT,
                   borderRadius: 'var(--r-2)',
                   border: isToday ? '1.5px solid var(--sage-leaf)' : '1px solid transparent',
-                  background: inMonth ? 'var(--cal-day-bg, var(--paper-pure))' : 'transparent',
-                  cursor: inMonth ? 'pointer' : 'default',
-                  opacity: inMonth ? 1 : 0.35,
+                  background: isFuture ? 'var(--paper-mist)' : inMonth ? 'var(--cal-day-bg, var(--paper-pure))' : 'transparent',
+                  cursor: clickable ? 'pointer' : 'default',
+                  opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
                   transition: 'background var(--dur-1)',
                 }}
               >
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: isToday ? 'var(--sage-leaf)' : 'var(--ink-body)', fontWeight: isToday ? 700 : 400 }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: isFuture ? 'var(--ink-soft)' : isToday ? 'var(--sage-leaf)' : 'var(--ink-body)', fontWeight: isToday ? 700 : 400 }}>
                   {new Date(date).getDate()}
                 </span>
                 {emotion ? <MoodEmoji mood={emotion as Mood} size={12} /> : <span style={{ width: 12, height: 12 }} />}
