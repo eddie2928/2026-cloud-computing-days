@@ -230,7 +230,7 @@ async def answer_qna(
             status_code=status.HTTP_409_CONFLICT, detail="Answer already submitted"
         )
 
-    expected_seq = max(
+    expected_seq = min(
         (i.sequence for i in session.items if i.answer is None), default=None
     )
     if expected_seq is not None and body.sequence != expected_seq:
