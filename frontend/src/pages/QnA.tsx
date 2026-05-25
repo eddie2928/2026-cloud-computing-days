@@ -112,9 +112,11 @@ export function Qna() {
         period_start: s.period_start,
         period_end: s.period_end,
         situation: s.situation,
+<<<<<<< HEAD
       });
-    } catch {
-      // 409 중복은 무시
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status !== 409) return; // 409(중복)만 무시, 나머지는 pending 유지
     }
     setScheduleStatuses((prev) => new Map(prev).set(key, "accepted"));
   };
