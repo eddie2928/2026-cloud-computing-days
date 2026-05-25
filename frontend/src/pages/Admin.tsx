@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import client from '../api/client'
 import { ThinkingDots } from '../components/qna/ThinkingDots'
 import { getMockDate, setMockDate, clearMockDate, hasMockDate } from '../lib/mockDate'
+import { getPushState, subscribePush, type PushState } from '../lib/push'
 
 const TABLES = [
   'users',
@@ -64,7 +65,7 @@ const TABLE_FIELD_HINTS: Record<string, Record<string, string>> = {
   },
 }
 
-type Tab = 'db' | 'bedrock' | 'date'
+type Tab = 'db' | 'bedrock' | 'date' | 'push'
 
 interface BedrockLog {
   id: number
@@ -117,6 +118,85 @@ export function Admin() {
   // 날짜 탭
   const [mockDateInput, setMockDateInput] = useState(getMockDate())
   const [isMockActive, setIsMockActive] = useState(hasMockDate())
+
+  // 푸시 탭
+  const [pushState, setPushState] = useState<PushState | null>(null)
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission | null>(null)
+  const [swRegistered, setSwRegistered] = useState<boolean | null>(null)
+  const [subJson, setSubJson] = useState<object | null>(null)
+  const [subscribeMsg, setSubscribeMsg] = useState<string | null>(null)
+  const [subscribeLoading, setSubscribeLoading] = useState(false)
+  const [pushStateRaw, setPushStateRaw] = useState(false)
+  const [subRaw, setSubRaw] = useState(false)
+  const [testPushResult, setTestPushResult] = useState<unknown>(null)
+  const [testPushLoading, setTestPushLoading] = useState(false)
+  const [serverSubs, setServerSubs] = useState<unknown[]>([])
+  const [serverSubsLoading, setServerSubsLoading] = useState(false)
+  const [testPushRaw, setTestPushRaw] = useState(false)
+
+  const refreshPushStatus = useCallback(async () => {
+    const state = await getPushState()
+    setPushState(state)
+    setNotifPerm('Notification' in window ? Notification.permission : null)
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration()
+      setSwRegistered(!!reg)
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription()
+        setSubJson(sub ? sub.toJSON() : null)
+      } else {
+        setSubJson(null)
+      }
+    } else {
+      setSwRegistered(false)
+      setSubJson(null)
+    }
+  }, [])
+
+  const handleSubscribe = async () => {
+    setSubscribeLoading(true)
+    setSubscribeMsg(null)
+    try {
+      await subscribePush()
+      setSubscribeMsg('구독 성공')
+      await refreshPushStatus()
+    } catch (e) {
+      setSubscribeMsg(`오류: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSubscribeLoading(false)
+    }
+  }
+
+  const handleTestPush = async () => {
+    setTestPushLoading(true)
+    try {
+      const res = await client.post('/push/test')
+      setTestPushResult(res.data)
+    } catch (e) {
+      setTestPushResult({ error: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setTestPushLoading(false)
+    }
+  }
+
+  const fetchServerSubs = useCallback(async () => {
+    setServerSubsLoading(true)
+    try {
+      const res = await client.get('/push/subscriptions')
+      setServerSubs(res.data ?? [])
+    } catch {
+      setServerSubs([])
+    } finally {
+      setServerSubsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'push') {
+      refreshPushStatus()
+      fetchServerSubs()
+    }
+  }, [tab, refreshPushStatus, fetchServerSubs])
 
   const fetchTable = useCallback(() => {
     setDbLoading(true)
@@ -200,6 +280,7 @@ export function Admin() {
         <button style={tabStyle(tab === 'date')} onClick={() => setTab('date')}>
           날짜{isMockActive ? ' ●' : ''}
         </button>
+        <button style={tabStyle(tab === 'push')} onClick={() => setTab('push')}>푸시</button>
       </div>
 
       {/* DB 조회 탭 */}
@@ -472,6 +553,142 @@ export function Admin() {
                 오늘로 초기화
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 푸시 디버깅 탭 */}
+      {tab === 'push' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 600 }}>
+          {/* 브라우저 상태 섹션 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>브라우저 상태</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={refreshPushStatus} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
+                <button onClick={() => setPushStateRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{pushStateRaw ? 'Pretty' : 'Raw'}</button>
+              </div>
+            </div>
+            {pushStateRaw ? (
+              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {JSON.stringify({ pushState, notifPermission: notifPerm, swRegistered }, null, 2)}
+              </pre>
+            ) : (
+              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {([['Push 상태', pushState], ['알림 권한', notifPerm], ['SW 등록', swRegistered != null ? (swRegistered ? '등록됨' : '미등록') : null]] as [string, string | boolean | null][]).map(([label, val]) => (
+                  <div key={label} style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 100 }}>{label}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-deep)', fontWeight: 600 }}>{val != null ? String(val) : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 구독 시작 버튼 */}
+          <div>
+            <button
+              onClick={handleSubscribe}
+              disabled={subscribeLoading}
+              style={{ background: 'var(--sage-leaf)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: subscribeLoading ? 'default' : 'pointer', opacity: subscribeLoading ? 0.7 : 1 }}
+            >
+              {subscribeLoading ? '구독 중...' : '구독 시작'}
+            </button>
+            {subscribeMsg && <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: subscribeMsg.startsWith('오류') ? 'var(--clay)' : 'var(--sage-forest)', margin: '8px 0 0' }}>{subscribeMsg}</p>}
+          </div>
+
+          {/* 현재 구독 정보 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>현재 구독 정보</p>
+              <button onClick={() => setSubRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{subRaw ? 'Pretty' : 'Raw'}</button>
+            </div>
+            {subJson == null ? (
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>구독 없음</p>
+            ) : subRaw ? (
+              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                {JSON.stringify(subJson, null, 2)}
+              </pre>
+            ) : (
+              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {Object.entries(subJson).map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 80 }}>{k}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-deep)', wordBreak: 'break-all' }}>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Test 푸시 요청 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+              <button
+                onClick={handleTestPush}
+                disabled={testPushLoading}
+                style={{ background: 'var(--sage)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: testPushLoading ? 'default' : 'pointer', opacity: testPushLoading ? 0.7 : 1 }}
+              >
+                {testPushLoading ? '전송 중...' : 'Test 푸시 요청'}
+              </button>
+              {testPushResult != null && (
+                <button onClick={() => setTestPushRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{testPushRaw ? 'Pretty' : 'Raw'}</button>
+              )}
+            </div>
+            {testPushResult != null && (
+              testPushRaw ? (
+                <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(testPushResult, null, 2)}
+                </pre>
+              ) : (
+                <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px' }}>
+                  {(testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean }> }).results?.length === 0 ? (
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)', margin: 0 }}>구독 없음</p>
+                  ) : (
+                    (testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean }> }).results?.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: r.success ? 'var(--sage-forest)' : 'var(--clay)', fontWeight: 600 }}>{r.success ? '성공' : r.expired ? '만료' : '실패'}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )
+            )}
+          </div>
+
+          {/* 서버 구독 목록 */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>서버 구독 목록</p>
+              <button onClick={fetchServerSubs} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
+            </div>
+            {serverSubsLoading ? (
+              <ThinkingDots visible />
+            ) : serverSubs.length === 0 ? (
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>서버 구독 없음</p>
+            ) : (
+              <div style={{ overflowX: 'auto', background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10 }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {['id', 'endpoint', 'created_at'].map(col => (
+                        <th key={col} style={{ background: 'var(--paper-warm)', padding: '6px 10px', textAlign: 'left', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(serverSubs as Array<{ id: number; endpoint: string; created_at: string }>).map(sub => (
+                      <tr key={sub.id} style={{ borderBottom: '1px solid var(--line-faint)' }}>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', whiteSpace: 'nowrap' }}>{sub.id}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.endpoint}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', whiteSpace: 'nowrap' }}>{sub.created_at ? new Date(sub.created_at).toLocaleString('ko-KR') : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
