@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { WeekStrip } from "../components/hub/WeekStrip";
 import { TodayDiaryCard } from "../components/hub/TodayDiaryCard";
@@ -11,6 +12,7 @@ import { useDayModal } from "../hooks/dayModalContext";
 import { useMockDate } from "../hooks/useMockDate";
 
 export function Hub() {
+  const navigate = useNavigate();
   const { openDayModal } = useDayModal();
   const today = useMockDate();
   const thisMonth = today.slice(0, 7);
@@ -87,6 +89,7 @@ export function Hub() {
           hasDiary={hasDiary}
           summary={diaryBody ?? undefined}
           onOpen={openDayModal}
+          onStart={() => navigate(`/qna/${today}`)}
         />
         <SearchTriggerCard onClick={() => setSearchOpen(true)} />
       </div>

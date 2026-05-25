@@ -5,9 +5,10 @@ interface TodayDiaryCardProps {
   hasDiary: boolean;
   summary?: string;
   onOpen: (date: string) => void;
+  onStart?: () => void;
 }
 
-export function TodayDiaryCard({ today, hasDiary, summary, onOpen }: TodayDiaryCardProps) {
+export function TodayDiaryCard({ today, hasDiary, summary, onOpen, onStart }: TodayDiaryCardProps) {
   return (
     <div style={{
       background: 'var(--paper-pure)',
@@ -37,7 +38,7 @@ export function TodayDiaryCard({ today, hasDiary, summary, onOpen }: TodayDiaryC
           <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 'var(--t-base)', color: 'var(--ink-hint)' }}>
             아직 오늘의 일기가 없어요
           </p>
-          <PillButton onClick={() => onOpen(today)}>
+          <PillButton onClick={() => onStart ? onStart() : onOpen(today)}>
             오늘의 일기 시작
           </PillButton>
         </>
