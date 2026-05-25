@@ -1,55 +1,87 @@
-import { useState, useEffect } from 'react'
-import client from '../api/client'
-import { WeekStrip } from '../components/hub/WeekStrip'
-import { TodayDiaryCard } from '../components/hub/TodayDiaryCard'
-import { SearchTriggerCard } from '../components/hub/SearchTriggerCard'
-import { PetCard } from '../components/hub/PetCard'
-import { SearchModal } from '../components/search/SearchModal'
-import { getWeekWindow, type CalendarEntry } from '../lib/week'
-import { fetchStreak } from '../lib/streak'
-import { useDayModal } from '../hooks/dayModalContext'
-import { useMockDate } from '../hooks/useMockDate'
+import { useState, useEffect } from "react";
+import client from "../api/client";
+import { WeekStrip } from "../components/hub/WeekStrip";
+import { TodayDiaryCard } from "../components/hub/TodayDiaryCard";
+import { SearchTriggerCard } from "../components/hub/SearchTriggerCard";
+import { PetCard } from "../components/hub/PetCard";
+import { SearchModal } from "../components/search/SearchModal";
+import { getWeekWindow, type CalendarEntry } from "../lib/week";
+import { fetchStreak } from "../lib/streak";
+import { useDayModal } from "../hooks/dayModalContext";
+import { useMockDate } from "../hooks/useMockDate";
 
 export function Hub() {
-  const { openDayModal } = useDayModal()
-  const today = useMockDate()
-  const thisMonth = today.slice(0, 7)
-  const [entries, setEntries] = useState<CalendarEntry[]>([])
-  const [diaryBody, setDiaryBody] = useState<string | null>(null)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [streak, setStreak] = useState<number | null>(null)
+  const { openDayModal } = useDayModal();
+  const today = useMockDate();
+  const thisMonth = today.slice(0, 7);
+  const [entries, setEntries] = useState<CalendarEntry[]>([]);
+  const [diaryBody, setDiaryBody] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [streak, setStreak] = useState<number | null>(null);
 
   useEffect(() => {
-    client.get(`/calendar?month=${thisMonth}`).then(res => {
-      setEntries(res.data.entries ?? [])
-    }).catch(() => {})
-  }, [thisMonth])
+    client
+      .get(`/calendar?month=${thisMonth}`)
+      .then((res) => {
+        setEntries(res.data.entries ?? []);
+      })
+      .catch(() => {});
+  }, [thisMonth]);
 
   useEffect(() => {
-    client.get(`/diary/${today}`).then(res => {
-      setDiaryBody(res.data.body ?? '')
-    }).catch(() => {
-      setDiaryBody(null)
-    })
-  }, [today])
+    client
+      .get(`/diary/${today}`)
+      .then((res) => {
+        setDiaryBody(res.data.body ?? "");
+      })
+      .catch(() => {
+        setDiaryBody(null);
+      });
+  }, [today]);
 
   useEffect(() => {
-    fetchStreak().then(setStreak).catch(() => setStreak(null))
-  }, [])
+    fetchStreak()
+      .then(setStreak)
+      .catch(() => setStreak(null));
+  }, []);
 
-  const weekDays = getWeekWindow(entries, today)
-  const hasDiary = diaryBody !== null
+  const weekDays = getWeekWindow(entries, today);
+  const hasDiary = diaryBody !== null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '16px 16px 8px' }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        padding: "16px 16px 8px",
+      }}
+    >
       {streak !== null && streak > 0 && (
-        <div style={{ textAlign: 'center', fontSize: '1.1rem', fontWeight: 600, color: 'var(--sage-leaf)' }}>
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: "1.1rem",
+            fontWeight: 600,
+            color: "var(--sage-leaf)",
+            animation: "days-pop 380ms var(--ease-soft) both",
+          }}
+        >
           🔥 {streak}일 연속
         </div>
       )}
-      <WeekStrip days={weekDays} today={today} />
+      <div style={{ animation: "days-rise 320ms var(--ease-out) 40ms both" }}>
+        <WeekStrip days={weekDays} today={today} />
+      </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "stretch",
+          animation: "days-rise 320ms var(--ease-out) 120ms both",
+        }}
+      >
         <TodayDiaryCard
           today={today}
           hasDiary={hasDiary}
@@ -59,17 +91,19 @@ export function Hub() {
         <SearchTriggerCard onClick={() => setSearchOpen(true)} />
       </div>
 
-      <PetCard />
+      <div style={{ animation: "days-rise 320ms var(--ease-out) 200ms both" }}>
+        <PetCard />
+      </div>
 
       {searchOpen && (
         <SearchModal
           onClose={() => setSearchOpen(false)}
           onSelect={(date) => {
-            setSearchOpen(false)
-            openDayModal(date)
+            setSearchOpen(false);
+            openDayModal(date);
           }}
         />
       )}
     </div>
-  )
+  );
 }

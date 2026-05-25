@@ -2,131 +2,176 @@
  * Soft sage green + cream paper. Cloud + leaf motif. Korean-first.
  */
 
-@import './styles/days-tokens.css';
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@400;500;600;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "./styles/days-tokens.css";
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@400;500;600;700&family=Gowun+Dodum&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
   /* ── Sage (primary brand green) ─────────────────────────────────── */
-  --sage-ink:      #2E3B1F;
-  --sage-forest:   #475A33;
-  --sage-leaf:     #7D9D6A;
-  --sage-fern:     #A2BA8D;
-  --sage-mist:     #C8DFCA;
-  --sage-wash:     #E3F2E4;
-  --sage-cloud:    #EBEFE8;
-  --sage-paper:    #F0F4E5;
+  --sage-ink: #2e3b1f;
+  --sage-forest: #475a33;
+  --sage-leaf: #7d9d6a;
+  --sage-fern: #a2ba8d;
+  --sage-mist: #c8dfca;
+  --sage-wash: #e3f2e4;
+  --sage-cloud: #ebefe8;
+  --sage-paper: #f0f4e5;
 
   /* ── Paper / cream ──────────────────────────────────────────────── */
-  --paper-bone:    #FCF6EC;
-  --paper-warm:    #FBF3E8;
-  --paper-mist:    #F9F6E6;
-  --paper-pure:    #FFFFFF;
-  --paper-soft:    #FDFBF5;
+  --paper-bone: #fcf6ec;
+  --paper-warm: #fbf3e8;
+  --paper-mist: #f9f6e6;
+  --paper-pure: #ffffff;
+  --paper-soft: #fdfbf5;
 
   /* ── Ink (text) ─────────────────────────────────────────────────── */
-  --ink-deep:      #1F2818;
-  --ink-body:      #3D4A30;
-  --ink-meta:      #6E7A5E;
-  --ink-hint:      #9BA590;
-  --ink-soft:      #C5CCB8;
+  --ink-deep: #1f2818;
+  --ink-body: #3d4a30;
+  --ink-meta: #6e7a5e;
+  --ink-hint: #9ba590;
+  --ink-soft: #c5ccb8;
 
   /* ── Lines ──────────────────────────────────────────────────────── */
-  --line-faint:    #EFEEE5;
-  --line:          #DDDED0;
-  --line-strong:   #C2C8B3;
+  --line-faint: #efeee5;
+  --line: #ddded0;
+  --line-strong: #c2c8b3;
 
   /* ── Semantic ───────────────────────────────────────────────────── */
-  --accent-clay:      #B5573B;
-  --accent-clay-soft: #F3DDD2;
-  --accent-honey:     #D9A441;
-  --accent-sky:       #6C8AA0;
+  --accent-clay: #b5573b;
+  --accent-clay-soft: #f3ddd2;
+  --accent-honey: #d9a441;
+  --accent-sky: #6c8aa0;
 
   /* ── Chat bubbles ───────────────────────────────────────────────── */
-  --bubble-user:       #7D9D6A;
-  --bubble-ai:         #FFFFFF;
-  --bubble-text-user:  #FCFCF8;
-  --bubble-text-ai:    #2E3B1F;
-  --bubble-border-ai:  rgba(31, 40, 24, 0.04);
+  --bubble-user: #7d9d6a;
+  --bubble-ai: #ffffff;
+  --bubble-text-user: #fcfcf8;
+  --bubble-text-ai: #2e3b1f;
+  --bubble-border-ai: rgba(31, 40, 24, 0.04);
 
   /* ── Calendar ───────────────────────────────────────────────────── */
-  --cal-today-ring: #7D9D6A;
+  --cal-today-ring: #7d9d6a;
 
   /* ── Decorative cloud blobs ─────────────────────────────────────── */
-  --cloud-1: #C8DFCA;
-  --cloud-2: #DCE7CC;
-  --cloud-3: #EBEFE8;
+  --cloud-1: #c8dfca;
+  --cloud-2: #dce7cc;
+  --cloud-3: #ebefe8;
 
   /* ── Fonts ──────────────────────────────────────────────────────── */
-  --font-sans:     "Pretendard", "Pretendard Variable", "Inter", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-  --font-display:  "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-rounded:  "Gowun Dodum", "Pretendard", "Apple SD Gothic Neo", sans-serif;
-  --font-serif:    "Noto Serif KR", Georgia, serif;
-  --font-ko:       "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-  --font-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans:
+    "Pretendard", "Pretendard Variable", "Inter", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-display:
+    "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-rounded:
+    "Gowun Dodum", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+  --font-serif: "Noto Serif KR", Georgia, serif;
+  --font-ko: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* ── Type scale ─────────────────────────────────────────────────── */
-  --t-xxs:  11px;
-  --t-xs:   12px;
-  --t-sm:   13px;
+  --t-xxs: 11px;
+  --t-xs: 12px;
+  --t-sm: 13px;
   --t-base: 15px;
-  --t-md:   17px;
-  --t-lg:   20px;
-  --t-xl:   24px;
-  --t-2xl:  30px;
-  --t-3xl:  40px;
-  --t-4xl:  56px;
-  --t-5xl:  72px;
+  --t-md: 17px;
+  --t-lg: 20px;
+  --t-xl: 24px;
+  --t-2xl: 30px;
+  --t-3xl: 40px;
+  --t-4xl: 56px;
+  --t-5xl: 72px;
 
   /* ── Spacing ────────────────────────────────────────────────────── */
-  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;  --s-5: 20px;
-  --s-6: 24px;  --s-7: 32px;  --s-8: 40px;  --s-9: 56px;  --s-10: 72px;  --s-11: 96px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+  --s-9: 56px;
+  --s-10: 72px;
+  --s-11: 96px;
 
   /* ── Radius ─────────────────────────────────────────────────────── */
-  --r-1: 6px;  --r-2: 10px;  --r-3: 14px;  --r-4: 18px;  --r-5: 24px;  --r-6: 32px;
+  --r-1: 6px;
+  --r-2: 10px;
+  --r-3: 14px;
+  --r-4: 18px;
+  --r-5: 24px;
+  --r-6: 32px;
   --r-pill: 999px;
 
   /* ── Shadows (sage-tinted, not brown) ───────────────────────────── */
-  --shadow-1:    0 1px 2px rgba(54, 70, 38, 0.05);
-  --shadow-2:    0 4px 14px -6px rgba(54, 70, 38, 0.10), 0 1px 2px rgba(54, 70, 38, 0.04);
-  --shadow-3:    0 14px 32px -10px rgba(54, 70, 38, 0.16), 0 4px 8px -2px rgba(54, 70, 38, 0.06);
+  --shadow-1: 0 1px 2px rgba(54, 70, 38, 0.05);
+  --shadow-2:
+    0 4px 14px -6px rgba(54, 70, 38, 0.1), 0 1px 2px rgba(54, 70, 38, 0.04);
+  --shadow-3:
+    0 14px 32px -10px rgba(54, 70, 38, 0.16),
+    0 4px 8px -2px rgba(54, 70, 38, 0.06);
   --shadow-card: 0 2px 8px -2px rgba(54, 70, 38, 0.08);
   --shadow-press: inset 0 1px 2px rgba(54, 70, 38, 0.08);
   --shadow-ring: 0 0 0 3px rgba(125, 157, 106, 0.22);
   --shadow-glow: 0 0 0 4px rgba(125, 157, 106, 0.18);
 
   /* ── Motion ─────────────────────────────────────────────────────── */
-  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-soft: cubic-bezier(0.34, 1.16, 0.64, 1);
-  --ease-in:   cubic-bezier(0.7, 0, 0.84, 0);
-  --dur-1: 140ms;  --dur-2: 240ms;  --dur-3: 380ms;  --dur-4: 600ms;
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --dur-1: 140ms;
+  --dur-2: 240ms;
+  --dur-3: 380ms;
+  --dur-4: 600ms;
 
   /* ── Backward-compat aliases (old gold → new sage) ──────────────── */
-  --paper-cream:   var(--paper-warm);
-  --ink-coffee:    var(--ink-deep);
-  --ink-walnut:    var(--ink-body);
-  --ink-bark:      var(--ink-meta);
-  --ink-stone:     var(--ink-meta);
-  --line-ink:      var(--sage-forest);
-  --sage:          var(--sage-leaf);
-  --sage-soft:     var(--sage-mist);
-  --clay:          var(--accent-clay);
-  --clay-soft:     var(--accent-clay-soft);
-  --sky:           var(--accent-sky);
-  --sky-soft:      var(--sage-cloud);
+  --paper-cream: var(--paper-warm);
+  --ink-coffee: var(--ink-deep);
+  --ink-walnut: var(--ink-body);
+  --ink-bark: var(--ink-meta);
+  --ink-stone: var(--ink-meta);
+  --line-ink: var(--sage-forest);
+  --sage: var(--sage-leaf);
+  --sage-soft: var(--sage-mist);
+  --clay: var(--accent-clay);
+  --clay-soft: var(--accent-clay-soft);
+  --sky: var(--accent-sky);
+  --sky-soft: var(--sage-cloud);
   --bubble-border: var(--bubble-border-ai);
   --font-ko-serif: var(--font-serif);
-  --font-ko-sans:  var(--font-rounded);
+  --font-ko-sans: var(--font-rounded);
 
   /* ── Legacy patterns ────────────────────────────────────────────── */
-  --dot-leader: radial-gradient(circle, var(--line-strong) 1px, transparent 1.4px) 0 50% / 7px 7px repeat-x;
-  --grid-dots:  radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0 / 24px 24px;
+  --dot-leader: radial-gradient(
+      circle,
+      var(--line-strong) 1px,
+      transparent 1.4px
+    )
+    0 50% / 7px 7px repeat-x;
+  --grid-dots: radial-gradient(
+      circle at 1px 1px,
+      var(--line) 1px,
+      transparent 0
+    )
+    0 0 / 24px 24px;
 }
 
 /* ── Base ────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
-html, body, #root { margin: 0; padding: 0; min-height: 100%; }
-html, body {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+html,
+body {
   background: var(--paper-bone);
   color: var(--ink-deep);
   font-family: var(--font-sans);
@@ -136,9 +181,19 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-button, input, textarea, select { font-family: inherit; }
-a { color: var(--sage-forest); text-decoration: none; }
-a:hover { color: var(--sage-leaf); }
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+a {
+  color: var(--sage-forest);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--sage-leaf);
+}
 
 /* ── Semantic type classes ───────────────────────────────────────── */
 .t-wordmark {
@@ -229,24 +284,55 @@ a:hover { color: var(--sage-leaf); }
   letter-spacing: -0.01em;
   color: var(--ink-body);
 }
-.t-required { color: var(--accent-clay); font-weight: 500; }
+.t-required {
+  color: var(--accent-clay);
+  font-weight: 500;
+}
 
 /* ── Helpers · backgrounds ───────────────────────────────────────── */
-.bg-cream    { background: var(--paper-bone); }
-.bg-sage     { background: var(--sage-paper); }
+.bg-cream {
+  background: var(--paper-bone);
+}
+.bg-sage {
+  background: var(--sage-paper);
+}
 .bg-gradient {
   background:
-    radial-gradient(ellipse 800px 600px at 80% 110%, var(--sage-wash) 0%, transparent 60%),
-    radial-gradient(ellipse 600px 500px at 10% -10%, #F6F0E3 0%, transparent 55%),
+    radial-gradient(
+      ellipse 800px 600px at 80% 110%,
+      var(--sage-wash) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 600px 500px at 10% -10%,
+      #f6f0e3 0%,
+      transparent 55%
+    ),
     var(--paper-bone);
 }
 .bg-clouds {
   position: relative;
   background:
-    radial-gradient(circle at 78% 22%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 18%),
-    radial-gradient(ellipse 480px 320px at 18% 78%, var(--cloud-1) 0%, transparent 55%),
-    radial-gradient(ellipse 360px 260px at 88% 88%, var(--cloud-2) 0%, transparent 55%),
-    radial-gradient(ellipse 280px 220px at 12% 28%, var(--cloud-3) 0%, transparent 55%),
+    radial-gradient(
+      circle at 78% 22%,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0) 18%
+    ),
+    radial-gradient(
+      ellipse 480px 320px at 18% 78%,
+      var(--cloud-1) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 360px 260px at 88% 88%,
+      var(--cloud-2) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 280px 220px at 12% 28%,
+      var(--cloud-3) 0%,
+      transparent 55%
+    ),
     linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-wash) 100%);
 }
 .screen {
@@ -254,44 +340,171 @@ a:hover { color: var(--sage-leaf); }
   border-radius: var(--r-6);
   overflow: hidden;
   background:
-    radial-gradient(ellipse 320px 240px at 100% 0%, #FFFFFF 0%, transparent 60%),
-    radial-gradient(ellipse 220px 200px at 0% 100%, var(--sage-mist) 0%, transparent 60%),
+    radial-gradient(
+      ellipse 320px 240px at 100% 0%,
+      #ffffff 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 220px 200px at 0% 100%,
+      var(--sage-mist) 0%,
+      transparent 60%
+    ),
     linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-paper) 100%);
 }
 
 /* ── Utility ─────────────────────────────────────────────────────── */
-.hr-dots { height: 7px; background: var(--dot-leader); border: 0; }
-.hr-line  { height: 1px; background: var(--line); border: 0; }
+.hr-dots {
+  height: 7px;
+  background: var(--dot-leader);
+  border: 0;
+}
+.hr-line {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+}
 
 /* ── Keyframes ───────────────────────────────────────────────────── */
-@keyframes days-fade-in  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes days-rise     { from { opacity: 0; transform: translateY(8px); }
-                           to   { opacity: 1; transform: none; } }
-@keyframes days-pop      { 0%   { opacity: 0; transform: scale(0.92); }
-                           60%  { opacity: 1; transform: scale(1.02); }
-                           100% { opacity: 1; transform: scale(1); } }
-@keyframes days-slide-in { from { opacity: 0; transform: translateX(-8px); }
-                           to   { opacity: 1; transform: none; } }
-@keyframes days-drift    { 0%, 100% { transform: translate(0, 0); }
-                           50%      { transform: translate(8px, -6px); } }
-@keyframes days-dot-pulse { 0%, 100% { opacity: 0.45; transform: scale(1); }
-                            50%      { opacity: 1;    transform: scale(1.18); } }
-@keyframes days-thinking  { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); }
-                            40%           { opacity: 1;   transform: scale(1.1); } }
+@keyframes days-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes days-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes days-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes days-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes days-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(8px, -6px);
+  }
+}
+@keyframes days-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+@keyframes days-thinking {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
 @keyframes days-daisy-spin {
-  0%   { transform: rotate(0deg);   }
-  20%  { transform: rotate(70deg);  }
-  40%  { transform: rotate(155deg); }
-  50%  { transform: rotate(170deg); }
-  60%  { transform: rotate(195deg); }
-  80%  { transform: rotate(285deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(70deg);
+  }
+  40% {
+    transform: rotate(155deg);
+  }
+  50% {
+    transform: rotate(170deg);
+  }
+  60% {
+    transform: rotate(195deg);
+  }
+  80% {
+    transform: rotate(285deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 @keyframes home-ring-pulse {
-  0%, 100% { transform: scale(1);    opacity: 0.5; }
-  50%       { transform: scale(1.04); opacity: 0.65; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.65;
+  }
 }
 @keyframes home-float {
-  0%, 100% { transform: translateY(0);   }
-  50%       { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes days-bounce {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.25);
+  }
+  65% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes days-mood-bounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1.2);
+  }
 }

@@ -30,3 +30,7 @@ frontend/dist/
 
 *.pem
 Task*.md
+
+# Local planning & brainstorming (not for repo)
+docs/
+.superpowers/
