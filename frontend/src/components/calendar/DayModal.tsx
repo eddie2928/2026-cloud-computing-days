@@ -24,15 +24,18 @@ export function DayModal({ date, onClose }: DayModalProps) {
     client
       .get(`/diary/${date}`)
       .then((res) => {
-        setDiary({ body: res.data.body, emotion: res.data.emotion });
-        setMode("diary");
+        if (!res.data.body) {
+          navigate(`/qna/${date}`, { replace: true });
+        } else {
+          setDiary({ body: res.data.body, emotion: res.data.emotion });
+          setMode("diary");
+        }
       })
       .catch((e) => {
         const status = (e as { response?: { status?: number } }).response
           ?.status;
         if (status === 404) {
-          navigate(`/qna/${date}`);
-          onClose();
+          navigate(`/qna/${date}`, { replace: true });
         } else setMode("error");
       });
   }, [date, navigate, onClose]);
