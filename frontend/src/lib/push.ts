@@ -31,17 +31,29 @@ export async function subscribePush(): Promise<void> {
     throw new Error('Push not supported in this browser')
   }
 
+  if (Notification.permission === 'denied') {
+    throw new Error('알림이 차단되어 있습니다. 브라우저 주소창 왼쪽의 자물쇠 아이콘 → 사이트 설정에서 알림을 \'허용\'으로 변경해 주세요.')
+  }
+
   const perm = await Notification.requestPermission()
-  if (perm !== 'granted') throw new Error('Permission denied')
+  if (perm !== 'granted') throw new Error('알림 권한이 거부되었습니다.')
 
   const { data } = await client.get<{ public_key: string }>('/push/public-key')
+  if (!data.public_key) {
+    throw new Error('서버에 VAPID 키가 설정되지 않았습니다. 관리자에게 문의하세요.')
+  }
   const applicationServerKey = urlBase64ToUint8Array(data.public_key)
 
   const reg = await navigator.serviceWorker.ready
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey,
-  })
+  let sub: PushSubscription
+  try {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    })
+  } catch (err) {
+    throw new Error(`푸시 구독 실패: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
   const json = sub.toJSON()
   await client.post('/push/subscribe', {
