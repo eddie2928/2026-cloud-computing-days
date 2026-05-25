@@ -37,15 +37,30 @@ async def _run_notification_job(session_factory: async_sessionmaker) -> None:
         async with session_factory() as db:
             subs = await _get_user_subscriptions(db, user_id)
             expired = []
+            success_count = 0
+            fail_count = 0
             for sub in subs:
-                should_delete = send_one(
+                result = send_one(
                     endpoint=sub.endpoint,
                     p256dh=sub.p256dh,
                     auth=sub.auth,
                     payload={"title": "Days", "body": "오늘 하루를 기록해볼까요? ✍️", "url": "/"},
                 )
-                if should_delete:
+                if result["expired"]:
                     expired.append(sub.id)
+                if result["success"]:
+                    success_count += 1
+                else:
+                    fail_count += 1
+                    logger.warning(
+                        "Push failed for user_id=%s endpoint=%s error=%s",
+                        user_id, sub.endpoint, result["error"],
+                    )
+
+            logger.info(
+                "Push job user_id=%s: success=%d fail=%d expired=%d",
+                user_id, success_count, fail_count, len(expired),
+            )
 
             if expired:
                 from sqlalchemy import delete as sa_delete
