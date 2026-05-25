@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import client from "../../api/client";
 import { DiaryModalContent } from "./DiaryModalContent";
-import { QnaModalContent } from "./QnaModalContent";
-import { CompletingModalContent } from "./CompletingModalContent";
 
 interface DayModalProps {
   date: string;
   onClose: () => void;
 }
 
-type Mode = "loading" | "diary" | "qna" | "completing" | "error";
+type Mode = "loading" | "diary" | "error";
 
 interface DiaryState {
   body: string;
@@ -17,9 +16,9 @@ interface DiaryState {
 }
 
 export function DayModal({ date, onClose }: DayModalProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("loading");
   const [diary, setDiary] = useState<DiaryState | null>(null);
-  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     client
@@ -31,10 +30,12 @@ export function DayModal({ date, onClose }: DayModalProps) {
       .catch((e) => {
         const status = (e as { response?: { status?: number } }).response
           ?.status;
-        if (status === 404) setMode("qna");
-        else setMode("error");
+        if (status === 404) {
+          navigate(`/qna/${date}`);
+          onClose();
+        } else setMode("error");
       });
-  }, [date, reloadTick]);
+  }, [date, navigate, onClose]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -115,17 +116,6 @@ export function DayModal({ date, onClose }: DayModalProps) {
             body={diary.body}
             emotion={diary.emotion}
           />
-        )}
-
-        {mode === "qna" && (
-          <QnaModalContent
-            date={date}
-            onComplete={() => setMode("completing")}
-          />
-        )}
-
-        {mode === "completing" && (
-          <CompletingModalContent onDone={() => setReloadTick((n) => n + 1)} />
         )}
 
         {mode === "error" && (
