@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
-from app.bedrock import BedrockClient
+from app.bedrock import BedrockClient, _parse_schedules
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
 from app.routers.pet import grow_pet
@@ -73,6 +73,21 @@ async def _get_relevant_schedules(db: AsyncSession, user_id: int, today: date) -
 
 
 
+def _build_previously_extracted(items: list[QnAItem]) -> str:
+    seen: set[str] = set()
+    lines: list[str] = []
+    for item in items:
+        meta = item.bedrock_meta
+        if not meta or not meta.get("raw_response"):
+            continue
+        for s in _parse_schedules(meta["raw_response"]):
+            key = f"{s['period_start']}|{s['period_end']}|{s['situation']}"
+            if key not in seen:
+                seen.add(key)
+                lines.append(key)
+    return "\n".join(lines)
+
+
 def _to_pending_schedules(extracted: list[dict]) -> list[PendingSchedule]:
     result = []
     for sched in extracted:
@@ -112,7 +127,6 @@ async def _resume_session(
         restored_pending = []
         meta = first.bedrock_meta
         if meta and meta.get("raw_response"):
-            from app.bedrock import _parse_schedules
             restored_pending = _to_pending_schedules(_parse_schedules(meta["raw_response"]))
         return QnAStartResponse(
             session_id=existing.id, question=first.question, sequence=first.sequence,
@@ -122,7 +136,8 @@ async def _resume_session(
     session_id = existing.id
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date)
+    prev_extracted = _build_previously_extracted(answered_items)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
@@ -268,7 +283,8 @@ async def answer_qna(
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date)
+    prev_extracted = _build_previously_extracted(answered_snapshot)
+    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
 
     try:

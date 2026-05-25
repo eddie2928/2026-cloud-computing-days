@@ -123,6 +123,7 @@ class BedrockClient:
         user_profile: dict | None = None,
         relevant_schedules: list[str] | None = None,
         today: date | None = None,
+        previously_extracted: str = "",
     ) -> tuple[str, list[dict], dict]:
         profile_block = _build_profile_block(user_profile)
         rag_block = _build_rag_block(rag_summaries)
@@ -137,6 +138,7 @@ class BedrockClient:
             relevant_schedules=schedules_block,
             session_so_far=session_block,
             next_sequence=str(next_sequence),
+            previously_extracted=previously_extracted,
         )
         text, meta = await asyncio.to_thread(
             _invoke_claude, self._client, self._model_id, prompt
