@@ -27,9 +27,7 @@ export function Qna() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [pendingByMsgIdx, setPendingByMsgIdx] = useState<
-    Map<number, PendingSchedule[]>
-  >(new Map());
+  const [accumulatedSchedules, setAccumulatedSchedules] = useState<PendingSchedule[]>([]);
   const [scheduleStatuses, setScheduleStatuses] = useState<
     Map<string, "pending" | "accepted" | "rejected">
   >(new Map());
@@ -46,15 +44,13 @@ export function Qna() {
       .then((res) => {
         setSessionId(res.data.session_id);
         setSequence(res.data.sequence);
-        const aiMsgIdx = 0;
         setMessages([{ role: "ai", text: res.data.question }]);
         const pending: PendingSchedule[] = res.data.pending_schedules ?? [];
         if (pending.length > 0) {
-          setPendingByMsgIdx((prev) => new Map(prev).set(aiMsgIdx, pending));
-          setScheduleStatuses((prev) => {
-            const next = new Map(prev);
-            for (const s of pending) next.set(scheduleKey(s), "pending");
-            return next;
+          setAccumulatedSchedules((prev) => {
+            const existingKeys = new Set(prev.map(scheduleKey));
+            const newOnes = pending.filter((s) => !existingKeys.has(scheduleKey(s)));
+            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
           });
         }
       })
@@ -67,7 +63,6 @@ export function Qna() {
 
   const handleSend = async (text: string) => {
     if (!sessionId || thinking || done) return;
-    const aiMsgIdx = messages.length + 1;
     setMessages((m) => [...m, { role: "user", text }]);
     setThinking(true);
     try {
@@ -77,28 +72,26 @@ export function Qna() {
         answer: text,
       });
       setThinking(false);
+      const pending: PendingSchedule[] = res.data.pending_schedules ?? [];
+      if (pending.length > 0) {
+        setAccumulatedSchedules((prev) => {
+          const existingKeys = new Set(prev.map(scheduleKey));
+          const newOnes = pending.filter((s) => !existingKeys.has(scheduleKey(s)));
+          return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+        });
+      }
       if (res.data.completed) {
         setDone(true);
         setMessages((m) => [
           ...m,
           { role: "ai", text: "오늘의 일기가 완성되었어요." },
         ]);
-        setTimeout(() => navigate(`/diary/${date}`), 1200);
       } else {
         setSequence(res.data.sequence);
         setMessages((m) => [
           ...m,
           { role: "ai" as const, text: res.data.next_question },
         ]);
-        const pending: PendingSchedule[] = res.data.pending_schedules ?? [];
-        if (pending.length > 0) {
-          setPendingByMsgIdx((prev) => new Map(prev).set(aiMsgIdx, pending));
-          setScheduleStatuses((prev) => {
-            const statuses = new Map(prev);
-            for (const s of pending) statuses.set(scheduleKey(s), "pending");
-            return statuses;
-          });
-        }
       }
     } catch {
       setThinking(false);
@@ -115,7 +108,7 @@ export function Qna() {
       });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
-      if (status !== 409) return; // 409(중복)만 무시, 나머지는 pending 유지
+      if (status !== 409) return;
     }
     setScheduleStatuses((prev) => new Map(prev).set(key, "accepted"));
   };
@@ -126,7 +119,86 @@ export function Qna() {
     );
   };
 
+  const allProcessed =
+    accumulatedSchedules.length > 0 &&
+    accumulatedSchedules.every((s) => {
+      const st = scheduleStatuses.get(scheduleKey(s));
+      return st === "accepted" || st === "rejected";
+    });
+
+  useEffect(() => {
+    if (!done) return;
+    if (accumulatedSchedules.length === 0) {
+      const t = setTimeout(() => navigate(`/diary/${date}`), 1200);
+      return () => clearTimeout(t);
+    }
+    if (allProcessed) {
+      const t = setTimeout(() => navigate(`/diary/${date}`), 600);
+      return () => clearTimeout(t);
+    }
+  }, [done, accumulatedSchedules.length, allProcessed, navigate, date]);
+
   const totalQuestions = 5;
+
+  if (done && accumulatedSchedules.length > 0) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          minHeight: "calc(100dvh - 80px)",
+          animation: "days-fade-in 300ms var(--ease-out) both",
+        }}
+      >
+        <Header title={date ?? ""} showBack />
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--t-sm)",
+              color: "var(--ink-body)",
+              marginBottom: 16,
+            }}
+          >
+            이번 대화에서 나온 일정들을 확인해 주세요.
+          </p>
+          {accumulatedSchedules.map((s) => (
+            <ScheduleCard
+              key={scheduleKey(s)}
+              schedule={s}
+              status={scheduleStatuses.get(scheduleKey(s)) ?? "pending"}
+              onAccept={() => handleAccept(s)}
+              onReject={() => handleReject(s)}
+            />
+          ))}
+        </div>
+        {!allProcessed && (
+          <div
+            style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
+          >
+            <button
+              type="button"
+              onClick={() => navigate(`/diary/${date}`)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "var(--paper-pure)",
+                border: "1px solid var(--ink-hint)",
+                borderRadius: 12,
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--t-sm)",
+                color: "var(--ink-meta)",
+                cursor: "pointer",
+              }}
+            >
+              건너뛰기
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -161,7 +233,6 @@ export function Qna() {
         <ProgressBar value={sequence} max={totalQuestions} />
       </div>
 
-      {/* 채팅 영역 */}
       <div
         style={{
           flex: 1,
@@ -175,16 +246,6 @@ export function Qna() {
         {messages.map((msg, i) => (
           <div key={i}>
             <ChatBubble role={msg.role}>{msg.text}</ChatBubble>
-            {msg.role === "ai" &&
-              (pendingByMsgIdx.get(i) ?? []).map((s) => (
-                <ScheduleCard
-                  key={scheduleKey(s)}
-                  schedule={s}
-                  status={scheduleStatuses.get(scheduleKey(s)) ?? "pending"}
-                  onAccept={() => handleAccept(s)}
-                  onReject={() => handleReject(s)}
-                />
-              ))}
           </div>
         ))}
         {thinking && (
@@ -195,7 +256,6 @@ export function Qna() {
         <div ref={bottomRef} />
       </div>
 
-      {/* 입력 바 */}
       <div
         style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
       >
