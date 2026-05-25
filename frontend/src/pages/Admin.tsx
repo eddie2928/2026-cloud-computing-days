@@ -587,10 +587,25 @@ export function Admin() {
 
           {/* 구독 시작 버튼 */}
           <div>
+            {notifPerm === 'denied' && (
+              <div style={{
+                background: 'var(--clay-wash, #fff3f0)',
+                border: '1px solid var(--clay, #e07060)',
+                borderRadius: 10,
+                padding: '10px 14px',
+                marginBottom: 10,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13,
+                color: 'var(--clay, #c0392b)',
+                lineHeight: 1.5,
+              }}>
+                알림이 차단된 상태입니다. 브라우저 주소창 왼쪽의 자물쇠 아이콘 → 사이트 설정에서 알림을 허용으로 변경해 주세요.
+              </div>
+            )}
             <button
               onClick={handleSubscribe}
-              disabled={subscribeLoading}
-              style={{ background: 'var(--sage-leaf)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: subscribeLoading ? 'default' : 'pointer', opacity: subscribeLoading ? 0.7 : 1 }}
+              disabled={subscribeLoading || notifPerm === 'denied'}
+              style={{ background: 'var(--sage-leaf)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: (subscribeLoading || notifPerm === 'denied') ? 'default' : 'pointer', opacity: (subscribeLoading || notifPerm === 'denied') ? 0.4 : 1 }}
             >
               {subscribeLoading ? '구독 중...' : '구독 시작'}
             </button>
