@@ -1,5 +1,7 @@
+import sys
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_session
@@ -74,16 +76,63 @@ async def test_push(
     subscriptions = result.scalars().all()
 
     results = []
+    to_delete = []
     for sub in subscriptions:
-        expired = send_one(
+        result = send_one(
             sub.endpoint,
             sub.p256dh,
             sub.auth,
             {"title": "Days Test", "body": "테스트 푸시입니다 🔔"},
         )
-        results.append({"endpoint": sub.endpoint, "success": not expired, "expired": expired})
+        results.append({
+            "endpoint": sub.endpoint,
+            "success": result["success"],
+            "expired": result["expired"],
+            "error": result["error"],
+            "status_code": result["status_code"],
+            "traceback": result["traceback"],
+        })
+        if result["expired"]:
+            to_delete.append(sub.id)
+
+    if to_delete:
+        await db.execute(
+            delete(PushSubscription).where(PushSubscription.id.in_(to_delete))
+        )
+        await db.commit()
 
     return {"results": results}
+
+
+@router.get("/debug")
+async def debug_push(
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    settings = get_settings()
+
+    try:
+        import pywebpush
+        pywebpush_version = pywebpush.__version__
+    except Exception:
+        pywebpush_version = "unknown"
+
+    private_key = settings.vapid_private_key or ""
+    public_key = settings.vapid_public_key or ""
+
+    total_subs = await db.scalar(select(func.count()).select_from(PushSubscription))
+
+    return {
+        "vapid_public_key_present": bool(public_key),
+        "vapid_public_key_length": len(public_key),
+        "vapid_private_key_present": bool(private_key),
+        "vapid_private_key_length": len(private_key),
+        "vapid_private_key_hint": "raw_base64url" if len(private_key) == 43 else "other",
+        "vapid_subject": settings.vapid_subject,
+        "pywebpush_version": pywebpush_version,
+        "python_version": sys.version,
+        "total_subscriptions": total_subs,
+    }
 
 
 @router.get("/subscriptions")
