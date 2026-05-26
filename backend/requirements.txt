@@ -9,3 +9,4 @@ python-multipart
 itsdangerous
 pywebpush>=2.2
 apscheduler>=3.10,<4.0
+holidays>=0.93
