@@ -240,7 +240,7 @@ export function Login() {
           }}
         >
           <button
-            onClick={() => { canInstall ? void promptInstall() : setGuideOpen(true) }}
+            onClick={() => { if (canInstall) { void promptInstall() } else { setGuideOpen(true) } }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
