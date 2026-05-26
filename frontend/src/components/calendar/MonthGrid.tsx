@@ -147,7 +147,16 @@ export function MonthGrid({ year, month, entries, schedules = [], holidays = [],
             const isToday = date === TODAY;
             const isFuture = date > TODAY;
             const emotion = entryMap.get(date);
+            const holiday = holidayMap.get(date);
             const clickable = inMonth && !isFuture;
+            const isHoliday = holiday?.is_holiday === true;
+            const dateNumColor = isFuture
+              ? 'var(--ink-soft)'
+              : isToday
+              ? 'var(--sage-leaf)'
+              : isHoliday
+              ? 'var(--accent-clay)'
+              : 'var(--ink-body)';
             return (
               <button
                 key={date}
@@ -169,9 +178,24 @@ export function MonthGrid({ year, month, entries, schedules = [], holidays = [],
                   transition: 'background var(--dur-1)',
                 }}
               >
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: isFuture ? 'var(--ink-soft)' : isToday ? 'var(--sage-leaf)' : 'var(--ink-body)', fontWeight: isToday ? 700 : 400 }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-xs)', color: dateNumColor, fontWeight: isToday ? 700 : 400 }}>
                   {new Date(date).getDate()}
                 </span>
+                {holiday && inMonth && (
+                  <span style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 9,
+                    lineHeight: 1.2,
+                    color: isHoliday ? 'var(--accent-clay)' : 'var(--ink-hint)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                    display: 'block',
+                  }}>
+                    {holiday.name}
+                  </span>
+                )}
                 {emotion ? <MoodEmoji mood={emotion as Mood} size={12} /> : <span style={{ width: 12, height: 12 }} />}
               </button>
             );
