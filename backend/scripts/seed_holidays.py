@@ -27,7 +27,7 @@ EXTRA_ANNIVERSARIES = [
 def build_rows() -> list[dict]:
     rows: dict[date, dict] = {}
 
-    kr = holidays_lib.country_holidays("KR", years=list(SEED_YEARS))
+    kr = holidays_lib.country_holidays("KR", years=list(SEED_YEARS), language="ko")
     for d, name in kr.items():
         rows[d] = {"date": d, "name": name, "is_holiday": True}
 
