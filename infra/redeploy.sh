@@ -2,7 +2,7 @@
 # Re-run deployment on a running EC2 instance.
 # Usage (on the instance):  sudo bash ~/redeploy.sh [branch]
 set -euo pipefail
-exec > >(tee /var/log/redeploy.log | logger -t redeploy) 2>&1
+exec > >(tee /var/log/redeploy.log) 2>&1
 
 BRANCH="${1:-${GIT_BRANCH:-master}}"
 APP_DIR=/opt/app
