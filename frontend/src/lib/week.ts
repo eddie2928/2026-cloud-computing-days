@@ -10,6 +10,12 @@ export interface ScheduleItem {
   situation: string;
 }
 
+export interface HolidayItem {
+  date: string;
+  name: string;
+  is_holiday: boolean;
+}
+
 export interface WeekDay {
   date: string;
   emotion?: string;

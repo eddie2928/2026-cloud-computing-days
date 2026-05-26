@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import { MonthGrid } from '../components/calendar/MonthGrid'
-import { type CalendarEntry, type ScheduleItem } from '../lib/week'
+import { type CalendarEntry, type HolidayItem, type ScheduleItem } from '../lib/week'
 
 const now = new Date()
 
@@ -12,12 +12,14 @@ export function Calendar() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
+  const [holidays, setHolidays] = useState<HolidayItem[]>([])
 
   const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, '0')}`
     client.get(`/calendar?month=${m}`).then(res => {
       setEntries(res.data.entries ?? [])
       setSchedules(res.data.schedules ?? [])
+      setHolidays(res.data.holidays ?? [])
     }).catch(() => {})
   }, [year, month])
 
@@ -42,6 +44,7 @@ export function Calendar() {
         month={month}
         entries={entries}
         schedules={schedules}
+        holidays={holidays}
         onPrev={goPrev}
         onNext={goNext}
         onCellClick={date => {

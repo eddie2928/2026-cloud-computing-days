@@ -1,4 +1,4 @@
-import { type CalendarEntry, type ScheduleItem } from '../../lib/week';
+import { type CalendarEntry, type HolidayItem, type ScheduleItem } from '../../lib/week';
 import { MoodEmoji, type Mood } from '../days/MoodEmoji';
 import { Icon } from '../days/Icon';
 
@@ -7,6 +7,7 @@ interface MonthGridProps {
   month: number;
   entries: CalendarEntry[];
   schedules?: ScheduleItem[];
+  holidays?: HolidayItem[];
   onPrev: () => void;
   onNext: () => void;
   onCellClick: (date: string) => void;
@@ -74,7 +75,8 @@ function getScheduleBars(
   return weeks;
 }
 
-export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext, onCellClick, onScheduleClick }: MonthGridProps) {
+export function MonthGrid({ year, month, entries, schedules = [], holidays = [], onPrev, onNext, onCellClick, onScheduleClick }: MonthGridProps) {
+  const holidayMap = new Map(holidays.map(h => [h.date, h]));
   const entryMap = new Map(entries.map(e => [e.date, e.emotion]));
   const firstDay = new Date(year, month - 1, 1);
   const startOffset = firstDay.getDay();
