@@ -99,7 +99,7 @@ export function Schedule() {
       <div
         style={{
           margin: 16,
-          background: "var(--paper-cream)",
+          background: "var(--paper-pure)",
           border: "1px solid var(--line)",
           borderRadius: "var(--r-5, 24px)",
           boxShadow: "var(--shadow-3)",
@@ -114,7 +114,7 @@ export function Schedule() {
                 fontWeight: 500,
                 fontSize: 11,
                 lineHeight: 1,
-                color: "var(--gold-deep)",
+                color: "var(--ink-meta)",
                 margin: "0 0 10px",
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
@@ -124,11 +124,11 @@ export function Schedule() {
             </p>
             <p
               style={{
-                fontFamily: "var(--font-serif)",
+                fontFamily: "var(--font-sans)",
                 fontWeight: 400,
                 fontSize: 18,
                 lineHeight: 1.3,
-                color: "var(--ink-coffee)",
+                color: "var(--ink-deep)",
                 margin: "0 0 8px",
               }}
             >
@@ -136,11 +136,11 @@ export function Schedule() {
             </p>
             <p
               style={{
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-sans)",
                 fontWeight: 400,
                 fontSize: 13,
                 lineHeight: 1,
-                color: "var(--ink-bark)",
+                color: "var(--ink-hint)",
                 margin: "0 0 20px",
               }}
             >
@@ -158,14 +158,14 @@ export function Schedule() {
                 onClick={() => setMode("edit")}
                 style={{
                   flex: 1,
-                  background: "var(--paper-cream)",
+                  background: "var(--paper-pure)",
                   border: "1px solid var(--line)",
                   borderRadius: "var(--r-3, 12px)",
                   padding: "8px 0",
                   fontFamily: "var(--font-sans)",
                   fontWeight: 500,
                   fontSize: 14,
-                  color: "var(--ink-coffee)",
+                  color: "var(--ink-body)",
                   cursor: "pointer",
                 }}
               >
@@ -181,7 +181,7 @@ export function Schedule() {
                   fontFamily: "var(--font-sans)",
                   fontWeight: 500,
                   fontSize: 14,
-                  color: "var(--clay)",
+                  color: "var(--accent-clay)",
                   cursor: "pointer",
                 }}
               >
@@ -199,7 +199,7 @@ export function Schedule() {
                 fontWeight: 500,
                 fontSize: 11,
                 lineHeight: 1,
-                color: "var(--gold-deep)",
+                color: "var(--ink-meta)",
                 margin: "0 0 16px",
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
@@ -220,7 +220,7 @@ export function Schedule() {
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: 12,
-                    color: "var(--ink-stone)",
+                    color: "var(--ink-meta)",
                   }}
                 >
                   내용
@@ -229,13 +229,13 @@ export function Schedule() {
                   value={situation}
                   onChange={(e) => setSituation(e.target.value)}
                   style={{
-                    background: "var(--paper-mist)",
+                    background: "var(--paper-bone)",
                     border: "1px solid var(--line)",
                     borderRadius: 12,
                     padding: "8px 12px",
                     fontFamily: "var(--font-sans)",
                     fontSize: 14,
-                    color: "var(--ink-coffee)",
+                    color: "var(--ink-deep)",
                     outline: "none",
                     width: "100%",
                     boxSizing: "border-box",
@@ -247,7 +247,7 @@ export function Schedule() {
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: 12,
-                    color: "var(--ink-stone)",
+                    color: "var(--ink-meta)",
                   }}
                 >
                   시작일
@@ -257,13 +257,13 @@ export function Schedule() {
                   value={periodStart}
                   onChange={(e) => setPeriodStart(e.target.value)}
                   style={{
-                    background: "var(--paper-mist)",
+                    background: "var(--paper-bone)",
                     border: "1px solid var(--line)",
                     borderRadius: 12,
                     padding: "8px 12px",
-                    fontFamily: "var(--font-mono)",
+                    fontFamily: "var(--font-sans)",
                     fontSize: 14,
-                    color: "var(--ink-coffee)",
+                    color: "var(--ink-deep)",
                     outline: "none",
                     width: "100%",
                     boxSizing: "border-box",
@@ -275,7 +275,7 @@ export function Schedule() {
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: 12,
-                    color: "var(--ink-stone)",
+                    color: "var(--ink-meta)",
                   }}
                 >
                   종료일
@@ -285,13 +285,13 @@ export function Schedule() {
                   value={periodEnd}
                   onChange={(e) => setPeriodEnd(e.target.value)}
                   style={{
-                    background: "var(--paper-mist)",
+                    background: "var(--paper-bone)",
                     border: "1px solid var(--line)",
                     borderRadius: 12,
                     padding: "8px 12px",
-                    fontFamily: "var(--font-mono)",
+                    fontFamily: "var(--font-sans)",
                     fontSize: 14,
-                    color: "var(--ink-coffee)",
+                    color: "var(--ink-deep)",
                     outline: "none",
                     width: "100%",
                     boxSizing: "border-box",
@@ -305,14 +305,14 @@ export function Schedule() {
                 disabled={saving}
                 style={{
                   flex: 1,
-                  background: "linear-gradient(135deg, var(--gold-deep), var(--gold))",
+                  background: "var(--sage-leaf)",
                   border: "none",
                   borderRadius: "var(--r-pill, 999px)",
                   padding: "10px 0",
                   fontFamily: "var(--font-sans)",
                   fontWeight: 600,
                   fontSize: 14,
-                  color: "var(--ink-coffee)",
+                  color: "var(--paper-pure)",
                   cursor: saving ? "default" : "pointer",
                   opacity: saving ? 0.6 : 1,
                 }}
@@ -329,7 +329,7 @@ export function Schedule() {
                   fontFamily: "var(--font-sans)",
                   fontWeight: 500,
                   fontSize: 14,
-                  color: "var(--ink-stone)",
+                  color: "var(--ink-meta)",
                   cursor: "pointer",
                 }}
               >
@@ -347,7 +347,7 @@ export function Schedule() {
                 fontWeight: 500,
                 fontSize: 11,
                 lineHeight: 1,
-                color: "var(--clay)",
+                color: "var(--accent-clay)",
                 margin: "0 0 12px",
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
@@ -359,7 +359,7 @@ export function Schedule() {
               style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: 14,
-                color: "var(--ink-coffee)",
+                color: "var(--ink-deep)",
                 margin: "0 0 20px",
               }}
             >
@@ -372,13 +372,13 @@ export function Schedule() {
                 style={{
                   flex: 1,
                   background: "transparent",
-                  border: "1px solid var(--clay)",
+                  border: "1px solid var(--accent-clay)",
                   borderRadius: "var(--r-3, 12px)",
                   padding: "9px 0",
                   fontFamily: "var(--font-sans)",
                   fontWeight: 600,
                   fontSize: 14,
-                  color: "var(--clay)",
+                  color: "var(--accent-clay)",
                   cursor: saving ? "default" : "pointer",
                   opacity: saving ? 0.6 : 1,
                 }}
@@ -395,7 +395,7 @@ export function Schedule() {
                   fontFamily: "var(--font-sans)",
                   fontWeight: 500,
                   fontSize: 14,
-                  color: "var(--ink-stone)",
+                  color: "var(--ink-meta)",
                   cursor: "pointer",
                 }}
               >

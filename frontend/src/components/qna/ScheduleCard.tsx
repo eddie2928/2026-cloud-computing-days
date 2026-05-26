@@ -9,7 +9,7 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
   return (
     <div
       style={{
-        background: 'var(--paper-cream)',
+        background: 'var(--paper-pure)',
         border: '1px solid var(--line)',
         borderRadius: 'var(--r-4, 18px)',
         padding: 16,
@@ -19,13 +19,13 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
         transition: 'opacity 200ms',
       }}
     >
-      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, lineHeight: 1, color: 'var(--gold-deep)', margin: '0 0 8px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, lineHeight: 1, color: 'var(--ink-meta)', margin: '0 0 8px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
         일정 추가
       </p>
-      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 15, lineHeight: 1.4, color: 'var(--ink-coffee)', margin: '0 0 4px' }}>
+      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 15, lineHeight: 1.4, color: 'var(--ink-deep)', margin: '0 0 4px' }}>
         {schedule.situation}
       </p>
-      <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 400, fontSize: 12, lineHeight: 1, color: 'var(--ink-bark)', margin: '0 0 12px' }}>
+      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 12, lineHeight: 1, color: 'var(--ink-hint)', margin: '0 0 12px' }}>
         {schedule.period_start} ~ {schedule.period_end}
       </p>
 
@@ -34,14 +34,14 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
           <button
             onClick={onAccept}
             style={{
-              background: 'linear-gradient(135deg, var(--gold-deep), var(--gold))',
+              background: 'var(--sage-leaf)',
               border: 'none',
               borderRadius: 'var(--r-pill, 999px)',
               padding: '6px 16px',
               fontFamily: 'var(--font-sans)',
               fontWeight: 600,
               fontSize: 13,
-              color: 'var(--ink-coffee)',
+              color: 'var(--paper-pure)',
               cursor: 'pointer',
             }}
           >
@@ -56,7 +56,7 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
               fontFamily: 'var(--font-sans)',
               fontWeight: 500,
               fontSize: 13,
-              color: 'var(--ink-stone)',
+              color: 'var(--ink-meta)',
               cursor: 'pointer',
             }}
           >
@@ -66,7 +66,7 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
       )}
 
       {status === 'accepted' && (
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--sage)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--sage-leaf)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
@@ -75,7 +75,7 @@ export function ScheduleCard({ schedule, onAccept, onReject, status }: ScheduleC
       )}
 
       {status === 'rejected' && (
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-stone)', margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', margin: 0 }}>
           무시됨
         </p>
       )}

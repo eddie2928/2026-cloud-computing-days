@@ -89,7 +89,7 @@ export function DiaryBodyCard({ body, onSave }: DiaryBodyCardProps) {
                 background: 'var(--sage-leaf)', border: 'none',
                 borderRadius: 20, padding: '6px 16px',
                 fontFamily: 'var(--font-sans)', cursor: 'pointer', fontSize: 14,
-                color: '#fff',
+                color: 'var(--paper-pure)',
               }}
             >
               {saving ? '저장 중...' : '저장'}

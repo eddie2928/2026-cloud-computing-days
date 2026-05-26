@@ -1,0 +1,78 @@
+/* Phone frame + UI kit overrides — used only inside ui_kits/web-app/index.html */
+
+.phone-outer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.phone-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.08em;
+  color: var(--ink-meta);
+  text-transform: uppercase;
+}
+
+/* The phone bezel: a soft, generous radius. 390×844 inside, with a tiny bezel. */
+.phone {
+  width: 390px;
+  height: 768px;
+  border-radius: 48px;
+  padding: 12px;
+  background: var(--paper-warm);
+  box-shadow:
+    0 24px 60px -16px rgba(54, 70, 38, 0.18),
+    0 4px 12px -2px rgba(54, 70, 38, 0.08),
+    inset 0 0 0 1px rgba(54, 70, 38, 0.04);
+}
+.phone-bezel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 36px;
+  overflow: hidden;
+  background: var(--paper-bone);
+}
+.phone-notch {
+  display: none;
+}
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Backdrop blob system — used by SoftBackdrop component */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.backdrop .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.55;
+}
+.backdrop .blob-tl   { width: 180px; height: 180px; top: -40px; left: -50px; background: var(--leaf-2); }
+.backdrop .blob-mid  { width: 240px; height: 240px; top: 30%;   left: -80px; background: var(--cloud-2); opacity: 0.45; }
+.backdrop .blob-br   { width: 200px; height: 200px; bottom: -40px; right: -40px; background: var(--cloud-1); opacity: 0.55; }
+.backdrop .blob-bl-sm{ width: 140px; height: 140px; bottom: -30px; left: -40px; background: var(--cloud-2); opacity: 0.40; }
+.backdrop .blob-tr-sm{ width: 120px; height: 120px; top: -30px; right: -30px; background: var(--cloud-3); opacity: 0.50; }
+.backdrop .cloud {
+  position: absolute;
+  width: 110px; height: 70px;
+  background: var(--paper-pure);
+  border-radius: 50%;
+  opacity: 0.65;
+  filter: blur(8px);
+  animation: days-drift 8s ease-in-out infinite;
+}
+.backdrop .cloud-tr { top: 50px; right: -30px; }
+.backdrop .cloud-bl { bottom: 70px; left: -40px; animation-delay: 2s; }
+
+/* Helper class so screens can rely on safe full-bleed sizing */
+.days-screen-fill { box-sizing: border-box; }

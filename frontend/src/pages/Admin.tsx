@@ -91,7 +91,7 @@ const tabStyle = (active: boolean): React.CSSProperties => ({
   fontFamily: 'var(--font-sans)',
   fontWeight: 500,
   fontSize: 14,
-  color: active ? 'var(--sage-forest)' : 'var(--ink-stone)',
+  color: active ? 'var(--sage-forest)' : 'var(--ink-meta)',
   cursor: 'pointer',
   transition: 'color var(--dur-1)',
 })
@@ -304,7 +304,7 @@ export function Admin() {
         <div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
             <div>
-              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-stone)', display: 'block', marginBottom: 6 }}>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', display: 'block', marginBottom: 6 }}>
                 테이블
               </label>
               <select
@@ -317,7 +317,7 @@ export function Admin() {
                   padding: '8px 12px',
                   fontFamily: 'var(--font-sans)',
                   fontSize: 14,
-                  color: 'var(--ink-coffee)',
+                  color: 'var(--ink-deep)',
                   outline: 'none',
                   minWidth: 200,
                 }}
@@ -334,7 +334,7 @@ export function Admin() {
                 border: 'none',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
-                color: 'var(--ink-stone)',
+                color: 'var(--ink-meta)',
                 cursor: 'pointer',
                 padding: '8px 4px',
               }}
@@ -348,7 +348,7 @@ export function Admin() {
                 border: 'none',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
-                color: 'var(--ink-stone)',
+                color: 'var(--ink-meta)',
                 cursor: 'pointer',
                 padding: '8px 4px',
               }}
@@ -358,8 +358,8 @@ export function Admin() {
           </div>
 
           {showAddForm && (
-            <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--ink-walnut)', margin: '0 0 12px' }}>
+            <div style={{ background: 'var(--paper-pure)', border: '1px solid var(--line)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--ink-deep)', margin: '0 0 12px' }}>
                 새 행 추가 (id, created_at 등 자동 생성 필드는 비워두세요)
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -367,7 +367,7 @@ export function Admin() {
                   const hint = TABLE_FIELD_HINTS[selectedTable]?.[col]
                   return (
                     <div key={col} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-stone)', minWidth: 140 }}>{col}</label>
+                      <label style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 140 }}>{col}</label>
                       <div style={{ flex: 1 }}>
                         <input
                           value={newRow[col] ?? ''}
@@ -381,13 +381,13 @@ export function Admin() {
                             padding: '6px 10px',
                             fontFamily: 'var(--font-mono)',
                             fontSize: 12,
-                            color: 'var(--ink-coffee)',
+                            color: 'var(--ink-deep)',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
                         />
                         {hint && (
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-bark)', opacity: 0.7 }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-hint)', opacity: 0.7 }}>
                             {hint}
                           </span>
                         )}
@@ -396,13 +396,13 @@ export function Admin() {
                   )
                 })}
               </div>
-              {addError && <p style={{ color: 'var(--clay)', fontFamily: 'var(--font-sans)', fontSize: 13, margin: '8px 0 0' }}>{addError}</p>}
+              {addError && <p style={{ color: 'var(--accent-clay)', fontFamily: 'var(--font-sans)', fontSize: 13, margin: '8px 0 0' }}>{addError}</p>}
               <button
                 onClick={handleAdd}
                 style={{
                   marginTop: 12,
-                  background: 'var(--sage)',
-                  color: '#fff',
+                  background: 'var(--sage-leaf)',
+                  color: 'var(--paper-pure)',
                   border: 'none',
                   borderRadius: 10,
                   padding: '8px 20px',
@@ -422,20 +422,20 @@ export function Admin() {
               <ThinkingDots visible />
             </div>
           )}
-          {dbError && <p style={{ color: 'var(--clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{dbError}</p>}
+          {dbError && <p style={{ color: 'var(--accent-clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{dbError}</p>}
           {!dbLoading && !dbError && rows.length === 0 && (
-            <p style={{ color: 'var(--ink-stone)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>데이터 없음</p>
+            <p style={{ color: 'var(--ink-meta)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>데이터 없음</p>
           )}
           {!dbLoading && !dbError && rows.length > 0 && (
-            <div style={{ overflowX: 'auto', background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 'var(--r-3, 12px)' }}>
+            <div style={{ overflowX: 'auto', background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 'var(--r-3, 12px)' }}>
               <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr>
-                    <th style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'center', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
+                    <th style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'center', color: 'var(--ink-deep)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
                       삭제
                     </th>
                     {columns.map(col => (
-                      <th key={col} style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'left', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
+                      <th key={col} style={{ background: 'var(--paper-warm)', padding: '8px 12px', textAlign: 'left', color: 'var(--ink-deep)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>
                         {col}
                       </th>
                     ))}
@@ -449,12 +449,12 @@ export function Admin() {
                           onClick={() => handleDelete(row['id'])}
                           style={{
                             background: 'none',
-                            border: '1px solid var(--clay)',
+                            border: '1px solid var(--accent-clay)',
                             borderRadius: 6,
                             padding: '2px 8px',
                             fontFamily: 'var(--font-sans)',
                             fontSize: 11,
-                            color: 'var(--clay)',
+                            color: 'var(--accent-clay)',
                             cursor: 'pointer',
                           }}
                         >
@@ -462,7 +462,7 @@ export function Admin() {
                         </button>
                       </td>
                       {columns.map(col => (
-                        <td key={col} style={{ padding: '6px 12px', color: 'var(--ink-coffee)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td key={col} style={{ padding: '6px 12px', color: 'var(--ink-deep)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {String(row[col] ?? '')}
                         </td>
                       ))}
@@ -535,7 +535,7 @@ export function Admin() {
                 style={{
                   flex: 1,
                   background: 'var(--sage-leaf)',
-                  color: '#fff',
+                  color: 'var(--paper-pure)',
                   border: 'none',
                   borderRadius: 'var(--r-3)',
                   padding: '10px 0',
@@ -579,18 +579,18 @@ export function Admin() {
           {/* 브라우저 상태 섹션 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>브라우저 상태</p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-deep)', margin: 0 }}>브라우저 상태</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={refreshPushStatus} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
-                <button onClick={() => setPushStateRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{pushStateRaw ? 'Pretty' : 'Raw'}</button>
+                <button onClick={refreshPushStatus} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', cursor: 'pointer' }}>새로고침</button>
+                <button onClick={() => setPushStateRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', cursor: 'pointer', padding: '2px 8px' }}>{pushStateRaw ? 'Pretty' : 'Raw'}</button>
               </div>
             </div>
             {pushStateRaw ? (
-              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-deep)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {JSON.stringify({ pushState, notifPermission: notifPerm, swRegistered }, null, 2)}
               </pre>
             ) : (
-              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {([['Push 상태', pushState], ['알림 권한', notifPerm], ['SW 등록', swRegistered != null ? (swRegistered ? '등록됨' : '미등록') : null]] as [string, string | boolean | null][]).map(([label, val]) => (
                   <div key={label} style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 100 }}>{label}</span>
@@ -605,14 +605,14 @@ export function Admin() {
           <div>
             {notifPerm === 'denied' && (
               <div style={{
-                background: 'var(--clay-wash, #fff3f0)',
-                border: '1px solid var(--clay, #e07060)',
+                background: 'var(--accent-clay-soft)',
+                border: '1px solid var(--accent-clay)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 marginBottom: 10,
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
-                color: 'var(--clay, #c0392b)',
+                color: 'var(--accent-clay)',
                 lineHeight: 1.5,
               }}>
                 알림이 차단된 상태입니다. 브라우저 주소창 왼쪽의 자물쇠 아이콘 → 사이트 설정에서 알림을 허용으로 변경해 주세요.
@@ -621,27 +621,27 @@ export function Admin() {
             <button
               onClick={handleSubscribe}
               disabled={subscribeLoading || notifPerm === 'denied'}
-              style={{ background: 'var(--sage-leaf)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: (subscribeLoading || notifPerm === 'denied') ? 'default' : 'pointer', opacity: (subscribeLoading || notifPerm === 'denied') ? 0.4 : 1 }}
+              style={{ background: 'var(--sage-leaf)', color: 'var(--paper-pure)', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: (subscribeLoading || notifPerm === 'denied') ? 'default' : 'pointer', opacity: (subscribeLoading || notifPerm === 'denied') ? 0.4 : 1 }}
             >
               {subscribeLoading ? '구독 중...' : '구독 시작'}
             </button>
-            {subscribeMsg && <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: subscribeMsg.startsWith('오류') ? 'var(--clay)' : 'var(--sage-forest)', margin: '8px 0 0' }}>{subscribeMsg}</p>}
+            {subscribeMsg && <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: subscribeMsg.startsWith('오류') ? 'var(--accent-clay)' : 'var(--sage-forest)', margin: '8px 0 0' }}>{subscribeMsg}</p>}
           </div>
 
           {/* 현재 구독 정보 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>현재 구독 정보</p>
-              <button onClick={() => setSubRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{subRaw ? 'Pretty' : 'Raw'}</button>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-deep)', margin: 0 }}>현재 구독 정보</p>
+              <button onClick={() => setSubRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', cursor: 'pointer', padding: '2px 8px' }}>{subRaw ? 'Pretty' : 'Raw'}</button>
             </div>
             {subJson == null ? (
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>구독 없음</p>
             ) : subRaw ? (
-              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-deep)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                 {JSON.stringify(subJson, null, 2)}
               </pre>
             ) : (
-              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {Object.entries(subJson).map(([k, v]) => (
                   <div key={k} style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 80 }}>{k}</span>
@@ -658,21 +658,21 @@ export function Admin() {
               <button
                 onClick={handleTestPush}
                 disabled={testPushLoading}
-                style={{ background: 'var(--sage)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: testPushLoading ? 'default' : 'pointer', opacity: testPushLoading ? 0.7 : 1 }}
+                style={{ background: 'var(--sage-leaf)', color: 'var(--paper-pure)', border: 'none', borderRadius: 10, padding: '10px 20px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, cursor: testPushLoading ? 'default' : 'pointer', opacity: testPushLoading ? 0.7 : 1 }}
               >
                 {testPushLoading ? '전송 중...' : 'Test 푸시 요청'}
               </button>
               {testPushResult != null && (
-                <button onClick={() => setTestPushRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer', padding: '2px 8px' }}>{testPushRaw ? 'Pretty' : 'Raw'}</button>
+                <button onClick={() => setTestPushRaw(r => !r)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 6, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', cursor: 'pointer', padding: '2px 8px' }}>{testPushRaw ? 'Pretty' : 'Raw'}</button>
               )}
             </div>
             {testPushResult != null && (
               testPushRaw ? (
-                <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-coffee)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <pre style={{ background: 'var(--paper-mist)', borderRadius: 8, padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-deep)', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {JSON.stringify(testPushResult, null, 2)}
                 </pre>
               ) : (
-                <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px' }}>
                   {(testPushResult as { results?: Array<{ endpoint: string; success: boolean; expired: boolean; error: string | null; status_code: number | null; traceback: string | null }> }).results?.length === 0 ? (
                     <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)', margin: 0 }}>구독 없음</p>
                   ) : (
@@ -682,22 +682,22 @@ export function Admin() {
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.endpoint}</span>
                           <span style={{
                             fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 4,
-                            background: r.success ? 'var(--sage-wash, #e8f5e9)' : 'var(--clay-wash, #fff3f0)',
-                            color: r.success ? 'var(--sage-forest)' : 'var(--clay)',
+                            background: r.success ? 'var(--sage-wash)' : 'var(--accent-clay-soft)',
+                            color: r.success ? 'var(--sage-forest)' : 'var(--accent-clay)',
                           }}>
                             {r.success ? '성공' : r.expired ? '만료' : '실패'}
                           </span>
                           {r.status_code != null && (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)' }}>HTTP {r.status_code}</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)' }}>HTTP {r.status_code}</span>
                           )}
                         </div>
                         {r.error && (
-                          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--clay)', margin: '4px 0 0', wordBreak: 'break-word' }}>{r.error}</p>
+                          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent-clay)', margin: '4px 0 0', wordBreak: 'break-word' }}>{r.error}</p>
                         )}
                         {r.traceback && (
                           <details style={{ marginTop: 4 }}>
-                            <summary style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--ink-stone)', cursor: 'pointer' }}>Traceback</summary>
-                            <pre style={{ background: 'var(--paper-mist)', borderRadius: 6, padding: '8px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-coffee)', margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 200, overflowY: 'auto' }}>
+                            <summary style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--ink-meta)', cursor: 'pointer' }}>Traceback</summary>
+                            <pre style={{ background: 'var(--paper-mist)', borderRadius: 6, padding: '8px 10px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-deep)', margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 200, overflowY: 'auto' }}>
                               {r.traceback}
                             </pre>
                           </details>
@@ -713,15 +713,15 @@ export function Admin() {
           {/* 서버 진단 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>서버 진단</p>
-              <button onClick={fetchDebugInfo} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-deep)', margin: 0 }}>서버 진단</p>
+              <button onClick={fetchDebugInfo} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', cursor: 'pointer' }}>새로고침</button>
             </div>
             {debugLoading ? (
               <ThinkingDots visible />
             ) : debugInfo == null ? (
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>진단 정보를 불러오지 못했습니다.</p>
             ) : (
-              <div style={{ background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {Object.entries(debugInfo).map(([k, v]) => (
                   <div key={k} style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', minWidth: 200 }}>{k}</span>
@@ -737,29 +737,29 @@ export function Admin() {
           {/* 서버 구독 목록 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-walnut)', margin: 0 }}>서버 구독 목록</p>
-              <button onClick={fetchServerSubs} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-stone)', cursor: 'pointer' }}>새로고침</button>
+              <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: 'var(--ink-deep)', margin: 0 }}>서버 구독 목록</p>
+              <button onClick={fetchServerSubs} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)', cursor: 'pointer' }}>새로고침</button>
             </div>
             {serverSubsLoading ? (
               <ThinkingDots visible />
             ) : serverSubs.length === 0 ? (
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>서버 구독 없음</p>
             ) : (
-              <div style={{ overflowX: 'auto', background: 'var(--paper-cream)', border: '1px solid var(--line-faint)', borderRadius: 10 }}>
+              <div style={{ overflowX: 'auto', background: 'var(--paper-pure)', border: '1px solid var(--line-faint)', borderRadius: 10 }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                   <thead>
                     <tr>
                       {['id', 'endpoint', 'created_at'].map(col => (
-                        <th key={col} style={{ background: 'var(--paper-warm)', padding: '6px 10px', textAlign: 'left', color: 'var(--ink-walnut)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>{col}</th>
+                        <th key={col} style={{ background: 'var(--paper-warm)', padding: '6px 10px', textAlign: 'left', color: 'var(--ink-deep)', fontWeight: 600, borderBottom: '1px solid var(--line-faint)', whiteSpace: 'nowrap' }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {(serverSubs as Array<{ id: number; endpoint: string; created_at: string }>).map(sub => (
                       <tr key={sub.id} style={{ borderBottom: '1px solid var(--line-faint)' }}>
-                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', whiteSpace: 'nowrap' }}>{sub.id}</td>
-                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.endpoint}</td>
-                        <td style={{ padding: '6px 10px', color: 'var(--ink-coffee)', whiteSpace: 'nowrap' }}>{sub.created_at ? new Date(sub.created_at).toLocaleString('ko-KR') : '—'}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-deep)', whiteSpace: 'nowrap' }}>{sub.id}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-deep)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.endpoint}</td>
+                        <td style={{ padding: '6px 10px', color: 'var(--ink-deep)', whiteSpace: 'nowrap' }}>{sub.created_at ? new Date(sub.created_at).toLocaleString('ko-KR') : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -781,7 +781,7 @@ export function Admin() {
                 border: 'none',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
-                color: 'var(--ink-stone)',
+                color: 'var(--ink-meta)',
                 cursor: 'pointer',
                 padding: '4px 8px',
               }}
@@ -795,9 +795,9 @@ export function Admin() {
               <ThinkingDots visible />
             </div>
           )}
-          {bedrockError && <p style={{ color: 'var(--clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{bedrockError}</p>}
+          {bedrockError && <p style={{ color: 'var(--accent-clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{bedrockError}</p>}
           {!bedrockLoading && !bedrockError && bedrockLogs.length === 0 && (
-            <p style={{ color: 'var(--ink-stone)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>로그 없음</p>
+            <p style={{ color: 'var(--ink-meta)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>로그 없음</p>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -805,7 +805,7 @@ export function Admin() {
               <div
                 key={log.id}
                 style={{
-                  background: 'var(--paper-cream)',
+                  background: 'var(--paper-pure)',
                   border: '1px solid var(--line)',
                   borderRadius: 'var(--r-4, 18px)',
                   padding: 16,
@@ -817,19 +817,19 @@ export function Admin() {
                 <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 11, color: 'var(--sage-forest)', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Q{log.sequence} · {log.asked_at ? new Date(log.asked_at).toLocaleString('ko-KR') : '—'}
                 </p>
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-coffee)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-deep)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
                   <span style={{ color: 'var(--sage-forest)', fontWeight: 600 }}>Q</span> {log.question}
                 </p>
                 {log.answer && (
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-bark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
-                    <span style={{ color: 'var(--sage)', fontWeight: 600 }}>A</span> {log.answer}
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expandedLogId === log.id ? 'normal' : 'nowrap' }}>
+                    <span style={{ color: 'var(--sage-leaf)', fontWeight: 600 }}>A</span> {log.answer}
                   </p>
                 )}
 
                 {expandedLogId === log.id && (
                   <div style={{ marginTop: 16 }}>
                     <div style={{ marginBottom: 16 }}>
-                      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, color: 'var(--ink-walnut)', margin: '0 0 6px' }}>
+                      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, color: 'var(--ink-deep)', margin: '0 0 6px' }}>
                         보낸 프롬프트
                       </p>
                       <pre style={{
@@ -839,7 +839,7 @@ export function Admin() {
                         fontFamily: 'var(--font-mono)',
                         fontSize: 12,
                         lineHeight: 1.5,
-                        color: 'var(--ink-coffee)',
+                        color: 'var(--ink-deep)',
                         overflowY: 'auto',
                         maxHeight: 300,
                         whiteSpace: 'pre-wrap',
@@ -850,7 +850,7 @@ export function Admin() {
                       </pre>
                     </div>
                     <div style={{ marginBottom: 16 }}>
-                      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, color: 'var(--ink-walnut)', margin: '0 0 6px' }}>
+                      <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, color: 'var(--ink-deep)', margin: '0 0 6px' }}>
                         Bedrock 응답
                       </p>
                       <pre style={{
@@ -860,7 +860,7 @@ export function Admin() {
                         fontFamily: 'var(--font-mono)',
                         fontSize: 12,
                         lineHeight: 1.5,
-                        color: 'var(--ink-coffee)',
+                        color: 'var(--ink-deep)',
                         overflowY: 'auto',
                         maxHeight: 300,
                         whiteSpace: 'pre-wrap',
@@ -877,7 +877,7 @@ export function Admin() {
                         ['output', log.output_tokens != null ? `${log.output_tokens} tok` : null],
                         ['latency', log.latency_ms != null ? `${log.latency_ms} ms` : null],
                       ].filter(([, v]) => v != null).map(([k, v]) => (
-                        <span key={k as string} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-stone)' }}>
+                        <span key={k as string} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-meta)' }}>
                           {k}: {v}
                         </span>
                       ))}

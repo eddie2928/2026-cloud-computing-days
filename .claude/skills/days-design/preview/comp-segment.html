@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css"><link rel="stylesheet" href="_card.css">
+<style>
+  .select-wrap { position: relative; width: 260px; }
+  .select-box {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: var(--paper-pure);
+    border: 1.5px solid var(--line);
+    border-radius: var(--r-4);
+    box-shadow: var(--shadow-1);
+    font-family: var(--font-sans);
+    font-size: var(--t-base);
+    color: var(--sage-ink);
+    cursor: pointer;
+    transition: border var(--dur-1), box-shadow var(--dur-1);
+  }
+  .select-box:hover, .select-box.open {
+    border-color: var(--sage-leaf);
+    box-shadow: var(--shadow-ring);
+  }
+  .select-box .chev {
+    width: 16px; height: 16px;
+    color: var(--ink-meta);
+    transition: transform var(--dur-2) var(--ease-out);
+  }
+  .select-box.open .chev { transform: rotate(180deg); }
+  .select-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--paper-pure);
+    border: 1px solid var(--line);
+    border-radius: var(--r-4);
+    box-shadow: var(--shadow-3);
+    overflow: hidden;
+    z-index: 5;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+  }
+  .select-menu.open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+  .select-option {
+    width: 100%;
+    padding: 12px 18px;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: var(--t-base);
+    color: var(--ink-deep);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background var(--dur-1);
+  }
+  .select-option:hover { background: var(--sage-wash); }
+  .select-option.selected { color: var(--sage-forest); font-weight: 600; }
+  .select-option .check {
+    width: 16px; height: 16px;
+    opacity: 0;
+    color: var(--sage-leaf);
+  }
+  .select-option.selected .check { opacity: 1; }
+</style>
+</head><body>
+<div class="card" style="flex-direction:column; align-items:flex-start; gap:8px; padding: 4px 0">
+  <label class="t-label" style="font-weight: 600">성별</label>
+  <div class="select-wrap" id="sel">
+    <button class="select-box" type="button">
+      <span class="value">남</span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="select-menu">
+      <button class="select-option selected" data-v="남"><span>남</span>
+        <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+      </button>
+      <button class="select-option" data-v="여"><span>여</span>
+        <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+      </button>
+      <button class="select-option" data-v="기타"><span>기타</span>
+        <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  const root = document.getElementById('sel');
+  const box = root.querySelector('.select-box');
+  const menu = root.querySelector('.select-menu');
+  const val = root.querySelector('.value');
+  const opts = root.querySelectorAll('.select-option');
+
+  const close = () => { box.classList.remove('open'); menu.classList.remove('open'); };
+  box.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = box.classList.toggle('open');
+    menu.classList.toggle('open', isOpen);
+  });
+  opts.forEach(o => o.addEventListener('click', () => {
+    opts.forEach(x => x.classList.toggle('selected', x === o));
+    val.textContent = o.dataset.v;
+    close();
+  }));
+  document.addEventListener('click', close);
+</script>
+</body></html>

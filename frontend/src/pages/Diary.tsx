@@ -96,7 +96,7 @@ export function Diary() {
             left: "50%",
             transform: "translateX(-50%)",
             background: "var(--sage-ink)",
-            color: "#fff",
+            color: "var(--paper-pure)",
             borderRadius: 20,
             padding: "8px 20px",
             fontFamily: "var(--font-sans)",

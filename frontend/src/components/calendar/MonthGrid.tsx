@@ -192,7 +192,7 @@ export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext
                 left: `calc(${(bar.colStart - 1) / 7 * 100}% + 2px)`,
                 width: `calc(${(bar.colEnd - bar.colStart) / 7 * 100}% - 4px)`,
                 height: BAR_HEIGHT,
-                background: 'var(--gold-glow, #F4E5B6)',
+                background: 'var(--sage-wash)',
                 borderRadius: 'var(--r-2, 8px)',
                 border: 'none',
                 padding: '0 6px',
@@ -204,13 +204,13 @@ export function MonthGrid({ year, month, entries, schedules = [], onPrev, onNext
                 fontWeight: 500,
                 fontSize: 11,
                 lineHeight: `${BAR_HEIGHT}px`,
-                color: 'var(--ink-walnut, #5C4A32)',
+                color: 'var(--sage-ink)',
                 transition: 'background var(--dur-2)',
                 animation: 'days-fade-in 200ms var(--ease-out) both',
                 pointerEvents: onScheduleClick ? 'auto' : 'none',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--gold-mist, #EDD98A)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--gold-glow, #F4E5B6)'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sage-mist)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--sage-wash)'; }}
             >
               {bar.schedule.situation}
             </button>

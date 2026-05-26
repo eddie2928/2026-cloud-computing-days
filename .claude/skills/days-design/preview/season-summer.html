@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../themes.css">
+<link rel="stylesheet" href="_card.css">
+<style>
+  body { padding: 14px; }
+  .stage {
+    position: relative;
+    width: 100%;
+    border-radius: var(--r-5);
+    padding: 18px 20px;
+    background:
+      radial-gradient(ellipse 260px 200px at 100% 0%, var(--paper-pure) 0%, transparent 65%),
+      radial-gradient(ellipse 200px 180px at 0% 100%, var(--sage-mist) 0%, transparent 65%),
+      linear-gradient(180deg, var(--paper-bone) 0%, var(--sage-paper) 100%);
+    box-shadow: var(--shadow-2);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--cloud-1);
+    filter: blur(36px);
+    opacity: 0.5;
+    top: 30%;
+    left: -30px;
+    pointer-events: none;
+  }
+  .meta-col { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; }
+  .meta-col .emoji { font-size: 26px; line-height: 1; }
+  .meta-col h2 { margin: 0; font: 800 22px/1.1 var(--font-display); color: var(--sage-ink); letter-spacing: -0.02em; }
+  .meta-col .range { font: 500 12px var(--font-sans); color: var(--ink-meta); letter-spacing: 0.02em; }
+  .meta-col .desc  { font: 500 13px var(--font-sans); color: var(--sage-forest); }
+  .meta-col .controls { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+
+  .demo-col { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+  .demo-row { display: flex; gap: 8px; align-items: center; }
+
+  .b-pri {
+    padding: 9px 18px; border-radius: var(--r-pill); border: 0;
+    background: var(--sage-leaf); color: var(--paper-pure);
+    font: 600 13px var(--font-sans); box-shadow: var(--shadow-card);
+  }
+  .b-ghost {
+    padding: 9px 18px; border-radius: var(--r-pill);
+    background: var(--paper-pure); color: var(--ink-deep);
+    border: 1px solid var(--line);
+    font: 600 13px var(--font-sans); box-shadow: var(--shadow-1);
+  }
+  .chip {
+    padding: 6px 12px; border-radius: var(--r-pill);
+    font: 500 12px var(--font-sans);
+    border: 1.5px solid var(--line); background: var(--paper-pure); color: var(--ink-body);
+  }
+  .chip.on { background: var(--sage-leaf); color: var(--paper-pure); border-color: transparent; }
+
+  .cell {
+    width: 44px; aspect-ratio: 1/1.2;
+    padding: 4px 3px; background: var(--paper-pure);
+    border: 2px solid var(--cal-today-ring);
+    border-radius: var(--r-3);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    box-shadow: var(--shadow-1);
+    font: 500 12px var(--font-sans); color: var(--sage-forest);
+  }
+  .cell span:last-child { font-size: 16px; line-height: 1; margin-top: 1px; }
+
+  .bubble-ai {
+    padding: 7px 12px; border-radius: 6px 16px 16px 16px;
+    background: var(--bubble-ai); color: var(--bubble-text-ai);
+    font: 400 12px/1.4 var(--font-sans); box-shadow: var(--shadow-1);
+    max-width: 160px;
+  }
+  .bubble-user {
+    padding: 7px 12px; border-radius: 16px 6px 16px 16px;
+    background: var(--bubble-user); color: var(--bubble-text-user);
+    font: 400 12px/1.4 var(--font-sans);
+  }
+</style>
+</head><body data-season="summer">
+<div class="stage">
+  <div class="meta-col">
+    <div style="display:flex; align-items:center; gap:10px">
+      <span class="emoji">☀️</span>
+      <div>
+        <h2>여름 · Summer</h2>
+        <div class="range">6 – 8월  ·  화창한 하늘색</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="b-pri">시작</button>
+      <button class="b-ghost">취소</button>
+    </div>
+    <div class="controls">
+      <span class="chip on">커리어</span>
+      <span class="chip">건강</span>
+      <span class="chip on">자기계발</span>
+    </div>
+  </div>
+  <div class="demo-col">
+    <div class="demo-row">
+      <div class="bubble-ai">오늘 하루는 어떠셨나요?</div>
+    </div>
+    <div class="demo-row">
+      <div class="cell"><span>22</span><span>😊</span></div>
+      <div class="bubble-user">평온했어요</div>
+    </div>
+  </div>
+</div>
+</body></html>
