@@ -29,10 +29,10 @@ const NAV_ITEMS: NavItem[] = [
     path: () => "/calendar",
   },
   {
-    label: "개발자",
-    icon: "settings",
-    match: "/admin",
-    path: () => "/admin",
+    label: "프로필",
+    icon: "user",
+    match: "/profile",
+    path: () => "/profile",
   },
 ];
 
