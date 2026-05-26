@@ -24,6 +24,8 @@ const ICON_PATHS: Record<string, ReactNode> = {
   home: <><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/><path d="M3 12v9h18v-9"/></>,
   sunrise: <><path d="M12 7V3M4.2 10.2l2.8 2.8M19.8 10.2l-2.8 2.8M2 17h20M5 17a7 7 0 0 1 14 0"/></>,
   save: <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></>,
+  download: <><path d="M12 4v12M5 10l7 7 7-7"/><path d="M4 20h16"/></>,
+  'share-ios': <><path d="M4 13v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v12M8 7l4-4 4 4"/></>,
 };
 
 interface IconProps {
