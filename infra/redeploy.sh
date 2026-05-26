@@ -1,6 +1,6 @@
 #!/bin/bash
 # Re-run deployment on a running EC2 instance.
-# Usage (on the instance):  sudo bash /opt/app/infra/redeploy.sh [branch]
+# Usage (on the instance):  sudo bash ~/redeploy.sh [branch]
 set -euo pipefail
 exec > >(tee /var/log/redeploy.log | logger -t redeploy -s 2>/dev/console) 2>&1
 
@@ -33,20 +33,10 @@ sudo -u ec2-user npm ci
 sudo -u ec2-user npm run build
 sudo -u ec2-user rm -rf node_modules
 
-# 5. Alembic migration (load secrets without hardcoding them in this script)
-#    - Fresh instances: /etc/qna-diary/env exists (unit uses EnvironmentFile)
-#    - Older instances: no env file, secrets live inline in the systemd unit
+# 5. Alembic migration
 cd "$APP_DIR/backend"
-if [ -f /etc/qna-diary/env ]; then
-  set -a; source /etc/qna-diary/env; set +a
-  .venv/bin/alembic upgrade head
-else
-  ENV_ARGS=()
-  while IFS= read -r line; do
-    [ -n "$line" ] && ENV_ARGS+=("$line")
-  done < <(systemctl show qna-api --property=Environment --value | tr ' ' '\n')
-  env "${ENV_ARGS[@]}" .venv/bin/alembic upgrade head
-fi
+set -a; source /etc/qna-diary/env; set +a
+.venv/bin/alembic upgrade head
 
 # 6. Restart services
 systemctl daemon-reload

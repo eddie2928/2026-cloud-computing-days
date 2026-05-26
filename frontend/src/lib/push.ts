@@ -36,7 +36,12 @@ export async function subscribePush(): Promise<void> {
   }
 
   const perm = await Notification.requestPermission()
-  if (perm !== 'granted') throw new Error('알림 권한이 거부되었습니다.')
+  if (perm === 'denied') {
+    throw new Error('알림이 차단되어 있습니다. 브라우저 주소창 왼쪽의 자물쇠 아이콘 → 사이트 설정에서 알림을 \'허용\'으로 변경해 주세요.')
+  }
+  if (perm !== 'granted') {
+    throw new Error('알림 권한 요청이 무시되었습니다. 다시 시도해 주세요.')
+  }
 
   const { data } = await client.get<{ public_key: string }>('/push/public-key')
   if (!data.public_key) {

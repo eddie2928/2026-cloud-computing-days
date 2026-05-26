@@ -1,10 +1,6 @@
 # Copy this file to terraform.tfvars and fill in the values.
 # terraform.tfvars is gitignored — never commit it.
 
-# Required: Your public IP in CIDR notation for SSH access
-# Get it with: curl ifconfig.me
-my_ip_cidr = "1.2.3.4/32"
-
 # Required: Git repository URL to clone onto EC2
 git_repo_url = "https://github.com/your-org/proj_days.git"
 

@@ -33,6 +33,8 @@ resource "aws_instance" "app" {
     volume_type = "gp3"
   }
 
+  user_data_replace_on_change = true
+
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     git_repo_url      = var.git_repo_url
     git_branch        = var.git_branch

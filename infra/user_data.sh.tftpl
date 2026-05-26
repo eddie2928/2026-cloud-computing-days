@@ -35,14 +35,10 @@ After=network.target
 [Service]
 User=ec2-user
 WorkingDirectory=/opt/app/backend
+EnvironmentFile=/etc/qna-diary/env
 ExecStart=/opt/app/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
-Environment=APP_PASSWORD=${app_password}
-Environment=SESSION_SECRET=${session_secret}
-Environment=DB_URL=${db_url}
-Environment=BEDROCK_MODEL_ID=${bedrock_model_id}
-Environment=AWS_REGION=${aws_region}
 
 [Install]
 WantedBy=multi-user.target
@@ -76,15 +72,15 @@ rm -f /etc/nginx/conf.d/default.conf
 # 7. Write env file (used by systemd unit and redeploy.sh)
 mkdir -p /etc/qna-diary
 cat > /etc/qna-diary/env <<'ENVEOF'
-APP_PASSWORD=${app_password}
-SESSION_SECRET=${session_secret}
-DB_URL=${db_url}
-BEDROCK_MODEL_ID=${bedrock_model_id}
-AWS_REGION=${aws_region}
-VAPID_PUBLIC_KEY=${vapid_public_key}
-VAPID_PRIVATE_KEY=${vapid_private_key}
-VAPID_SUBJECT=${vapid_subject}
-COOKIE_SECURE=${cookie_secure}
+APP_PASSWORD="${app_password}"
+SESSION_SECRET="${session_secret}"
+DB_URL="${db_url}"
+BEDROCK_MODEL_ID="${bedrock_model_id}"
+AWS_REGION="${aws_region}"
+VAPID_PUBLIC_KEY="${vapid_public_key}"
+VAPID_PRIVATE_KEY="${vapid_private_key}"
+VAPID_SUBJECT="${vapid_subject}"
+COOKIE_SECURE="${cookie_secure}"
 ENVEOF
 chmod 600 /etc/qna-diary/env
 chown root:root /etc/qna-diary/env
@@ -94,15 +90,10 @@ cd /opt/app/backend
 set -a; source /etc/qna-diary/env; set +a
 .venv/bin/alembic upgrade head
 
-# 10. systemd unit env file reference
-# Patch the unit to use EnvironmentFile instead of inline Environment=
-sed -i 's|^Environment=APP_PASSWORD=.*||;s|^Environment=SESSION_SECRET=.*||;s|^Environment=DB_URL=.*||;s|^Environment=BEDROCK_MODEL_ID=.*||;s|^Environment=AWS_REGION=.*||' \
-  /etc/systemd/system/qna-api.service 2>/dev/null || true
+# 9. Symlink redeploy.sh to ec2-user home for convenience
+ln -sf /opt/app/infra/redeploy.sh /home/ec2-user/redeploy.sh
 
-# Replace inline env vars with EnvironmentFile in the service unit
-sed -i "/^ExecStart=/i EnvironmentFile=/etc/qna-diary/env" /etc/systemd/system/qna-api.service
-
-# 12. Enable and start services
+# 10. Enable and start services
 systemctl daemon-reload
 systemctl enable nginx qna-api
 systemctl start nginx qna-api
