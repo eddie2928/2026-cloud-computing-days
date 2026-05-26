@@ -46,3 +46,6 @@ systemctl reload nginx
 
 echo "==> Redeploy done"
 systemctl --no-pager status qna-api | head -n 20
+
+echo "==> Tailing qna-api logs (Ctrl+C to exit)"
+journalctl -u qna-api -f
