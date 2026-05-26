@@ -89,10 +89,20 @@ describe('Login page', () => {
   })
 
   it('canInstall=true 버튼 클릭 → promptInstall 호출 (모달 미열림)', async () => {
+    mockPromptInstall.mockResolvedValue(true)
     mockedHook.mockReturnValue({ ...mockInstallState, canInstall: true })
     renderLogin()
     await userEvent.click(screen.getByRole('button', { name: /앱으로 설치하기/ }))
     expect(mockPromptInstall).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('canInstall=true이나 설치 프롬프트 실패 → 안내 모달 fallback', async () => {
+    mockPromptInstall.mockResolvedValue(false)
+    mockedHook.mockReturnValue({ ...mockInstallState, canInstall: true })
+    renderLogin()
+    await userEvent.click(screen.getByRole('button', { name: /앱으로 설치하기/ }))
+    expect(mockPromptInstall).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
   })
 })

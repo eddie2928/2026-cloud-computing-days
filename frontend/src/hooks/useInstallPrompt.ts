@@ -10,7 +10,7 @@ export interface InstallPromptState {
   isIOS: boolean
   isIOSSafari: boolean
   isStandalone: boolean
-  promptInstall: () => Promise<void>
+  promptInstall: () => Promise<boolean>
 }
 
 // ---- module scope: capture events before any component mounts ----
@@ -63,12 +63,17 @@ export function useInstallPrompt(): InstallPromptState {
     return () => { subscribers.delete(setCanInstall) }
   }, [])
 
-  const promptInstall = async () => {
-    if (!deferredPrompt) return
-    await deferredPrompt.prompt()
-    await deferredPrompt.userChoice
-    deferredPrompt = null
-    notifyAll(false)
+  const promptInstall = async (): Promise<boolean> => {
+    if (!deferredPrompt) return false
+    try {
+      await deferredPrompt.prompt()
+      await deferredPrompt.userChoice
+      deferredPrompt = null
+      notifyAll(false)
+      return true
+    } catch {
+      return false
+    }
   }
 
   return { canInstall, isIOS, isIOSSafari, isStandalone, promptInstall }

@@ -240,7 +240,14 @@ export function Login() {
           }}
         >
           <button
-            onClick={() => { if (canInstall) { void promptInstall() } else { setGuideOpen(true) } }}
+            onClick={async () => {
+              if (canInstall) {
+                const shown = await promptInstall()
+                if (!shown) setGuideOpen(true)
+              } else {
+                setGuideOpen(true)
+              }
+            }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

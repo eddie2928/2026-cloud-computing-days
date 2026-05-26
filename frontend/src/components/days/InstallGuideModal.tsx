@@ -12,25 +12,37 @@ const SECTIONS = [
     key: 'iphone',
     label: 'iPhone (Safari)',
     icon: 'share-ios',
-    content: 'Safari로 접속한 뒤 ① 하단 공유 버튼 → ② \'홈 화면에 추가\' → ③ 우측 상단 \'추가\'. Chrome·Firefox 등 다른 브라우저에서는 설치되지 않으니 Safari로 열어주세요.',
+    content: [
+      'Safari로 접속한 뒤 ① 하단 공유 버튼 → ② \'홈 화면에 추가\' → ③ 우측 상단 \'추가\'.',
+      'Chrome·Firefox 등 다른 브라우저에서는 설치되지 않으니 Safari로 열어주세요.',
+    ],
   },
   {
     key: 'android',
     label: 'Android',
     icon: 'download',
-    content: '보통 설치 안내가 자동으로 떠요. 안 뜨면 ⋮ 메뉴 → \'앱 설치\' 또는 \'홈 화면에 추가\'.',
+    content: [
+      '보통 설치 안내가 자동으로 떠요.',
+      '안 뜨면 ⋮ 메뉴 → \'앱 설치\' 또는 \'홈 화면에 추가\'.',
+    ],
   },
   {
     key: 'mac',
     label: 'Mac',
     icon: 'download',
-    content: 'Chrome·Edge: 주소창 오른쪽 설치 아이콘 클릭. Safari 17 이상: 파일 메뉴 → \'Dock에 추가\'.',
+    content: [
+      'Chrome·Edge: 주소창 오른쪽 설치 아이콘 클릭.',
+      'Safari 17 이상: 파일 메뉴 → \'Dock에 추가\'.',
+    ],
   },
   {
     key: 'windows',
     label: 'Windows PC',
     icon: 'download',
-    content: 'Chrome·Edge: 주소창 오른쪽 설치 아이콘 클릭. Firefox는 설치를 지원하지 않으니 Chrome 또는 Edge를 사용하세요.',
+    content: [
+      'Chrome·Edge: 주소창 오른쪽 설치 아이콘 클릭.',
+      'Firefox는 설치를 지원하지 않으니 Chrome 또는 Edge를 사용하세요.',
+    ],
   },
 ]
 
@@ -177,13 +189,18 @@ export function InstallGuideModal({ open, onClose, mode }: Props) {
                 {isOpen && (
                   <div
                     style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
                       padding: '12px 16px',
                       font: '400 13px/1.7 var(--font-sans)',
                       color: 'var(--ink-meta)',
                       borderTop: '1px solid var(--line)',
                     }}
                   >
-                    {section.content}
+                    {section.content.map((line, i) => (
+                      <span key={i}>{line}</span>
+                    ))}
                   </div>
                 )}
               </div>
