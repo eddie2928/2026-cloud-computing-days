@@ -50,6 +50,28 @@ export function Calendar() {
         }}
         onScheduleClick={s => navigate(`/schedule/${s.id}`)}
       />
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12, marginBottom: 8 }}>
+        <button
+          onClick={() => navigate('/schedule/new')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 20px',
+            borderRadius: 999,
+            border: '1.5px solid var(--sage-leaf)',
+            background: 'transparent',
+            color: 'var(--sage-forest)',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 500,
+            fontSize: 14,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+          일정 추가
+        </button>
+      </div>
     </div>
   )
 }
