@@ -17,7 +17,6 @@ export function Diary() {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
   const [diary, setDiary] = useState<DiaryData | null>(null);
-  const [notFound, setNotFound] = useState(false);
   const [shareToast, setShareToast] = useState("");
 
   useEffect(() => {
@@ -28,7 +27,7 @@ export function Diary() {
         setDiary(res.data);
       })
       .catch((e) => {
-        if (e.response?.status === 404) setNotFound(true);
+        if (e.response?.status === 404) navigate(`/qna/${date}`, { replace: true });
       });
   }, [date]);
 
@@ -54,29 +53,6 @@ export function Diary() {
     }
     setTimeout(() => setShareToast(""), 3000);
   };
-
-  if (notFound) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <Header title={date ?? ""} showBack />
-        <div
-          style={{
-            padding: 24,
-            textAlign: "center",
-            fontFamily: "var(--font-sans)",
-            color: "var(--ink-hint)",
-          }}
-        >
-          아직 이 날의 일기가 없어요.
-          <br />
-          <br />
-          <PillButton onClick={() => navigate(`/qna/${date}`)}>
-            일기 작성하기
-          </PillButton>
-        </div>
-      </div>
-    );
-  }
 
   if (!diary) {
     return (
