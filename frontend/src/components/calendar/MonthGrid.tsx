@@ -17,6 +17,10 @@ interface MonthGridProps {
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 const TODAY = new Date().toISOString().split('T')[0];
 
+function truncateName(name: string, max: number): string {
+  return name.length > max ? name.slice(0, max) + '..' : name;
+}
+
 interface ScheduleBar {
   schedule: ScheduleItem;
   colStart: number; // 1-indexed grid column start
@@ -193,7 +197,7 @@ export function MonthGrid({ year, month, entries, schedules = [], holidays = [],
                     maxWidth: '100%',
                     display: 'block',
                   }}>
-                    {holiday.name}
+                    {truncateName(holiday.name, 4)}
                   </span>
                 )}
                 {emotion ? <MoodEmoji mood={emotion as Mood} size={12} /> : <span style={{ width: 12, height: 12 }} />}
