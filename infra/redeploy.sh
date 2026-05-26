@@ -37,7 +37,7 @@ sudo -u ec2-user rm -rf node_modules
 cd "$APP_DIR/backend"
 set -a; source /etc/qna-diary/env; set +a
 .venv/bin/alembic upgrade head
-sudo -u ec2-user .venv/bin/python -m scripts.seed_holidays
+.venv/bin/python -m scripts.seed_holidays
 
 # 6. Restart services
 systemctl daemon-reload
