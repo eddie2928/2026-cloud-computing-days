@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
 import { MonthGrid } from '../components/calendar/MonthGrid'
-import { SchedulePopup } from '../components/calendar/SchedulePopup'
 import { type CalendarEntry, type ScheduleItem } from '../lib/week'
-import { useDayModal } from '../hooks/dayModalContext'
 
 const now = new Date()
 
 export function Calendar() {
-  const { openDayModal } = useDayModal()
+  const navigate = useNavigate()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
-  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null)
 
   const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, '0')}`
@@ -46,16 +44,12 @@ export function Calendar() {
         schedules={schedules}
         onPrev={goPrev}
         onNext={goNext}
-        onCellClick={date => openDayModal(date)}
-        onScheduleClick={s => setSelectedSchedule(s)}
+        onCellClick={date => {
+          if (entries.some(e => e.date === date)) navigate(`/diary/${date}`)
+          else navigate(`/qna/${date}`)
+        }}
+        onScheduleClick={s => navigate(`/schedule/${s.id}`)}
       />
-      {selectedSchedule && (
-        <SchedulePopup
-          schedule={selectedSchedule}
-          onClose={() => setSelectedSchedule(null)}
-          onUpdated={() => { setSelectedSchedule(null); fetchCalendar() }}
-        />
-      )}
     </div>
   )
 }

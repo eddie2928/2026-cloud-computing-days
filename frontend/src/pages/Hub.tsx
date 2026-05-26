@@ -5,20 +5,16 @@ import { WeekStrip } from "../components/hub/WeekStrip";
 import { TodayDiaryCard } from "../components/hub/TodayDiaryCard";
 import { SearchTriggerCard } from "../components/hub/SearchTriggerCard";
 import { PetCard } from "../components/hub/PetCard";
-import { SearchModal } from "../components/search/SearchModal";
 import { getWeekWindow, type CalendarEntry } from "../lib/week";
 import { fetchStreak } from "../lib/streak";
-import { useDayModal } from "../hooks/dayModalContext";
 import { useMockDate } from "../hooks/useMockDate";
 
 export function Hub() {
   const navigate = useNavigate();
-  const { openDayModal } = useDayModal();
   const today = useMockDate();
   const thisMonth = today.slice(0, 7);
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [diaryBody, setDiaryBody] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [streak, setStreak] = useState<number | null>(null);
 
   useEffect(() => {
@@ -88,25 +84,15 @@ export function Hub() {
           today={today}
           hasDiary={hasDiary}
           summary={diaryBody ?? undefined}
-          onOpen={openDayModal}
+          onOpen={(date) => navigate(`/diary/${date}`)}
           onStart={() => navigate(`/qna/${today}`)}
         />
-        <SearchTriggerCard onClick={() => setSearchOpen(true)} />
+        <SearchTriggerCard onClick={() => navigate('/search')} />
       </div>
 
       <div style={{ animation: "days-rise 320ms var(--ease-out) 200ms both" }}>
         <PetCard />
       </div>
-
-      {searchOpen && (
-        <SearchModal
-          onClose={() => setSearchOpen(false)}
-          onSelect={(date) => {
-            setSearchOpen(false);
-            openDayModal(date);
-          }}
-        />
-      )}
     </div>
   );
 }
