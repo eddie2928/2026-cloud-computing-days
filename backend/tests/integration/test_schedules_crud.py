@@ -115,6 +115,32 @@ async def test_update_other_user_schedule_returns_404(client):
 
 
 @pytest.mark.asyncio
+async def test_get_schedule_by_id(client):
+    await _login(client)
+    create = await client.post("/api/schedules", json={
+        "period_start": "2027-03-01",
+        "period_end": "2027-03-31",
+        "situation": "단건 조회 테스트",
+    })
+    assert create.status_code == 201
+    schedule_id = create.json()["id"]
+
+    resp = await client.get(f"/api/schedules/{schedule_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == schedule_id
+    assert data["situation"] == "단건 조회 테스트"
+    assert data["period_start"] == "2027-03-01"
+
+
+@pytest.mark.asyncio
+async def test_get_schedule_not_found(client):
+    await _login(client)
+    resp = await client.get("/api/schedules/999999")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_duplicate_schedule_returns_409(client):
     await _login(client)
     payload = {"period_start": "2027-01-01", "period_end": "2027-01-31", "situation": "중복 테스트"}

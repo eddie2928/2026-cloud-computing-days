@@ -73,6 +73,24 @@ async def create_schedule(
     return schedule
 
 
+@router.get("/{schedule_id}", response_model=ScheduleOut)
+async def get_schedule(
+    schedule_id: int,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserSchedule).where(
+            UserSchedule.id == schedule_id,
+            UserSchedule.user_id == user_id,
+        )
+    )
+    schedule = result.scalars().first()
+    if not schedule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="schedule not found")
+    return schedule
+
+
 @router.patch("/{schedule_id}", response_model=ScheduleOut)
 async def update_schedule(
     schedule_id: int,
