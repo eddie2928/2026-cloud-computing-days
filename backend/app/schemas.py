@@ -76,9 +76,18 @@ class CalendarEntry(BaseModel):
     emotion: str
 
 
+class HolidayOut(BaseModel):
+    date: date
+    name: str
+    is_holiday: bool
+
+    model_config = {"from_attributes": True}
+
+
 class CalendarResponse(BaseModel):
     entries: list[CalendarEntry]
     schedules: list[ScheduleOut] = []
+    holidays: list[HolidayOut] = []
 
 
 class DiaryResponse(BaseModel):

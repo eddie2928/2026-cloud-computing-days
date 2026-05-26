@@ -5,6 +5,7 @@ from sqlalchemy import (
     SMALLINT,
     TEXT,
     TIME,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -151,6 +152,15 @@ class UserSchedule(Base):
     period_end: Mapped[date] = mapped_column(DATE, nullable=False)
     situation: Mapped[str] = mapped_column(TEXT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[date] = mapped_column(DATE, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(TEXT, nullable=False)
+    is_holiday: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
 
 
 class PushSubscription(Base):
