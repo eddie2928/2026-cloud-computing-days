@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_session
 from app.db import get_db
-from app.models import DiaryEntry, UserSchedule
-from app.schemas import CalendarEntry, CalendarResponse, ScheduleOut
+from app.models import DiaryEntry, Holiday, UserSchedule
+from app.schemas import CalendarEntry, CalendarResponse, HolidayOut, ScheduleOut
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
@@ -51,4 +51,12 @@ async def get_calendar(
     )
     schedules = [ScheduleOut.model_validate(s) for s in sched_result.scalars().all()]
 
-    return CalendarResponse(entries=entries, schedules=schedules)
+    holiday_result = await db.execute(
+        select(Holiday).where(
+            extract("year", Holiday.date) == year,
+            extract("month", Holiday.date) == mon,
+        )
+    )
+    holidays = [HolidayOut.model_validate(h) for h in holiday_result.scalars().all()]
+
+    return CalendarResponse(entries=entries, schedules=schedules, holidays=holidays)
