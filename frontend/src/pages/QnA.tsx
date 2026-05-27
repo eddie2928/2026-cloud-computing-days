@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import client from "../api/client";
+import { postSSE } from "../api/sseClient";
 import { Header } from "../components/layout/Header";
 import { ChatBubble } from "../components/qna/ChatBubble";
 import { ThinkingDots } from "../components/qna/ThinkingDots";
@@ -35,26 +36,55 @@ export function Qna() {
   const [sequence, setSequence] = useState(0);
   const [thinking, setThinking] = useState(false);
   const [done, setDone] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const STEP_LABELS: Record<string, string> = {
+    schedules: "사용자 일정 읽어오는 중..",
+    summaries: "사용자의 일기 읽어오는 중..",
+    generating: "질문 생성 중..",
+  };
 
   useEffect(() => {
     if (!date) return;
-    client
-      .post("/qna/start", { diary_date: date })
-      .then((res) => {
-        setSessionId(res.data.session_id);
-        setSequence(res.data.sequence);
-        setMessages([{ role: "ai", text: res.data.question }]);
-        const pending: PendingSchedule[] = res.data.pending_schedules ?? [];
-        if (pending.length > 0) {
-          setAccumulatedSchedules((prev) => {
-            const existingKeys = new Set(prev.map(scheduleKey));
-            const newOnes = pending.filter((s) => !existingKeys.has(scheduleKey(s)));
-            return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
-          });
-        }
-      })
-      .catch(() => {});
+    postSSE(
+      "/api/qna/start-stream",
+      { diary_date: date },
+      {
+        onStatus: (step) => {
+          const label = STEP_LABELS[step];
+          if (label) setLoadingSteps((prev) => [...prev, label]);
+        },
+        onDone: (data) => {
+          const d = data as {
+            session_id: number;
+            question: string;
+            sequence: number;
+            history?: { sequence: number; question: string; answer: string }[];
+            pending_schedules?: PendingSchedule[];
+          };
+          setLoadingSteps([]);
+          setSessionId(d.session_id);
+          setSequence(d.sequence);
+          const history = d.history ?? [];
+          const historyMsgs: Message[] = history.flatMap((h) => [
+            { role: "ai" as const, text: h.question },
+            { role: "user" as const, text: h.answer },
+          ]);
+          setMessages([...historyMsgs, { role: "ai", text: d.question }]);
+          const pending: PendingSchedule[] = d.pending_schedules ?? [];
+          if (pending.length > 0) {
+            setAccumulatedSchedules((prev) => {
+              const existingKeys = new Set(prev.map(scheduleKey));
+              const newOnes = pending.filter((s) => !existingKeys.has(scheduleKey(s)));
+              return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+            });
+          }
+        },
+        onError: () => {},
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   useEffect(() => {
@@ -243,6 +273,20 @@ export function Qna() {
           gap: 12,
         }}
       >
+        {loadingSteps.map((label, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: "center",
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--t-sm)",
+              color: "var(--ink-meta)",
+              animation: "days-rise 240ms var(--ease-out) both",
+            }}
+          >
+            {label}
+          </div>
+        ))}
         {messages.map((msg, i) => (
           <div key={i}>
             <ChatBubble role={msg.role}>{msg.text}</ChatBubble>
