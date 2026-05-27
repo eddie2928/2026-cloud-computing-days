@@ -124,13 +124,21 @@ async def _resume_session(
     )
     if unanswered:
         first = unanswered[0]
-        restored_pending = []
-        meta = first.bedrock_meta
-        if meta and meta.get("raw_response"):
-            restored_pending = _to_pending_schedules(_parse_schedules(meta["raw_response"]))
+        rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
+        relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
+        prev_extracted = _build_previously_extracted(answered_items)
+        question, extracted_schedules, meta = await _get_bedrock().generate_question(
+            rag_summaries, answered_items, first.sequence,
+            user_profile=user_profile, relevant_schedules=relevant_scheds,
+            today=existing.diary_date, previously_extracted=prev_extracted,
+        )
+        pending = _to_pending_schedules(extracted_schedules)
+        first.question = question
+        first.bedrock_meta = meta
+        await db.commit()
         return QnAStartResponse(
-            session_id=existing.id, question=first.question, sequence=first.sequence,
-            history=history, pending_schedules=restored_pending
+            session_id=existing.id, question=question, sequence=first.sequence,
+            history=history, pending_schedules=pending,
         )
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
