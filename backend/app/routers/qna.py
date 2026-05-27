@@ -1,6 +1,9 @@
+import json
 from datetime import date, datetime, timedelta, timezone
+from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -310,3 +313,191 @@ async def answer_qna(
         pending = []
 
     return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False, pending_schedules=pending)
+
+
+def _sse_event(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/start-stream")
+async def start_qna_stream(
+    body: QnAStartRequest,
+    request: Request,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    async def _generate() -> AsyncGenerator[str, None]:
+        user_profile = await _get_user_profile(db, user_id)
+        result = await db.execute(
+            select(QnASession)
+            .options(selectinload(QnASession.items))
+            .where(QnASession.user_id == user_id, QnASession.diary_date == body.diary_date)
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            if existing.status == "completed":
+                yield _sse_event("error", {"detail": "Diary already completed for this date", "status_code": 409})
+                return
+
+            answered_items = sorted(
+                [i for i in existing.items if i.answer is not None], key=lambda x: x.sequence
+            )
+            history = [
+                QnAHistoryItem(sequence=i.sequence, question=i.question, answer=i.answer)
+                for i in answered_items
+            ]
+            unanswered = sorted(
+                [i for i in existing.items if i.answer is None], key=lambda x: x.sequence
+            )
+
+            yield _sse_event("status", {"step": "schedules"})
+            relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
+            yield _sse_event("status", {"step": "summaries"})
+            rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
+
+            if unanswered:
+                first = unanswered[0]
+                prev_extracted = _build_previously_extracted(answered_items)
+                yield _sse_event("status", {"step": "generating"})
+                question, extracted_schedules, meta = await _get_bedrock().generate_question(
+                    rag_summaries, answered_items, first.sequence,
+                    user_profile=user_profile, relevant_schedules=relevant_scheds,
+                    today=existing.diary_date, previously_extracted=prev_extracted,
+                )
+                pending = _to_pending_schedules(extracted_schedules)
+                first.question = question
+                first.bedrock_meta = meta
+                await db.commit()
+                resp = QnAStartResponse(
+                    session_id=existing.id, question=question, sequence=first.sequence,
+                    history=history, pending_schedules=pending,
+                )
+            else:
+                next_seq = max((i.sequence for i in answered_items), default=0) + 1
+                prev_extracted = _build_previously_extracted(answered_items)
+                yield _sse_event("status", {"step": "generating"})
+                question, extracted_schedules, meta = await _get_bedrock().generate_question(
+                    rag_summaries, answered_items, next_seq,
+                    user_profile=user_profile, relevant_schedules=relevant_scheds,
+                    today=existing.diary_date, previously_extracted=prev_extracted,
+                )
+                pending = _to_pending_schedules(extracted_schedules)
+                try:
+                    db.add(QnAItem(session_id=existing.id, sequence=next_seq, question=question, bedrock_meta=meta))
+                    await db.commit()
+                except IntegrityError:
+                    await db.rollback()
+                    res = await db.execute(
+                        select(QnAItem).where(QnAItem.session_id == existing.id, QnAItem.sequence == next_seq)
+                    )
+                    ei = res.scalar_one()
+                    question, next_seq = ei.question, ei.sequence
+                    pending = []
+                resp = QnAStartResponse(
+                    session_id=existing.id, question=question, sequence=next_seq,
+                    history=history, pending_schedules=pending,
+                )
+            yield _sse_event("done", resp.model_dump())
+            return
+
+        # New session
+        session = QnASession(user_id=user_id, diary_date=body.diary_date, status="in_progress")
+        db.add(session)
+        try:
+            await db.flush()
+            session_id = session.id
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            result2 = await db.execute(
+                select(QnASession)
+                .options(selectinload(QnASession.items))
+                .where(QnASession.user_id == user_id, QnASession.diary_date == body.diary_date)
+            )
+            existing2 = result2.scalar_one()
+            # Delegate to resume path by re-invoking stream logic (simplified: yield from resume)
+            if existing2.status == "completed":
+                yield _sse_event("error", {"detail": "Diary already completed for this date", "status_code": 409})
+                return
+            answered_items2 = sorted(
+                [i for i in existing2.items if i.answer is not None], key=lambda x: x.sequence
+            )
+            history2 = [
+                QnAHistoryItem(sequence=i.sequence, question=i.question, answer=i.answer)
+                for i in answered_items2
+            ]
+            unanswered2 = sorted(
+                [i for i in existing2.items if i.answer is None], key=lambda x: x.sequence
+            )
+            yield _sse_event("status", {"step": "schedules"})
+            relevant_scheds2 = await _get_relevant_schedules(db, user_id, existing2.diary_date)
+            yield _sse_event("status", {"step": "summaries"})
+            rag_summaries2 = await _get_recent_summaries(db, user_id, existing2.diary_date)
+            if unanswered2:
+                first2 = unanswered2[0]
+                prev2 = _build_previously_extracted(answered_items2)
+                yield _sse_event("status", {"step": "generating"})
+                q2, es2, m2 = await _get_bedrock().generate_question(
+                    rag_summaries2, answered_items2, first2.sequence,
+                    user_profile=user_profile, relevant_schedules=relevant_scheds2,
+                    today=existing2.diary_date, previously_extracted=prev2,
+                )
+                first2.question = q2
+                first2.bedrock_meta = m2
+                await db.commit()
+                resp2 = QnAStartResponse(
+                    session_id=existing2.id, question=q2, sequence=first2.sequence,
+                    history=history2, pending_schedules=_to_pending_schedules(es2),
+                )
+            else:
+                nseq2 = max((i.sequence for i in answered_items2), default=0) + 1
+                prev2 = _build_previously_extracted(answered_items2)
+                yield _sse_event("status", {"step": "generating"})
+                q2, es2, m2 = await _get_bedrock().generate_question(
+                    rag_summaries2, answered_items2, nseq2,
+                    user_profile=user_profile, relevant_schedules=relevant_scheds2,
+                    today=existing2.diary_date, previously_extracted=prev2,
+                )
+                try:
+                    db.add(QnAItem(session_id=existing2.id, sequence=nseq2, question=q2, bedrock_meta=m2))
+                    await db.commit()
+                except IntegrityError:
+                    await db.rollback()
+                    res2 = await db.execute(
+                        select(QnAItem).where(QnAItem.session_id == existing2.id, QnAItem.sequence == nseq2)
+                    )
+                    ei2 = res2.scalar_one()
+                    q2, nseq2 = ei2.question, ei2.sequence
+                resp2 = QnAStartResponse(
+                    session_id=existing2.id, question=q2, sequence=nseq2,
+                    history=history2, pending_schedules=_to_pending_schedules(es2),
+                )
+            yield _sse_event("done", resp2.model_dump())
+            return
+
+        yield _sse_event("status", {"step": "schedules"})
+        relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
+        yield _sse_event("status", {"step": "summaries"})
+        rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
+        yield _sse_event("status", {"step": "generating"})
+        question, extracted_schedules, meta = await _get_bedrock().generate_question(
+            rag_summaries, [], 1, user_profile=user_profile,
+            relevant_schedules=relevant_scheds, today=body.diary_date,
+        )
+        pending = _to_pending_schedules(extracted_schedules)
+        try:
+            db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            res = await db.execute(
+                select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 1)
+            )
+            ei = res.scalar_one()
+            question = ei.question
+            pending = []
+        resp = QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending)
+        yield _sse_event("done", resp.model_dump())
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")
