@@ -39,6 +39,26 @@ export const handlers = [
     })
   }),
 
+  http.post('/api/qna/start-stream', async ({ request }) => {
+    await request.json()
+    const done = JSON.stringify({
+      session_id: 1,
+      question: '오늘 가장 기억에 남는 일은 무엇인가요?',
+      sequence: 1,
+      history: [],
+      pending_schedules: [],
+    })
+    const body = [
+      'event: status\ndata: {"step":"schedules"}\n\n',
+      'event: status\ndata: {"step":"summaries"}\n\n',
+      'event: status\ndata: {"step":"generating"}\n\n',
+      `event: done\ndata: ${done}\n\n`,
+    ].join('')
+    return new HttpResponse(body, {
+      headers: { 'Content-Type': 'text/event-stream' },
+    })
+  }),
+
   http.post('/api/qna/answer', async ({ request }) => {
     const body = await request.json() as { session_id: number; sequence: number; answer: string }
     if (body.sequence >= 5) {
