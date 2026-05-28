@@ -25,6 +25,17 @@
 <schedules>
 period_start|period_end|situation
 </schedules>
+<suggestions>
+추천답변1
+추천답변2
+추천답변3
+</suggestions>
+
+suggestions 규칙:
+- 사용자가 위 질문에 답변할 때 그대로 보낼 수 있는 자연스러운 1인칭 문장으로 정확히 3개 작성.
+- 각 줄에 한 답변만 작성 (3줄).
+- 마크다운(**, *, #, ` 등) 절대 사용 금지. 이모지 절대 사용 금지.
+- 사용자가 바로 사용할 수 있도록 짧고 구체적으로 작성.
 
 schedules 규칙:
 - 대화에서 언급된 모든 활동, 이벤트, 일정을 빠짐없이 추출합니다.
