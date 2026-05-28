@@ -247,6 +247,11 @@ export function Profile() {
         )}
         <PillButton variant="danger" onClick={handleLogout}>로그아웃</PillButton>
       </div>
+      <InstallGuideModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        mode={isIOSSafari ? 'ios-safari' : 'all'}
+      />
     </div>
   )
 }
