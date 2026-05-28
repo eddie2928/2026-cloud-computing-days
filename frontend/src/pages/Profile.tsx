@@ -11,6 +11,9 @@ import { PillButton } from '../components/days/PillButton'
 import { CloudLeaf } from '../components/days/CloudLeaf'
 import { TagInput } from '../components/days/TagInput'
 import { getPushState, subscribePush, unsubscribePush, type PushState } from '../lib/push'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
+import { InstallGuideModal } from '../components/days/InstallGuideModal'
+import { Icon } from '../components/days/Icon'
 
 interface ProfileData {
   nickname: string
