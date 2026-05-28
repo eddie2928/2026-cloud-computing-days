@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "../days/Icon";
 import { useMockDate } from "../../hooks/useMockDate";
+import client from "../../api/client";
 
 interface NavItem {
   label: string;
@@ -63,7 +64,24 @@ export function BottomNav() {
     >
       {NAV_ITEMS.map((item) => {
         const isActive = location.pathname.startsWith(item.match);
-        const handleClick = () => navigate(item.path(TODAY));
+        const handleClick = async () => {
+          if (item.label === "오늘의 일기") {
+            try {
+              const month = TODAY.slice(0, 7);
+              const res = await client.get(`/calendar?month=${month}`);
+              const entries: { date: string }[] = res.data?.entries ?? [];
+              if (entries.some((e) => e.date === TODAY)) {
+                navigate(`/diary/${TODAY}`);
+              } else {
+                navigate(`/qna/${TODAY}`);
+              }
+            } catch {
+              navigate(`/qna/${TODAY}`);
+            }
+            return;
+          }
+          navigate(item.path(TODAY));
+        };
         return (
           <button
             key={item.label}
