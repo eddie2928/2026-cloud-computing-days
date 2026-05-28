@@ -1,5 +1,5 @@
 from datetime import date, time
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,7 @@ class QnAStartResponse(BaseModel):
     sequence: int
     history: list[QnAHistoryItem] = Field(default_factory=list)
     pending_schedules: list[PendingSchedule] = []
+    suggestions: list[str] = []
 
 
 class QnAAnswerRequest(BaseModel):
@@ -48,6 +49,8 @@ class QnAAnswerResponse(BaseModel):
     completed: bool
     diary: str | None = None
     pending_schedules: list[PendingSchedule] = []
+    suggestions: list[str] = []
+    min_reached: bool = False
 
 
 class ScheduleOut(BaseModel):
@@ -168,3 +171,25 @@ class PushSubscriptionIn(BaseModel):
 
 class PushPublicKeyOut(BaseModel):
     public_key: str
+
+
+class QnAUndoRequest(BaseModel):
+    session_id: int
+    target_sequence: int
+    mode: Literal["keep", "discard"]
+
+
+class QnAUndoResponse(BaseModel):
+    question: str
+    sequence: int
+    suggestions: list[str] = []
+    pending_schedules: list[PendingSchedule] = []
+    removed_schedule_keys: list[str] = []
+
+
+class QnAFinalizeRequest(BaseModel):
+    session_id: int
+
+
+class QnAFinalizeResponse(BaseModel):
+    diary: str
