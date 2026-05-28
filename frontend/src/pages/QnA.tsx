@@ -12,6 +12,7 @@ import { ScheduleCard } from "../components/qna/ScheduleCard";
 interface Message {
   role: "ai" | "user";
   text: string;
+  sequence?: number;
 }
 
 interface PendingSchedule {
@@ -37,6 +38,9 @@ export function Qna() {
   const [thinking, setThinking] = useState(false);
   const [done, setDone] = useState(false);
   const [loadingSteps, setLoadingSteps] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [minReached, setMinReached] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const STEP_LABELS: Record<string, string> = {
@@ -62,16 +66,18 @@ export function Qna() {
             sequence: number;
             history?: { sequence: number; question: string; answer: string }[];
             pending_schedules?: PendingSchedule[];
+            suggestions?: string[];
           };
           setLoadingSteps([]);
           setSessionId(d.session_id);
           setSequence(d.sequence);
+          setSuggestions(d.suggestions ?? []);
           const history = d.history ?? [];
           const historyMsgs: Message[] = history.flatMap((h) => [
-            { role: "ai" as const, text: h.question },
-            { role: "user" as const, text: h.answer },
+            { role: "ai" as const, text: h.question, sequence: h.sequence },
+            { role: "user" as const, text: h.answer, sequence: h.sequence },
           ]);
-          setMessages([...historyMsgs, { role: "ai", text: d.question }]);
+          setMessages([...historyMsgs, { role: "ai", text: d.question, sequence: d.sequence }]);
           const pending: PendingSchedule[] = d.pending_schedules ?? [];
           if (pending.length > 0) {
             setAccumulatedSchedules((prev) => {
@@ -93,12 +99,15 @@ export function Qna() {
 
   const handleSend = async (text: string) => {
     if (!sessionId || thinking || done) return;
-    setMessages((m) => [...m, { role: "user", text }]);
+    const currentSeq = sequence;
+    setMessages((m) => [...m, { role: "user", text, sequence: currentSeq }]);
+    setInputValue("");
+    setSuggestions([]);
     setThinking(true);
     try {
       const res = await client.post("/qna/answer", {
         session_id: sessionId,
-        sequence,
+        sequence: currentSeq,
         answer: text,
       });
       setThinking(false);
@@ -117,10 +126,13 @@ export function Qna() {
           { role: "ai", text: "오늘의 일기가 완성되었어요." },
         ]);
       } else {
-        setSequence(res.data.sequence);
+        const nextSeq = res.data.sequence;
+        setSequence(nextSeq);
+        setMinReached(res.data.min_reached ?? false);
+        setSuggestions(res.data.suggestions ?? []);
         setMessages((m) => [
           ...m,
-          { role: "ai" as const, text: res.data.next_question },
+          { role: "ai" as const, text: res.data.next_question, sequence: nextSeq },
         ]);
       }
     } catch {
