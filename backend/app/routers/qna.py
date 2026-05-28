@@ -14,12 +14,11 @@ from app.auth import require_session
 from app.bedrock import BedrockClient, _parse_schedules
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
-from app.routers.pet import grow_pet
-from app.schemas import PendingSchedule, QnAAnswerRequest, QnAAnswerResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse
+from app.schemas import PendingSchedule, QnAAnswerRequest, QnAAnswerResponse, QnAFinalizeRequest, QnAFinalizeResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse, QnAUndoRequest, QnAUndoResponse
 
 router = APIRouter(prefix="/api/qna", tags=["qna"])
 
-_MAX_SEQUENCE = 5
+_MIN_SEQUENCE = 5
 
 
 def _get_bedrock() -> BedrockClient:
@@ -131,7 +130,7 @@ async def _resume_session(
         rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
         relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
         prev_extracted = _build_previously_extracted(answered_items)
-        question, extracted_schedules, meta = await _get_bedrock().generate_question(
+        question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
             rag_summaries, answered_items, first.sequence,
             user_profile=user_profile, relevant_schedules=relevant_scheds,
             today=existing.diary_date, previously_extracted=prev_extracted,
@@ -142,14 +141,14 @@ async def _resume_session(
         await db.commit()
         return QnAStartResponse(
             session_id=existing.id, question=question, sequence=first.sequence,
-            history=history, pending_schedules=pending,
+            history=history, pending_schedules=pending, suggestions=suggestions,
         )
     next_seq = max((i.sequence for i in answered_items), default=0) + 1
     session_id = existing.id
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
     prev_extracted = _build_previously_extracted(answered_items)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date, previously_extracted=prev_extracted)
+    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
@@ -162,7 +161,8 @@ async def _resume_session(
         ei = res.scalar_one()
         question, next_seq = ei.question, ei.sequence
         pending = []
-    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq, history=history, pending_schedules=pending)
+        suggestions = []
+    return QnAStartResponse(session_id=session_id, question=question, sequence=next_seq, history=history, pending_schedules=pending, suggestions=suggestions)
 
 
 @router.post("/start", response_model=QnAStartResponse)
@@ -200,7 +200,7 @@ async def start_qna(
 
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds, today=body.diary_date)
+    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds, today=body.diary_date)
     pending = _to_pending_schedules(extracted_schedules)
     try:
         db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
@@ -213,7 +213,8 @@ async def start_qna(
         ei = res.scalar_one()
         question = ei.question
         pending = []
-    return QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending)
+        suggestions = []
+    return QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending, suggestions=suggestions)
 
 
 @router.post("/answer", response_model=QnAAnswerResponse)
@@ -271,32 +272,17 @@ async def answer_qna(
     item.answered_at = datetime.now(tz=timezone.utc)
     session_id = session.id
     diary_date = session.diary_date
-    is_final = body.sequence >= _MAX_SEQUENCE
+    min_reached = body.sequence >= _MIN_SEQUENCE
     answered_snapshot = [i for i in session.items if i.answer is not None]
 
     await db.flush()
     await db.commit()  # commit before any Bedrock call to close race window
 
-    if is_final:
-        from app.routers.diary import finalize_session
-
-        try:
-            diary_entry = await finalize_session(session_id, db, user_profile=user_profile)
-            await grow_pet(db, user_id)
-            await db.commit()
-        except IntegrityError:
-            await db.rollback()
-            diary_res = await db.execute(
-                select(DiaryEntry).where(DiaryEntry.session_id == session_id)
-            )
-            diary_entry = diary_res.scalar_one()
-        return QnAAnswerResponse(completed=True, diary=diary_entry.body)
-
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
     prev_extracted = _build_previously_extracted(answered_snapshot)
-    question, extracted_schedules, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date, previously_extracted=prev_extracted)
+    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
 
     try:
@@ -312,8 +298,9 @@ async def answer_qna(
         ei = res.scalar_one()
         question, next_seq = ei.question, ei.sequence
         pending = []
+        suggestions = []
 
-    return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False, pending_schedules=pending)
+    return QnAAnswerResponse(next_question=question, sequence=next_seq, completed=False, pending_schedules=pending, suggestions=suggestions, min_reached=min_reached)
 
 
 def _sse_event(event: str, data: dict) -> str:
@@ -361,7 +348,7 @@ async def start_qna_stream(
                 first = unanswered[0]
                 prev_extracted = _build_previously_extracted(answered_items)
                 yield _sse_event("status", {"step": "generating"})
-                question, extracted_schedules, meta = await _get_bedrock().generate_question(
+                question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
                     rag_summaries, answered_items, first.sequence,
                     user_profile=user_profile, relevant_schedules=relevant_scheds,
                     today=existing.diary_date, previously_extracted=prev_extracted,
@@ -372,13 +359,13 @@ async def start_qna_stream(
                 await db.commit()
                 resp = QnAStartResponse(
                     session_id=existing.id, question=question, sequence=first.sequence,
-                    history=history, pending_schedules=pending,
+                    history=history, pending_schedules=pending, suggestions=suggestions,
                 )
             else:
                 next_seq = max((i.sequence for i in answered_items), default=0) + 1
                 prev_extracted = _build_previously_extracted(answered_items)
                 yield _sse_event("status", {"step": "generating"})
-                question, extracted_schedules, meta = await _get_bedrock().generate_question(
+                question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
                     rag_summaries, answered_items, next_seq,
                     user_profile=user_profile, relevant_schedules=relevant_scheds,
                     today=existing.diary_date, previously_extracted=prev_extracted,
@@ -395,9 +382,10 @@ async def start_qna_stream(
                     ei = res.scalar_one()
                     question, next_seq = ei.question, ei.sequence
                     pending = []
+                    suggestions = []
                 resp = QnAStartResponse(
                     session_id=existing.id, question=question, sequence=next_seq,
-                    history=history, pending_schedules=pending,
+                    history=history, pending_schedules=pending, suggestions=suggestions,
                 )
             yield _sse_event("done", resp.model_dump())
             return
@@ -439,7 +427,7 @@ async def start_qna_stream(
                 first2 = unanswered2[0]
                 prev2 = _build_previously_extracted(answered_items2)
                 yield _sse_event("status", {"step": "generating"})
-                q2, es2, m2 = await _get_bedrock().generate_question(
+                q2, es2, sug2, m2 = await _get_bedrock().generate_question(
                     rag_summaries2, answered_items2, first2.sequence,
                     user_profile=user_profile, relevant_schedules=relevant_scheds2,
                     today=existing2.diary_date, previously_extracted=prev2,
@@ -449,13 +437,13 @@ async def start_qna_stream(
                 await db.commit()
                 resp2 = QnAStartResponse(
                     session_id=existing2.id, question=q2, sequence=first2.sequence,
-                    history=history2, pending_schedules=_to_pending_schedules(es2),
+                    history=history2, pending_schedules=_to_pending_schedules(es2), suggestions=sug2,
                 )
             else:
                 nseq2 = max((i.sequence for i in answered_items2), default=0) + 1
                 prev2 = _build_previously_extracted(answered_items2)
                 yield _sse_event("status", {"step": "generating"})
-                q2, es2, m2 = await _get_bedrock().generate_question(
+                q2, es2, sug2, m2 = await _get_bedrock().generate_question(
                     rag_summaries2, answered_items2, nseq2,
                     user_profile=user_profile, relevant_schedules=relevant_scheds2,
                     today=existing2.diary_date, previously_extracted=prev2,
@@ -470,9 +458,10 @@ async def start_qna_stream(
                     )
                     ei2 = res2.scalar_one()
                     q2, nseq2 = ei2.question, ei2.sequence
+                    sug2 = []
                 resp2 = QnAStartResponse(
                     session_id=existing2.id, question=q2, sequence=nseq2,
-                    history=history2, pending_schedules=_to_pending_schedules(es2),
+                    history=history2, pending_schedules=_to_pending_schedules(es2), suggestions=sug2,
                 )
             yield _sse_event("done", resp2.model_dump())
             return
@@ -482,7 +471,7 @@ async def start_qna_stream(
         yield _sse_event("status", {"step": "summaries"})
         rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
         yield _sse_event("status", {"step": "generating"})
-        question, extracted_schedules, meta = await _get_bedrock().generate_question(
+        question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
             rag_summaries, [], 1, user_profile=user_profile,
             relevant_schedules=relevant_scheds, today=body.diary_date,
         )
@@ -498,7 +487,8 @@ async def start_qna_stream(
             ei = res.scalar_one()
             question = ei.question
             pending = []
-        resp = QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending)
+            suggestions = []
+        resp = QnAStartResponse(session_id=session_id, question=question, sequence=1, pending_schedules=pending, suggestions=suggestions)
         yield _sse_event("done", resp.model_dump())
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
