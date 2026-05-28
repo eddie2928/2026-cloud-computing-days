@@ -212,6 +212,39 @@ export function Profile() {
           </div>
         </SectionCard>
 
+        {!isStandalone && (
+          <button
+            onClick={async () => {
+              if (canInstall) {
+                const shown = await promptInstall()
+                if (!shown) setGuideOpen(true)
+              } else {
+                setGuideOpen(true)
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '12px 20px',
+              borderRadius: 999,
+              border: '1.5px solid var(--sage-leaf)',
+              background: 'transparent',
+              color: 'var(--sage-forest)',
+              font: '500 15px/1 var(--font-sans)',
+              cursor: 'pointer',
+              letterSpacing: '0.005em',
+              width: '100%',
+              transition: 'background var(--dur-1) var(--ease-out)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--sage-wash)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon name="download" size={15} color="var(--sage-forest)" />
+            앱으로 설치하기
+          </button>
+        )}
         <PillButton variant="danger" onClick={handleLogout}>로그아웃</PillButton>
       </div>
     </div>
