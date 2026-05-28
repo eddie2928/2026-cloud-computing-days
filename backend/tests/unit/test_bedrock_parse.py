@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.bedrock import BedrockClient, _build_rag_block, _parse_schedules
+from app.bedrock import BedrockClient, _build_rag_block, _parse_schedules, _parse_suggestions
 
 
 def _make_client():
@@ -115,3 +115,31 @@ def test_parse_schedules_malformed_line_skipped():
     result = _parse_schedules(raw)
     assert len(result) == 1
     assert result[0]["situation"] == "정상 일정"
+
+
+def test_parse_suggestions_normal():
+    """Three suggestions parsed correctly."""
+    raw = "<question>Q</question><schedules></schedules><suggestions>오늘은 정말 즐거웠어요.\n친구들과 맛있는 것 먹었어요.\n집에서 쉬었어요.</suggestions>"
+    result = _parse_suggestions(raw)
+    assert result == ["오늘은 정말 즐거웠어요.", "친구들과 맛있는 것 먹었어요.", "집에서 쉬었어요."]
+
+
+def test_parse_suggestions_empty_body():
+    """Empty suggestions block returns empty list."""
+    raw = "<question>Q</question><suggestions></suggestions>"
+    result = _parse_suggestions(raw)
+    assert result == []
+
+
+def test_parse_suggestions_overflow_capped_at_3():
+    """More than 3 suggestions returns only first 3."""
+    raw = "<question>Q</question><suggestions>A1\nA2\nA3\nA4\nA5</suggestions>"
+    result = _parse_suggestions(raw)
+    assert result == ["A1", "A2", "A3"]
+
+
+def test_parse_suggestions_tag_missing():
+    """Missing tag returns empty list without error."""
+    raw = "<question>Q</question><schedules></schedules>"
+    result = _parse_suggestions(raw)
+    assert result == []

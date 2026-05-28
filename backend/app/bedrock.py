@@ -66,6 +66,17 @@ def _build_session_block(session_items: list[QnAItem]) -> str:
     return "\n".join(lines)
 
 
+def _parse_suggestions(raw: str) -> list[str]:
+    match = re.search(r"<suggestions>(.*?)</suggestions>", raw, re.DOTALL)
+    if not match:
+        return []
+    body = match.group(1).strip()
+    if not body:
+        return []
+    lines = [line.strip() for line in body.splitlines() if line.strip()]
+    return lines[:3]
+
+
 def _parse_schedules(raw: str) -> list[dict]:
     schedules_match = re.search(r"<schedules>(.*?)</schedules>", raw, re.DOTALL)
     if not schedules_match:
