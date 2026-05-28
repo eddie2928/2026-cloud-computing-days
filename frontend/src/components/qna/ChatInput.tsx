@@ -5,17 +5,36 @@ interface ChatInputProps {
   onSend: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  value?: string;
+  onChange?: (v: string) => void;
 }
 
-export function ChatInput({ onSend, disabled, placeholder = '답변을 입력하세요...' }: ChatInputProps) {
-  const [value, setValue] = useState('');
+export function ChatInput({
+  onSend,
+  disabled,
+  placeholder = '답변을 입력하세요...',
+  value: valueProp,
+  onChange,
+}: ChatInputProps) {
+  const [internalValue, setInternalValue] = useState('');
   const [focused, setFocused] = useState(false);
+
+  const isControlled = valueProp !== undefined;
+  const value = isControlled ? valueProp : internalValue;
+
+  const handleChange = (v: string) => {
+    if (isControlled) {
+      onChange?.(v);
+    } else {
+      setInternalValue(v);
+    }
+  };
 
   const handleSend = () => {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;
     onSend(trimmed);
-    setValue('');
+    handleChange('');
   };
 
   const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -40,7 +59,7 @@ export function ChatInput({ onSend, disabled, placeholder = '답변을 입력하
       <input
         type="text"
         value={value}
-        onChange={e => setValue(e.target.value)}
+        onChange={e => handleChange(e.target.value)}
         onKeyDown={handleKey}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
