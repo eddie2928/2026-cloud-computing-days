@@ -224,6 +224,7 @@ export function MonthGrid({
       {/* 날짜 그리드 — 주(week) 단위 행 */}
       <div data-testid="month-grid">
         {weeks.map((week, weekIdx) => {
+          const bars = weekBars[weekIdx] ?? [];
           return (
             <div
               key={weekIdx}
@@ -325,6 +326,46 @@ export function MonthGrid({
                   </button>
                 );
               })}
+              {/* 일정 바 (grid items) */}
+              {bars.map((bar, barIdx) => (
+                <button
+                  key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onScheduleClick?.(bar.schedule);
+                  }}
+                  title={bar.schedule.situation}
+                  style={{
+                    gridColumn: `${bar.colStart} / ${bar.colEnd}`,
+                    gridRow: bar.rowIndex + 2,
+                    height: 20,
+                    background: "var(--sage-wash)",
+                    borderRadius: "var(--r-2, 8px)",
+                    border: "none",
+                    padding: "0 6px",
+                    cursor: onScheduleClick ? "pointer" : "default",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 500,
+                    fontSize: 11,
+                    lineHeight: "20px",
+                    color: "var(--sage-ink)",
+                    transition: "background var(--dur-2)",
+                    animation: "days-fade-in 200ms var(--ease-out) both",
+                    pointerEvents: onScheduleClick ? "auto" : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--sage-mist)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--sage-wash)";
+                  }}
+                >
+                  {bar.schedule.situation}
+                </button>
+              ))}
             </div>
           );
         })}
