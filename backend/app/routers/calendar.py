@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import date
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import extract, select
@@ -11,6 +12,8 @@ from app.models import DiaryEntry, Holiday, UserSchedule
 from app.schemas import CalendarEntry, CalendarResponse, HolidayOut, ScheduleOut
 
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 @router.get("", response_model=CalendarResponse)
@@ -28,7 +31,7 @@ async def get_calendar(
         )
 
     result = await db.execute(
-        select(DiaryEntry.diary_date, DiaryEntry.emotion).where(
+        select(DiaryEntry.diary_date, DiaryEntry.emotion, DiaryEntry.created_at).where(
             DiaryEntry.user_id == user_id,
             extract("year", DiaryEntry.diary_date) == year,
             extract("month", DiaryEntry.diary_date) == mon,
@@ -36,7 +39,14 @@ async def get_calendar(
     )
     rows = result.all()
     entries = sorted(
-        [CalendarEntry(date=row.diary_date, emotion=row.emotion) for row in rows],
+        [
+            CalendarEntry(
+                date=row.diary_date,
+                emotion=row.emotion,
+                written_date=row.created_at.astimezone(KST).date(),
+            )
+            for row in rows
+        ],
         key=lambda e: e.date,
     )
 

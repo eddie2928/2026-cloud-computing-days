@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timezone
 
 
 async def _login(client):
@@ -66,3 +67,60 @@ async def test_calendar_excludes_other_month(client, bedrock_mock):
     entries = resp.json()["entries"]
     dates = [e["date"] for e in entries]
     assert "2026-08-20" not in dates
+
+
+@pytest.mark.asyncio
+async def test_calendar_entry_has_written_date(client, bedrock_mock):
+    """written_date 필드가 CalendarEntry 응답에 존재하는지 확인"""
+    await _login(client)
+    await _complete_qna(client, bedrock_mock, "2026-09-10")
+
+    resp = await client.get("/api/calendar", params={"month": "2026-09"})
+    assert resp.status_code == 200
+    entries = resp.json()["entries"]
+    entry = next(e for e in entries if e["date"] == "2026-09-10")
+    assert "written_date" in entry
+    assert entry["written_date"] is not None
+
+
+@pytest.mark.asyncio
+async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
+    """created_at이 diary_date와 같은 KST 날짜이면 written_date == date"""
+    await _login(client)
+    await _complete_qna(client, bedrock_mock, "2026-10-05")
+
+    # 2026-10-05T05:00:00 UTC = 2026-10-05T14:00:00 KST → 같은 날
+    same_day_utc = datetime(2026, 10, 5, 5, 0, 0, tzinfo=timezone.utc)
+    from sqlalchemy import text
+    await db_session.execute(
+        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2026-10-05'"),
+        {"ts": same_day_utc},
+    )
+    await db_session.commit()
+
+    resp = await client.get("/api/calendar", params={"month": "2026-10"})
+    entries = resp.json()["entries"]
+    entry = next(e for e in entries if e["date"] == "2026-10-05")
+    assert entry["written_date"] == "2026-10-05"
+
+
+@pytest.mark.asyncio
+async def test_calendar_kst_midnight_boundary(client, db_session, bedrock_mock):
+    """UTC 15:30 = KST 다음날 00:30: written_date가 diary_date + 1일로 나와야 함"""
+    await _login(client)
+    await _complete_qna(client, bedrock_mock, "2026-11-20")
+
+    # 2026-11-20T15:30:00 UTC = 2026-11-21T00:30:00 KST → 다음 날
+    next_day_utc = datetime(2026, 11, 20, 15, 30, 0, tzinfo=timezone.utc)
+    from sqlalchemy import text
+    await db_session.execute(
+        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2026-11-20'"),
+        {"ts": next_day_utc},
+    )
+    await db_session.commit()
+
+    resp = await client.get("/api/calendar", params={"month": "2026-11"})
+    entries = resp.json()["entries"]
+    entry = next(e for e in entries if e["date"] == "2026-11-20")
+    assert entry["written_date"] == "2026-11-21"
+    assert entry["written_date"] != entry["date"]

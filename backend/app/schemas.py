@@ -74,6 +74,7 @@ class ScheduleConfirm(BaseModel):
 class CalendarEntry(BaseModel):
     date: date
     emotion: str
+    written_date: date | None = None
 
 
 class HolidayOut(BaseModel):
