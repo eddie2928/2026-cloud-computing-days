@@ -492,3 +492,61 @@ async def start_qna_stream(
         yield _sse_event("done", resp.model_dump())
 
     return StreamingResponse(_generate(), media_type="text/event-stream")
+
+
+@router.post("/finalize", response_model=QnAFinalizeResponse)
+async def finalize_qna(
+    body: QnAFinalizeRequest,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.routers.diary import finalize_session
+    from app.routers.pet import grow_pet
+
+    result = await db.execute(
+        select(QnASession)
+        .options(selectinload(QnASession.items))
+        .where(QnASession.id == body.session_id, QnASession.user_id == user_id)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    if session.status == "completed":
+        diary_res = await db.execute(
+            select(DiaryEntry).where(DiaryEntry.session_id == session.id)
+        )
+        diary = diary_res.scalar_one_or_none()
+        if diary:
+            return QnAFinalizeResponse(diary=diary.body)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session already completed")
+
+    if session.status != "in_progress":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session not in progress")
+
+    answered_count = sum(1 for i in session.items if i.answer is not None)
+    if answered_count < _MIN_SEQUENCE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Need at least {_MIN_SEQUENCE} answered questions to finalize",
+        )
+
+    # Delete any unanswered question rows (dangling next-question not yet answered)
+    for item in list(session.items):
+        if item.answer is None:
+            await db.delete(item)
+    await db.flush()
+
+    user_profile = await _get_user_profile(db, user_id)
+    try:
+        diary_entry = await finalize_session(body.session_id, db, user_profile=user_profile)
+        await grow_pet(db, user_id)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        diary_res = await db.execute(
+            select(DiaryEntry).where(DiaryEntry.session_id == body.session_id)
+        )
+        diary_entry = diary_res.scalar_one()
+
+    return QnAFinalizeResponse(diary=diary_entry.body)
