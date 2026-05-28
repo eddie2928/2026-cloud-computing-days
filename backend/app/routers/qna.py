@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -550,3 +550,92 @@ async def finalize_qna(
         diary_entry = diary_res.scalar_one()
 
     return QnAFinalizeResponse(diary=diary_entry.body)
+
+
+def _extract_schedule_keys_from_items(items: list[QnAItem]) -> list[str]:
+    keys: list[str] = []
+    for item in items:
+        meta = item.bedrock_meta
+        if not meta or not meta.get("raw_response"):
+            continue
+        for s in _parse_schedules(meta["raw_response"]):
+            keys.append(f"{s['period_start']}|{s['period_end']}|{s['situation']}")
+    return keys
+
+
+@router.post("/undo", response_model=QnAUndoResponse)
+async def undo_qna(
+    body: QnAUndoRequest,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(QnASession)
+        .options(selectinload(QnASession.items))
+        .where(QnASession.id == body.session_id, QnASession.user_id == user_id)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    if session.status == "completed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session already completed")
+
+    if session.status != "in_progress":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session not in progress")
+
+    target_item = next((i for i in session.items if i.sequence == body.target_sequence), None)
+    if target_item is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target sequence not found")
+
+    if target_item.answer is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target sequence has no answer to undo")
+
+    removed_schedule_keys: list[str] = []
+
+    if body.mode == "discard":
+        # Collect schedule keys from items that will be discarded
+        discarded = [i for i in session.items if i.sequence > body.target_sequence]
+        removed_schedule_keys = _extract_schedule_keys_from_items(discarded)
+
+        # Delete items with sequence > target
+        await db.execute(
+            delete(QnAItem).where(
+                QnAItem.session_id == body.session_id,
+                QnAItem.sequence > body.target_sequence,
+            )
+        )
+
+    # Null out target item's answer
+    target_item.answer = None
+    target_item.answered_at = None
+
+    # Regenerate question for target sequence
+    answered_items = sorted(
+        [i for i in session.items if i.answer is not None and i.sequence < body.target_sequence],
+        key=lambda x: x.sequence,
+    )
+    user_profile = await _get_user_profile(db, user_id)
+    rag_summaries = await _get_recent_summaries(db, user_id, session.diary_date)
+    relevant_scheds = await _get_relevant_schedules(db, user_id, session.diary_date)
+    prev_extracted = _build_previously_extracted(answered_items)
+
+    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+        rag_summaries, answered_items, body.target_sequence,
+        user_profile=user_profile, relevant_schedules=relevant_scheds,
+        today=session.diary_date, previously_extracted=prev_extracted,
+    )
+
+    target_item.question = question
+    target_item.bedrock_meta = meta
+    await db.commit()
+
+    pending = _to_pending_schedules(extracted_schedules)
+
+    return QnAUndoResponse(
+        question=question,
+        sequence=body.target_sequence,
+        suggestions=suggestions,
+        pending_schedules=pending,
+        removed_schedule_keys=removed_schedule_keys,
+    )
