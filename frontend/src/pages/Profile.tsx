@@ -33,6 +33,8 @@ export function Profile() {
   const [saving, setSaving] = useState(false)
   const [pushState, setPushState] = useState<PushState>('default')
   const [pushLoading, setPushLoading] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const { canInstall, isIOSSafari, isStandalone, promptInstall } = useInstallPrompt()
 
   useEffect(() => {
     client.get('/profile').then((res) => {
