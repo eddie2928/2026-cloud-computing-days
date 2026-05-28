@@ -25,6 +25,14 @@ function truncateName(name: string, max: number): string {
   return name.length > max ? name.slice(0, max) + ".." : name;
 }
 
+function chunkCells<T>(cells: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < cells.length; i += size) {
+    chunks.push(cells.slice(i, i + size));
+  }
+  return chunks;
+}
+
 interface ScheduleBar {
   schedule: ScheduleItem;
   colStart: number; // 1-indexed grid column start
