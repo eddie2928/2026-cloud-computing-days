@@ -44,6 +44,20 @@ systemctl daemon-reload
 systemctl restart qna-api
 systemctl reload nginx
 
+# 7. CloudFront cache invalidation (so the new frontend appears immediately)
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+  echo "==> Invalidating CloudFront cache (distribution=$CLOUDFRONT_DISTRIBUTION_ID)"
+  INVALIDATION_ID=$(aws cloudfront create-invalidation \
+    --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+    --paths "/*" \
+    --query 'Invalidation.Id' \
+    --output text) \
+    && echo "    invalidation id: $INVALIDATION_ID" \
+    || echo "    WARN: invalidation failed (continuing)"
+else
+  echo "==> Skipping CloudFront invalidation (CLOUDFRONT_DISTRIBUTION_ID not set)"
+fi
+
 echo "==> Redeploy done"
 systemctl --no-pager status qna-api | head -n 20
 
