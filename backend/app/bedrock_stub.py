@@ -45,6 +45,15 @@ _STUB_DIARIES = [
 ]
 
 
+_STUB_SUGGESTIONS = [
+    ["네, 좋았어요.", "별로 기억나는 게 없어요.", "생각해볼게요."],
+    ["기쁘고 설렜어요.", "조금 피곤했어요.", "평범한 하루였어요."],
+    ["특별히 없었어요.", "동료와 이야기했어요.", "혼자 있었어요."],
+    ["쉬고 싶어요.", "새로운 걸 해보고 싶어요.", "아직 모르겠어요."],
+    ["열심히 한 것 같아요.", "큰 것은 아니지만 버텼어요.", "잘 모르겠어요."],
+]
+
+
 class BedrockStubClient:
     async def generate_question(
         self,
@@ -55,10 +64,11 @@ class BedrockStubClient:
         relevant_schedules: list[str] | None = None,
         today: date | None = None,
         previously_extracted: str = "",
-    ) -> tuple[str, list[dict], dict]:
+    ) -> tuple[str, list[dict], list[str], dict]:
         idx = ((next_sequence - 1) % 5)
         question = _STUB_QUESTIONS[idx]
-        return question, [], dict(_STUB_META)
+        suggestions = _STUB_SUGGESTIONS[idx]
+        return question, [], suggestions, dict(_STUB_META)
 
     async def generate_diary(
         self,
