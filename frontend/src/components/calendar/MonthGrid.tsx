@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   type CalendarEntry,
   type HolidayItem,
@@ -5,6 +6,7 @@ import {
 } from "../../lib/week";
 import { MoodEmoji, type Mood } from "../days/MoodEmoji";
 import { Icon } from "../days/Icon";
+import { WeekSchedulesModal } from "./WeekSchedulesModal";
 
 interface MonthGridProps {
   year: number;
@@ -104,6 +106,8 @@ export function MonthGrid({
   onCellClick,
   onScheduleClick,
 }: MonthGridProps) {
+  const [openWeekIdx, setOpenWeekIdx] = useState<number | null>(null);
+
   const holidayMap = new Map(holidays.map((h) => [h.date, h]));
   const entryMap = new Map(entries.map((e) => [e.date, e]));
   const firstDay = new Date(year, month - 1, 1);
@@ -372,7 +376,7 @@ export function MonthGrid({
               {overflowBars.length > 0 && (
                 <button
                   data-overflow-week={weekIdx}
-                  onClick={() => {/* T3.4에서 openWeekIdx 세터 연결 */}}
+                  onClick={() => setOpenWeekIdx(weekIdx)}
                   style={{
                     gridColumn: "1 / 8",
                     gridRow: 5,
@@ -403,6 +407,28 @@ export function MonthGrid({
           );
         })}
       </div>
+      {/* 주별 일정 더보기 모달 */}
+      {openWeekIdx !== null && (() => {
+        const allBars = weekBars[openWeekIdx] ?? [];
+        const uniqueSchedules = [
+          ...new Map(allBars.map((b) => [b.schedule.id, b.schedule])).values(),
+        ];
+        const weekStart = weeks[openWeekIdx]?.[0]?.date ?? "";
+        const weekEnd = weeks[openWeekIdx]?.[6]?.date ?? "";
+        const label = weekStart && weekEnd ? `${weekStart} ~ ${weekEnd}` : "";
+        return (
+          <WeekSchedulesModal
+            open
+            onClose={() => setOpenWeekIdx(null)}
+            schedules={uniqueSchedules}
+            weekLabel={label}
+            onScheduleClick={(s) => {
+              setOpenWeekIdx(null);
+              onScheduleClick?.(s);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
