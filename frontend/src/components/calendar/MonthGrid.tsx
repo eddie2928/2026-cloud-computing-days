@@ -328,8 +328,8 @@ export function MonthGrid({
                   </button>
                 );
               })}
-              {/* 일정 바 (grid items) */}
-              {bars.map((bar, barIdx) => (
+              {/* 일정 바 — 최대 3개만 표시 */}
+              {visibleBars.map((bar, barIdx) => (
                 <button
                   key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
                   onClick={(e) => {
@@ -368,6 +368,37 @@ export function MonthGrid({
                   {bar.schedule.situation}
                 </button>
               ))}
+              {/* overflow 일정: "+N개 더" 버튼 (T3.4에서 onClick 연결) */}
+              {overflowBars.length > 0 && (
+                <button
+                  data-overflow-week={weekIdx}
+                  onClick={() => {/* T3.4에서 openWeekIdx 세터 연결 */}}
+                  style={{
+                    gridColumn: "1 / 8",
+                    gridRow: 5,
+                    height: 20,
+                    background: "transparent",
+                    border: "none",
+                    padding: "0 6px",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 500,
+                    fontSize: 11,
+                    lineHeight: "20px",
+                    color: "var(--sage-forest)",
+                    textAlign: "left",
+                    animation: "days-fade-in 200ms var(--ease-out) both",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.color = "var(--sage-ink)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.color = "var(--sage-forest)";
+                  }}
+                >
+                  +{overflowBars.length}개 더
+                </button>
+              )}
             </div>
           );
         })}
