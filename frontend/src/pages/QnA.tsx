@@ -8,6 +8,7 @@ import { ThinkingDots } from "../components/qna/ThinkingDots";
 import { ChatInput } from "../components/qna/ChatInput";
 import { ProgressBar } from "../components/days/ProgressBar";
 import { ScheduleCard } from "../components/qna/ScheduleCard";
+import { SuggestionChips } from "../components/qna/SuggestionChips";
 
 interface Message {
   role: "ai" | "user";
@@ -315,7 +316,17 @@ export function Qna() {
       <div
         style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
       >
-        <ChatInput onSend={handleSend} disabled={thinking || done} />
+        <SuggestionChips
+          suggestions={suggestions}
+          onPick={(t) => setInputValue(t)}
+          disabled={thinking || done}
+        />
+        <ChatInput
+          onSend={handleSend}
+          disabled={thinking || done}
+          value={inputValue}
+          onChange={setInputValue}
+        />
       </div>
     </div>
   );
