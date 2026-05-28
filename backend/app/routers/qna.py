@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
+# NOTE: BedrockClient는 현재 bedrock_stub의 BedrockStubClient로 re-export됨 (수동 마이그레이션 기간).
 from app.bedrock import BedrockClient, _parse_schedules
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule

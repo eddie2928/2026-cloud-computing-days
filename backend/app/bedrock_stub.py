@@ -1,0 +1,70 @@
+from datetime import date
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models import QnAItem
+
+_STUB_META = {
+    "model_id": "stub",
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "latency_ms": 0,
+    "prompt": "stub",
+    "raw_response": "<stub>",
+}
+
+_STUB_QUESTIONS = [
+    "오늘 하루 중 가장 기억에 남는 순간은 무엇인가요?",
+    "그 순간에 어떤 감정을 느꼈나요?",
+    "오늘 만난 사람들 중 인상 깊었던 사람이 있나요?",
+    "내일 꼭 해보고 싶은 일이 있나요?",
+    "오늘 자신에게 칭찬해주고 싶은 점은 무엇인가요?",
+]
+
+_STUB_DIARIES = [
+    (
+        "오늘은 출근길에 따뜻한 햇살을 맞으며 걸었다. 작은 카페에서 마신 아메리카노 한 잔이 하루를 열어주었고, 그 여유로운 순간이 온종일 마음에 남았다.",
+        "출근길 햇살과 커피 한 잔으로 시작된 여유로운 하루",
+    ),
+    (
+        "오늘은 오랜 친구와 오랜만에 통화를 했다. 바쁜 일상 속에서도 서로의 안부를 묻고 웃을 수 있어 마음이 따뜻해졌다. 소소한 연결이 큰 위안이 된다는 것을 다시 느꼈다.",
+        "오랜 친구와의 통화로 일상의 따뜻함을 다시 느낀 날",
+    ),
+    (
+        "저녁에 혼자 요리를 해 먹었다. 서툴렀지만 직접 만든 된장찌개의 맛이 생각보다 훨씬 좋았다. 작은 성취감이 하루를 충분히 뿌듯하게 만들어 주었다.",
+        "직접 끓인 된장찌개에서 찾은 소소한 성취감",
+    ),
+    (
+        "오늘은 집에서 책을 읽으며 조용히 보냈다. 좋아하는 작가의 문장들이 마음을 채워주었고, 아무 계획도 없이 쉬는 것이 오히려 큰 활력이 된다는 걸 깨달았다.",
+        "독서와 휴식으로 채운 조용하고 충만한 하루",
+    ),
+    (
+        "오늘 처음 도전한 새로운 운동 클래스에서 생각보다 잘 해냈다. 몸이 뻐근하지만 뿌듯함이 더 크다. 새로운 것에 용기를 내는 자신이 자랑스럽다.",
+        "새 운동 클래스 도전으로 발견한 나의 가능성",
+    ),
+]
+
+
+class BedrockStubClient:
+    async def generate_question(
+        self,
+        rag_summaries: list,
+        session_so_far: list,
+        next_sequence: int,
+        user_profile: dict | None = None,
+        relevant_schedules: list[str] | None = None,
+        today: date | None = None,
+        previously_extracted: str = "",
+    ) -> tuple[str, list[dict], dict]:
+        idx = ((next_sequence - 1) % 5)
+        question = _STUB_QUESTIONS[idx]
+        return question, [], dict(_STUB_META)
+
+    async def generate_diary(
+        self,
+        qna_items: list,
+        user_profile: dict | None = None,
+    ) -> tuple[str, str, dict]:
+        idx = (len(qna_items) % 5)
+        body, summary = _STUB_DIARIES[idx]
+        return body, summary, dict(_STUB_META)

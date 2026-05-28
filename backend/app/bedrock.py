@@ -1,3 +1,11 @@
+# ============================================================
+# [DISABLED] 신규 AWS 계정 마이그레이션 동안 Bedrock 비활성화.
+# 본 파일의 실제 Bedrock 호출부는 주석 처리되어 있으며,
+# 라우터는 app.bedrock_stub.BedrockStubClient를 사용한다.
+# 복원 절차: 아래 주석 블록을 해제하고 bedrock_stub import를
+# 다시 bedrock import로 되돌리면 된다.
+# ============================================================
+
 import asyncio
 import json
 import re
@@ -7,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import boto3
+# import boto3
 
 from app.config import get_settings
 from app.models import QnAItem
@@ -80,100 +88,103 @@ def _parse_schedules(raw: str) -> list[dict]:
     return result
 
 
-def _invoke_claude(client: Any, model_id: str, prompt: str) -> tuple[str, dict]:
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 1024,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    t0 = time.monotonic()
-    response = client.invoke_model(
-        modelId=model_id,
-        body=json.dumps(body),
-        contentType="application/json",
-        accept="application/json",
-    )
-    latency_ms = int((time.monotonic() - t0) * 1000)
-    result = json.loads(response["body"].read())
-    text = result["content"][0]["text"]
-    usage = result.get("usage", {})
-    meta = {
-        "model_id": model_id,
-        "input_tokens": usage.get("input_tokens"),
-        "output_tokens": usage.get("output_tokens"),
-        "latency_ms": latency_ms,
-        "prompt": prompt,
-        "raw_response": text,
-    }
-    return text, meta
+# [DISABLED] def _invoke_claude(client: Any, model_id: str, prompt: str) -> tuple[str, dict]:
+#     body = {
+#         "anthropic_version": "bedrock-2023-05-31",
+#         "max_tokens": 1024,
+#         "messages": [{"role": "user", "content": prompt}],
+#     }
+#     t0 = time.monotonic()
+#     response = client.invoke_model(
+#         modelId=model_id,
+#         body=json.dumps(body),
+#         contentType="application/json",
+#         accept="application/json",
+#     )
+#     latency_ms = int((time.monotonic() - t0) * 1000)
+#     result = json.loads(response["body"].read())
+#     text = result["content"][0]["text"]
+#     usage = result.get("usage", {})
+#     meta = {
+#         "model_id": model_id,
+#         "input_tokens": usage.get("input_tokens"),
+#         "output_tokens": usage.get("output_tokens"),
+#         "latency_ms": latency_ms,
+#         "prompt": prompt,
+#         "raw_response": text,
+#     }
+#     return text, meta
 
 
-class BedrockClient:
-    def __init__(self, region: str | None = None, model_id: str | None = None):
-        cfg = get_settings()
-        self._region = region or cfg.aws_region
-        self._model_id = model_id or cfg.bedrock_model_id
-        self._client = boto3.client("bedrock-runtime", region_name=self._region)
+# [DISABLED] class BedrockClient:
+#     def __init__(self, region: str | None = None, model_id: str | None = None):
+#         cfg = get_settings()
+#         self._region = region or cfg.aws_region
+#         self._model_id = model_id or cfg.bedrock_model_id
+#         self._client = boto3.client("bedrock-runtime", region_name=self._region)
+#
+#     async def generate_question(
+#         self,
+#         rag_summaries: list[tuple[date, str]],
+#         session_so_far: list[QnAItem],
+#         next_sequence: int,
+#         user_profile: dict | None = None,
+#         relevant_schedules: list[str] | None = None,
+#         today: date | None = None,
+#         previously_extracted: str = "",
+#     ) -> tuple[str, list[dict], dict]:
+#         profile_block = _build_profile_block(user_profile)
+#         rag_block = _build_rag_block(rag_summaries)
+#         session_block = _build_session_block(session_so_far)
+#         schedules_block = "\n".join(relevant_schedules) if relevant_schedules else ""
+#         today_str = str(today or date.today())
+#         prompt = _load_prompt(
+#             "question",
+#             today_date=today_str,
+#             user_profile=profile_block,
+#             rag_summaries=rag_block,
+#             relevant_schedules=schedules_block,
+#             session_so_far=session_block,
+#             next_sequence=str(next_sequence),
+#             previously_extracted=previously_extracted,
+#         )
+#         text, meta = await asyncio.to_thread(
+#             _invoke_claude, self._client, self._model_id, prompt
+#         )
+#         raw = text.strip()
+#         question_match = re.search(r"<question>(.*?)</question>", raw, re.DOTALL)
+#         question = question_match.group(1).strip() if question_match else raw
+#         schedules = _parse_schedules(raw)
+#         return question, schedules, meta
+#
+#     async def generate_diary(
+#         self,
+#         qna_items: list[QnAItem],
+#         user_profile: dict | None = None,
+#     ) -> tuple[str, str, dict]:
+#         profile_block = _build_profile_block(user_profile)
+#         sorted_items = sorted(qna_items, key=lambda x: x.sequence)
+#         qa_text = "\n".join(
+#             f"Q{i.sequence}: {i.question}\nA{i.sequence}: {i.answer}" for i in sorted_items
+#         )
+#         prompt = _load_prompt(
+#             "diary",
+#             user_profile=profile_block,
+#             qa_text=qa_text,
+#         )
+#         text, meta = await asyncio.to_thread(
+#             _invoke_claude, self._client, self._model_id, prompt
+#         )
+#         raw = text.strip()
+#         diary_match = re.search(r"<diary>(.*?)</diary>", raw, re.DOTALL)
+#         summary_match = re.search(r"<summary>(.*?)</summary>", raw, re.DOTALL)
+#         if diary_match and summary_match:
+#             body = diary_match.group(1).strip()
+#             summary = summary_match.group(1).strip()
+#         else:
+#             body = raw
+#             summary = ""
+#         return body, summary, meta
 
-    async def generate_question(
-        self,
-        rag_summaries: list[tuple[date, str]],
-        session_so_far: list[QnAItem],
-        next_sequence: int,
-        user_profile: dict | None = None,
-        relevant_schedules: list[str] | None = None,
-        today: date | None = None,
-        previously_extracted: str = "",
-    ) -> tuple[str, list[dict], dict]:
-        profile_block = _build_profile_block(user_profile)
-        rag_block = _build_rag_block(rag_summaries)
-        session_block = _build_session_block(session_so_far)
-        schedules_block = "\n".join(relevant_schedules) if relevant_schedules else ""
-        today_str = str(today or date.today())
-        prompt = _load_prompt(
-            "question",
-            today_date=today_str,
-            user_profile=profile_block,
-            rag_summaries=rag_block,
-            relevant_schedules=schedules_block,
-            session_so_far=session_block,
-            next_sequence=str(next_sequence),
-            previously_extracted=previously_extracted,
-        )
-        text, meta = await asyncio.to_thread(
-            _invoke_claude, self._client, self._model_id, prompt
-        )
-        raw = text.strip()
-        question_match = re.search(r"<question>(.*?)</question>", raw, re.DOTALL)
-        question = question_match.group(1).strip() if question_match else raw
-        schedules = _parse_schedules(raw)
-        return question, schedules, meta
 
-    async def generate_diary(
-        self,
-        qna_items: list[QnAItem],
-        user_profile: dict | None = None,
-    ) -> tuple[str, str, dict]:
-        profile_block = _build_profile_block(user_profile)
-        sorted_items = sorted(qna_items, key=lambda x: x.sequence)
-        qa_text = "\n".join(
-            f"Q{i.sequence}: {i.question}\nA{i.sequence}: {i.answer}" for i in sorted_items
-        )
-        prompt = _load_prompt(
-            "diary",
-            user_profile=profile_block,
-            qa_text=qa_text,
-        )
-        text, meta = await asyncio.to_thread(
-            _invoke_claude, self._client, self._model_id, prompt
-        )
-        raw = text.strip()
-        diary_match = re.search(r"<diary>(.*?)</diary>", raw, re.DOTALL)
-        summary_match = re.search(r"<summary>(.*?)</summary>", raw, re.DOTALL)
-        if diary_match and summary_match:
-            body = diary_match.group(1).strip()
-            summary = summary_match.group(1).strip()
-        else:
-            body = raw
-            summary = ""
-        return body, summary, meta
+from app.bedrock_stub import BedrockStubClient as BedrockClient  # noqa: E402,F811
