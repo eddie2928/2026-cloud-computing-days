@@ -225,6 +225,8 @@ export function MonthGrid({
       <div data-testid="month-grid">
         {weeks.map((week, weekIdx) => {
           const bars = weekBars[weekIdx] ?? [];
+          const visibleBars = bars.filter((b) => b.rowIndex < 3);
+          const overflowBars = bars.filter((b) => b.rowIndex >= 3);
           return (
             <div
               key={weekIdx}
