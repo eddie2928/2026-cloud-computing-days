@@ -5,7 +5,7 @@ import { MonthGrid } from "../src/components/calendar/MonthGrid";
 const noop = vi.fn();
 
 describe("MonthGrid", () => {
-  it("2026-05 → 42개 셀 렌더 (7×6)", () => {
+  it("2026-05 → 6개 주행(week-row), 각 행 7개 셀 = 총 42개 (7×6)", () => {
     render(
       <MonthGrid
         year={2026}
@@ -17,7 +17,9 @@ describe("MonthGrid", () => {
       />,
     );
     const grid = screen.getByTestId("month-grid");
-    expect(grid.children).toHaveLength(42);
+    expect(grid.children).toHaveLength(6); // 6 week rows
+    const dateCells = grid.querySelectorAll("button[aria-label]");
+    expect(dateCells).toHaveLength(42); // 7×6 date cells
   });
 
   it("일요일 시작 — 첫 셀이 일요일(일)", () => {

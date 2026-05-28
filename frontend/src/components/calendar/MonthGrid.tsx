@@ -141,9 +141,7 @@ export function MonthGrid({
   }
 
   const weekBars = getScheduleBars(cells, schedules);
-  const CELL_HEIGHT = 56; // approximate px height of each date cell row
-  const BAR_HEIGHT = 20;
-  const BAR_GAP = 2;
+  const weeks = chunkCells(cells, 7);
 
   return (
     <div>
@@ -223,154 +221,113 @@ export function MonthGrid({
         ))}
       </div>
 
-      {/* 날짜 셀 그리드 + 일정 바 오버레이 */}
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, 1fr)",
-            gap: 2,
-          }}
-          data-testid="month-grid"
-        >
-          {cells.map(({ date, inMonth }) => {
-            const isToday = date === TODAY;
-            const isFuture = date > TODAY;
-            const entry = entryMap.get(date);
-            const emotion = entry?.emotion;
-            const holiday = holidayMap.get(date);
-            const clickable = inMonth && !isFuture;
-            const isHoliday = holiday?.is_holiday === true;
-            const dateNumColor = isFuture
-              ? "var(--ink-soft)"
-              : isToday
-                ? "var(--sage-forest)"
-                : isHoliday
-                  ? "var(--accent-clay)"
-                  : "var(--ink-body)";
-
-            const borderStyle = (() => {
-              if (isToday) return "2px solid var(--sage-forest)";
-              if (!entry) return "1px solid transparent";
-              if (entry.written_date === undefined)
-                return "2px solid var(--sage-leaf)";
-              if (entry.written_date === date)
-                return "2px solid var(--sage-leaf)";
-              return "2px dashed var(--sage-leaf)";
-            })();
-            return (
-              <button
-                key={date}
-                aria-label={date}
-                disabled={isFuture}
-                onClick={() => clickable && onCellClick(date)}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                  padding: "6px 2px",
-                  minHeight: CELL_HEIGHT,
-                  borderRadius: "var(--r-2)",
-                  border: borderStyle,
-                  background: isFuture
-                    ? "var(--paper-mist)"
-                    : inMonth
-                      ? "var(--cal-day-bg, var(--paper-pure))"
-                      : "transparent",
-                  cursor: clickable ? "pointer" : "default",
-                  opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
-                  transition: "background var(--dur-1)",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "var(--t-xs)",
-                    color: dateNumColor,
-                    fontWeight: isToday ? 700 : 400,
-                  }}
-                >
-                  {new Date(date).getDate()}
-                </span>
-                {holiday && inMonth && (
-                  <span
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: 9,
-                      lineHeight: 1.2,
-                      color: isHoliday
-                        ? "var(--accent-clay)"
-                        : "var(--ink-hint)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "100%",
-                      display: "block",
-                    }}
-                  >
-                    {truncateName(holiday.name, 4)}
-                  </span>
-                )}
-                {emotion ? (
-                  <MoodEmoji mood={emotion as Mood} size={12} />
-                ) : (
-                  <span style={{ width: 12, height: 12 }} />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 일정 바 오버레이 (주 단위) */}
-        {weekBars.map((bars, weekIdx) =>
-          bars.map((bar, barIdx) => (
-            <button
-              key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onScheduleClick?.(bar.schedule);
-              }}
-              title={bar.schedule.situation}
+      {/* 날짜 그리드 — 주(week) 단위 행 */}
+      <div data-testid="month-grid">
+        {weeks.map((week, weekIdx) => {
+          return (
+            <div
+              key={weekIdx}
               style={{
-                position: "absolute",
-                top:
-                  weekIdx * (CELL_HEIGHT + 2) +
-                  28 +
-                  bar.rowIndex * (BAR_HEIGHT + BAR_GAP),
-                left: `calc(${((bar.colStart - 1) / 7) * 100}% + 2px)`,
-                width: `calc(${((bar.colEnd - bar.colStart) / 7) * 100}% - 4px)`,
-                height: BAR_HEIGHT,
-                background: "var(--sage-wash)",
-                borderRadius: "var(--r-2, 8px)",
-                border: "none",
-                padding: "0 6px",
-                cursor: onScheduleClick ? "pointer" : "default",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontFamily: "var(--font-sans)",
-                fontWeight: 500,
-                fontSize: 11,
-                lineHeight: `${BAR_HEIGHT}px`,
-                color: "var(--sage-ink)",
-                transition: "background var(--dur-2)",
-                animation: "days-fade-in 200ms var(--ease-out) both",
-                pointerEvents: onScheduleClick ? "auto" : "none",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "var(--sage-mist)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "var(--sage-wash)";
+                display: "grid",
+                gridTemplateColumns: "repeat(7, 1fr)",
+                gridAutoRows: "max-content",
+                gap: 2,
+                minHeight: 84,
+                marginBottom: 2,
               }}
             >
-              {bar.schedule.situation}
-            </button>
-          )),
-        )}
+              {week.map(({ date, inMonth }) => {
+                const isToday = date === TODAY;
+                const isFuture = date > TODAY;
+                const entry = entryMap.get(date);
+                const emotion = entry?.emotion;
+                const holiday = holidayMap.get(date);
+                const clickable = inMonth && !isFuture;
+                const isHoliday = holiday?.is_holiday === true;
+                const dateNumColor = isFuture
+                  ? "var(--ink-soft)"
+                  : isToday
+                    ? "var(--sage-forest)"
+                    : isHoliday
+                      ? "var(--accent-clay)"
+                      : "var(--ink-body)";
+
+                const borderStyle = (() => {
+                  if (isToday) return "2px solid var(--sage-forest)";
+                  if (!entry) return "1px solid transparent";
+                  if (entry.written_date === undefined)
+                    return "2px solid var(--sage-leaf)";
+                  if (entry.written_date === date)
+                    return "2px solid var(--sage-leaf)";
+                  return "2px dashed var(--sage-leaf)";
+                })();
+
+                return (
+                  <button
+                    key={date}
+                    aria-label={date}
+                    disabled={isFuture}
+                    onClick={() => clickable && onCellClick(date)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 2,
+                      padding: "6px 2px",
+                      minHeight: 60,
+                      gridRow: 1,
+                      borderRadius: "var(--r-2)",
+                      border: borderStyle,
+                      background: isFuture
+                        ? "var(--paper-mist)"
+                        : inMonth
+                          ? "var(--cal-day-bg, var(--paper-pure))"
+                          : "transparent",
+                      cursor: clickable ? "pointer" : "default",
+                      opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
+                      transition: "background var(--dur-1)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "var(--t-xs)",
+                        color: dateNumColor,
+                        fontWeight: isToday ? 700 : 400,
+                      }}
+                    >
+                      {new Date(date).getDate()}
+                    </span>
+                    {holiday && inMonth && (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: 9,
+                          lineHeight: 1.2,
+                          color: isHoliday
+                            ? "var(--accent-clay)"
+                            : "var(--ink-hint)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "100%",
+                          display: "block",
+                        }}
+                      >
+                        {truncateName(holiday.name, 4)}
+                      </span>
+                    )}
+                    {emotion ? (
+                      <MoodEmoji mood={emotion as Mood} size={12} />
+                    ) : (
+                      <span style={{ width: 12, height: 12 }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
