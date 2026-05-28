@@ -182,6 +182,8 @@ export function Qna() {
   }, [done, accumulatedSchedules.length, allProcessed, navigate, date]);
 
   const totalQuestions = 5;
+  const progressValue = Math.min(sequence, totalQuestions);
+  const extraQuestions = sequence > totalQuestions ? sequence - totalQuestions : 0;
 
   if (done && accumulatedSchedules.length > 0) {
     return (
@@ -268,12 +270,27 @@ export function Qna() {
               fontFamily: "var(--font-sans)",
               fontSize: "var(--t-xs)",
               color: "var(--ink-meta)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
             }}
           >
-            {sequence} / {totalQuestions}
+            {progressValue} / {totalQuestions}
+            {extraQuestions > 0 && (
+              <span
+                style={{
+                  color: "var(--sage-leaf)",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--t-xs)",
+                  fontWeight: 600,
+                }}
+              >
+                +{extraQuestions}
+              </span>
+            )}
           </span>
         </div>
-        <ProgressBar value={sequence} max={totalQuestions} />
+        <ProgressBar value={progressValue} max={totalQuestions} />
       </div>
 
       <div
