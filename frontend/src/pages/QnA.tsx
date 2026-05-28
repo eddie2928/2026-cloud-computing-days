@@ -9,6 +9,7 @@ import { ChatInput } from "../components/qna/ChatInput";
 import { ProgressBar } from "../components/days/ProgressBar";
 import { ScheduleCard } from "../components/qna/ScheduleCard";
 import { SuggestionChips } from "../components/qna/SuggestionChips";
+import { finalizeQna } from "../lib/qnaApi";
 
 interface Message {
   role: "ai" | "user";
@@ -42,6 +43,7 @@ export function Qna() {
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [minReached, setMinReached] = useState(false);
+  const [showContinueButtons, setShowContinueButtons] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const STEP_LABELS: Record<string, string> = {
@@ -128,8 +130,10 @@ export function Qna() {
         ]);
       } else {
         const nextSeq = res.data.sequence;
+        const reached = res.data.min_reached ?? false;
         setSequence(nextSeq);
-        setMinReached(res.data.min_reached ?? false);
+        setMinReached(reached);
+        if (reached) setShowContinueButtons(true);
         setSuggestions(res.data.suggestions ?? []);
         setMessages((m) => [
           ...m,
@@ -160,6 +164,24 @@ export function Qna() {
     setScheduleStatuses((prev) =>
       new Map(prev).set(scheduleKey(s), "rejected"),
     );
+  };
+
+  const handleFinalize = async () => {
+    if (!sessionId || thinking || done) return;
+    setThinking(true);
+    try {
+      await finalizeQna(sessionId);
+      setThinking(false);
+      setDone(true);
+      setSuggestions([]);
+      setShowContinueButtons(false);
+      setMessages((m) => [
+        ...m,
+        { role: "ai", text: "오늘의 일기가 완성되었어요." },
+      ]);
+    } catch {
+      setThinking(false);
+    }
   };
 
   const allProcessed =
@@ -333,6 +355,67 @@ export function Qna() {
       <div
         style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
       >
+        {showContinueButtons && !done && (
+          <div
+            style={{
+              marginBottom: 12,
+              animation: "days-rise 240ms var(--ease-out) both",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--t-sm)",
+                color: "var(--ink-meta)",
+                textAlign: "center",
+                margin: "0 0 10px",
+              }}
+            >
+              더 이야기해 볼까요?
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowContinueButtons(false)}
+                style={{
+                  flex: 1,
+                  padding: "11px 0",
+                  borderRadius: 999,
+                  border: "1.5px solid var(--sage-leaf)",
+                  background: "transparent",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--t-sm)",
+                  color: "var(--sage-forest)",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "background var(--dur-1) var(--ease-out)",
+                }}
+              >
+                계속 이어가기
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalize}
+                disabled={thinking}
+                style={{
+                  flex: 1,
+                  padding: "11px 0",
+                  borderRadius: 999,
+                  border: 0,
+                  background: thinking ? "var(--sage-mist)" : "var(--sage-leaf)",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--t-sm)",
+                  color: "var(--paper-pure)",
+                  fontWeight: 600,
+                  cursor: thinking ? "not-allowed" : "pointer",
+                  transition: "background var(--dur-1) var(--ease-out)",
+                }}
+              >
+                여기서 마무리
+              </button>
+            </div>
+          </div>
+        )}
         <SuggestionChips
           suggestions={suggestions}
           onPick={(t) => setInputValue(t)}
