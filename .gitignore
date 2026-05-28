@@ -33,4 +33,6 @@ Task*.md
 
 # Local planning & brainstorming (not for repo)
 docs/
-.superpowers/
+.superpowers/jmh-agent-orchestration/
+
+jmh-agent-orchestration/
