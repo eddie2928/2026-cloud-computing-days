@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -193,3 +193,70 @@ class QnAFinalizeRequest(BaseModel):
 
 class QnAFinalizeResponse(BaseModel):
     diary: str
+
+
+class PlanTodoOut(BaseModel):
+    id: int
+    plan_id: int
+    todo_date: date
+    sequence: int
+    content: str
+    completed: bool
+    completed_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class PlanTodoCreate(BaseModel):
+    todo_date: date
+    sequence: int
+    content: str
+
+
+class PlanTodoUpdate(BaseModel):
+    sequence: int | None = None
+    content: str | None = None
+    completed: bool | None = None
+
+
+class PlanOut(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    description_input: str | None = None
+    goal_input: str | None = None
+    period_start: date
+    period_end: date
+    source: str
+    created_at: datetime
+    progress: float = 0.0
+
+    model_config = {"from_attributes": True}
+
+
+class PlanWithTodosOut(PlanOut):
+    todos: list[PlanTodoOut] = []
+
+
+class PlanCreate(BaseModel):
+    title: str
+    period_start: date
+    period_end: date
+    description_input: str | None = None
+    goal_input: str | None = None
+    source: str = "manual"
+
+
+class PlanUpdate(BaseModel):
+    title: str | None = None
+    period_start: date | None = None
+    period_end: date | None = None
+    description_input: str | None = None
+    goal_input: str | None = None
+
+
+class PlanGenerateInput(BaseModel):
+    description: str
+    period_start: date
+    period_end: date
+    goal: str

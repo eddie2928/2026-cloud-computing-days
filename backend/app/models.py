@@ -32,6 +32,7 @@ class User(Base):
     profile: Mapped["UserProfile | None"] = relationship(back_populates="user", uselist=False)
     sessions: Mapped[list["QnASession"]] = relationship(back_populates="user")
     diary_entries: Mapped[list["DiaryEntry"]] = relationship(back_populates="user")
+    plans: Mapped[list["Plan"]] = relationship(back_populates="user")
 
 
 class UserProfile(Base):
@@ -174,3 +175,53 @@ class PushSubscription(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship()
+
+
+class Plan(Base):
+    __tablename__ = "plans"
+    __table_args__ = (
+        CheckConstraint("period_end >= period_start", name="ck_plan_period"),
+        Index("ix_plans_user_period", "user_id", "period_start", "period_end"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(TEXT, nullable=False)
+    description_input: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    goal_input: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    period_start: Mapped[date] = mapped_column(DATE, nullable=False)
+    period_end: Mapped[date] = mapped_column(DATE, nullable=False)
+    source: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="manual")
+    ai_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship(back_populates="plans")
+    todos: Mapped[list["PlanTodo"]] = relationship(
+        back_populates="plan", cascade="all, delete-orphan"
+    )
+
+
+class PlanTodo(Base):
+    __tablename__ = "plan_todos"
+    __table_args__ = (
+        UniqueConstraint("plan_id", "todo_date", "sequence"),
+        Index("ix_plan_todos_plan_date", "plan_id", "todo_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    todo_date: Mapped[date] = mapped_column(DATE, nullable=False)
+    sequence: Mapped[int] = mapped_column(SMALLINT, nullable=False)
+    content: Mapped[str] = mapped_column(TEXT, nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["Plan"] = relationship(back_populates="todos")
