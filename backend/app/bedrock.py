@@ -199,4 +199,38 @@ def _parse_schedules(raw: str) -> list[dict]:
 #         return body, summary, meta
 
 
+# """
+# async def generate_plan(
+#     description: str,
+#     period_start: date,
+#     period_end: date,
+#     goal: str,
+#     user_profile: dict | None = None,
+# ) -> tuple[str, date, date, list[dict], dict]:
+#     cfg = get_settings()
+#     import boto3
+#     client = boto3.client("bedrock-runtime", region_name=cfg.aws_region)
+#     profile_block = _build_profile_block(user_profile)
+#     prompt = _load_prompt(
+#         "plan_generation",
+#         user_description=description,
+#         period_start=str(period_start),
+#         period_end=str(period_end),
+#         goal=goal,
+#         user_profile=profile_block,
+#     )
+#     text, meta = await asyncio.to_thread(_invoke_claude, client, cfg.bedrock_model_id, prompt)
+#     raw = text.strip()
+#     parsed = json.loads(raw)
+#     title = parsed["title"]
+#     ps = date.fromisoformat(parsed["period_start"])
+#     pe = date.fromisoformat(parsed["period_end"])
+#     days = [
+#         {"date": date.fromisoformat(d["date"]), "todos": d["todos"]}
+#         for d in parsed["days"]
+#     ]
+#     return title, ps, pe, days, meta
+# """
+
+
 from app.bedrock_stub import BedrockStubClient as BedrockClient  # noqa: E402,F811

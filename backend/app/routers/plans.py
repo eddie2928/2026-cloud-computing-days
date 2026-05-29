@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
+from app.bedrock_stub import BedrockStubClient
 from app.db import get_db
-from app.models import Plan, PlanTodo
+from app.models import Plan, PlanTodo, UserProfile
 from app.schemas import (
     PlanCreate,
+    PlanGenerateInput,
     PlanOut,
     PlanTodoOut,
     PlanTodoUpdate,
@@ -113,7 +115,7 @@ async def create_plan(
     return _plan_with_todos_out(plan)
 
 
-# /calendar must be defined before /{plan_id} to avoid routing conflict
+# /calendar and /generate must be defined before /{plan_id} to avoid routing conflict
 @router.get("/calendar", response_model=list[PlanWithTodosOut])
 async def list_plans_calendar(
     start: date = Query(...),
@@ -139,6 +141,73 @@ async def list_plans_calendar(
         )
         for plan in plans
     ]
+
+
+@router.post("/generate", response_model=PlanWithTodosOut, status_code=status.HTTP_201_CREATED)
+async def generate_plan_with_ai(
+    body: PlanGenerateInput,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    if not (1 <= len(body.description) <= 2000):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="description must be 1-2000 chars")
+    if not (1 <= len(body.goal) <= 500):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="goal must be 1-500 chars")
+    if body.period_end < body.period_start:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="period_end must be >= period_start")
+    if (body.period_end - body.period_start).days > 90:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="period must be <= 90 days")
+
+    profile_result = await db.execute(select(UserProfile).where(UserProfile.user_id == user_id))
+    profile = profile_result.scalar_one_or_none()
+    user_profile = (
+        {
+            "nickname": profile.nickname,
+            "occupation": profile.occupation,
+            "hobbies": profile.hobbies,
+            "interests": profile.interests,
+        }
+        if profile
+        else None
+    )
+
+    title, ps, pe, days, meta = await BedrockStubClient().generate_plan(
+        description=body.description,
+        period_start=body.period_start,
+        period_end=body.period_end,
+        goal=body.goal,
+        user_profile=user_profile,
+    )
+
+    plan = Plan(
+        user_id=user_id,
+        title=title,
+        description_input=body.description,
+        goal_input=body.goal,
+        period_start=ps,
+        period_end=pe,
+        source="ai",
+        ai_meta=meta,
+    )
+    db.add(plan)
+    await db.flush()
+
+    for day_entry in days:
+        for j, todo_content in enumerate(day_entry["todos"]):
+            db.add(PlanTodo(
+                plan_id=plan.id,
+                todo_date=day_entry["date"],
+                sequence=j + 1,
+                content=todo_content,
+            ))
+
+    await db.commit()
+
+    result = await db.execute(
+        select(Plan).options(selectinload(Plan.todos)).where(Plan.id == plan.id)
+    )
+    plan = result.scalars().first()
+    return _plan_with_todos_out(plan)
 
 
 @router.get("/{plan_id}", response_model=PlanWithTodosOut)

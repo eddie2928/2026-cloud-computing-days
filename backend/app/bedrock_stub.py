@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -78,3 +78,29 @@ class BedrockStubClient:
         idx = (len(qna_items) % 5)
         body, summary = _STUB_DIARIES[idx]
         return body, summary, dict(_STUB_META)
+
+    async def generate_plan(
+        self,
+        description: str,
+        period_start: date,
+        period_end: date,
+        goal: str,
+        user_profile: dict | None = None,
+    ) -> tuple[str, date, date, list[dict], dict]:
+        """
+        returns (title, period_start, period_end, days, meta)
+          title: AI가 결정한 Plan 이름
+          period_start/end: AI가 결정한 Plan 시작·종료일
+          days: [{"date": date, "todos": ["...", ...]}, ...]
+          meta: bedrock_meta dict
+        """
+        _DAILY_TODOS = ["아침 루틴", "핵심 작업", "마무리 회고"]
+        title = (description[:14] + "…") if len(description) > 14 else description
+        if not title:
+            title = "AI Plan 초안"
+        days = []
+        current = period_start
+        while current <= period_end:
+            days.append({"date": current, "todos": list(_DAILY_TODOS)})
+            current += timedelta(days=1)
+        return title, period_start, period_end, days, dict(_STUB_META)
