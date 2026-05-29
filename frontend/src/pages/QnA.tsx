@@ -9,7 +9,8 @@ import { ChatInput } from "../components/qna/ChatInput";
 import { ProgressBar } from "../components/days/ProgressBar";
 import { ScheduleCard } from "../components/qna/ScheduleCard";
 import { SuggestionChips } from "../components/qna/SuggestionChips";
-import { finalizeQna } from "../lib/qnaApi";
+import { finalizeQna, undoQna } from "../lib/qnaApi";
+import { UndoConfirmModal } from "../components/qna/UndoConfirmModal";
 
 interface Message {
   role: "ai" | "user";
@@ -44,6 +45,10 @@ export function Qna() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [minReached, setMinReached] = useState(false);
   const [showContinueButtons, setShowContinueButtons] = useState(false);
+  const [undoModal, setUndoModal] = useState<{ open: boolean; targetSequence: number }>({
+    open: false,
+    targetSequence: 0,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const STEP_LABELS: Record<string, string> = {
@@ -164,6 +169,57 @@ export function Qna() {
     setScheduleStatuses((prev) =>
       new Map(prev).set(scheduleKey(s), "rejected"),
     );
+  };
+
+  const openUndoModal = (seq: number) => {
+    if (thinking || done) return;
+    setUndoModal({ open: true, targetSequence: seq });
+  };
+
+  const handleUndoConfirm = async (mode: 'keep' | 'discard') => {
+    if (!sessionId) return;
+    setUndoModal((s) => ({ ...s, open: false }));
+    setThinking(true);
+    try {
+      const res = await undoQna(sessionId, undoModal.targetSequence, mode);
+      setThinking(false);
+      setSuggestions(res.suggestions);
+      setSequence(res.sequence);
+      setShowContinueButtons(false);
+      setInputValue('');
+
+      if (mode === 'discard') {
+        // Trim messages to before target sequence USER message, then push new AI question
+        setMessages((prev) => {
+          const idx = prev.findIndex(
+            (m) => m.role === 'user' && m.sequence === undoModal.targetSequence
+          );
+          const base = idx >= 0 ? prev.slice(0, idx) : prev;
+          return [...base, { role: 'ai' as const, text: res.question, sequence: res.sequence }];
+        });
+        // Remove schedule keys returned by undo
+        if (res.removed_schedule_keys.length > 0) {
+          const removedSet = new Set(res.removed_schedule_keys);
+          setAccumulatedSchedules((prev) =>
+            prev.filter((s) => !removedSet.has(`${s.period_start}|${s.period_end}|${s.situation}`))
+          );
+        }
+      } else {
+        // keep: remove target USER message, replace target AI question with new one
+        setMessages((prev) => {
+          const withoutUserAnswer = prev.filter(
+            (m) => !(m.role === 'user' && m.sequence === undoModal.targetSequence)
+          );
+          return withoutUserAnswer.map((m) =>
+            m.role === 'ai' && m.sequence === undoModal.targetSequence
+              ? { ...m, text: res.question }
+              : m
+          );
+        });
+      }
+    } catch {
+      setThinking(false);
+    }
   };
 
   const handleFinalize = async () => {
@@ -341,7 +397,13 @@ export function Qna() {
         ))}
         {messages.map((msg, i) => (
           <div key={i}>
-            <ChatBubble role={msg.role}>{msg.text}</ChatBubble>
+            <ChatBubble
+              role={msg.role}
+              onUndo={msg.role === 'user' && msg.sequence !== undefined ? () => openUndoModal(msg.sequence!) : undefined}
+              undoDisabled={thinking || done}
+            >
+              {msg.text}
+            </ChatBubble>
           </div>
         ))}
         {thinking && (
@@ -428,6 +490,12 @@ export function Qna() {
           onChange={setInputValue}
         />
       </div>
+      <UndoConfirmModal
+        open={undoModal.open}
+        onClose={() => setUndoModal((s) => ({ ...s, open: false }))}
+        onConfirm={handleUndoConfirm}
+        targetSequence={undoModal.targetSequence}
+      />
     </div>
   );
 }
