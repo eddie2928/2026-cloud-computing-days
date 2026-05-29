@@ -11,6 +11,7 @@ import { WeekSchedulesModal } from "./WeekSchedulesModal";
 interface MonthGridProps {
   year: number;
   month: number;
+  direction?: "left" | "right";
   entries: CalendarEntry[];
   schedules?: ScheduleItem[];
   holidays?: HolidayItem[];
@@ -98,6 +99,7 @@ function getScheduleBars(
 export function MonthGrid({
   year,
   month,
+  direction = "left",
   entries,
   schedules = [],
   holidays = [],
@@ -226,203 +228,211 @@ export function MonthGrid({
       </div>
 
       {/* 날짜 그리드 — 주(week) 단위 행 */}
-      <div data-testid="month-grid">
-        {weeks.map((week, weekIdx) => {
-          const bars = weekBars[weekIdx] ?? [];
-          const visibleBars = bars.filter((b) => b.rowIndex < 3);
-          const overflowBars = bars.filter((b) => b.rowIndex >= 3);
-          return (
-            <div
-              key={weekIdx}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
-                gridAutoRows: "max-content",
-                gap: 2,
-                minHeight: 84,
-                marginBottom: 2,
-              }}
-            >
-              {week.map(({ date, inMonth }) => {
-                const isToday = date === TODAY;
-                const isFuture = date > TODAY;
-                const entry = entryMap.get(date);
-                const emotion = entry?.emotion;
-                const holiday = holidayMap.get(date);
-                const clickable = inMonth && !isFuture;
-                const handleClick = () => {
-                  if (inMonth) {
-                    if (clickable) onCellClick(date);
-                  } else {
-                    const [cellYear, cellMonth] = date.split("-").map(Number);
-                    if (
-                      cellYear < year ||
-                      (cellYear === year && cellMonth < month)
-                    )
-                      onPrev();
-                    else onNext();
-                  }
-                };
-                const isHoliday = holiday?.is_holiday === true;
-                const dateNumColor = isFuture
-                  ? "var(--ink-soft)"
-                  : isToday
-                    ? "var(--sage-forest)"
-                    : isHoliday
-                      ? "var(--accent-clay)"
-                      : "var(--ink-body)";
+      <div style={{ overflow: "hidden" }}>
+        <div
+          key={`${year}-${month}`}
+          data-testid="month-grid"
+          style={{
+            animation: `${direction === "left" ? "cal-slide-from-left" : "cal-slide-from-right"} 300ms var(--ease-out) both`,
+          }}
+        >
+          {weeks.map((week, weekIdx) => {
+            const bars = weekBars[weekIdx] ?? [];
+            const visibleBars = bars.filter((b) => b.rowIndex < 3);
+            const overflowBars = bars.filter((b) => b.rowIndex >= 3);
+            return (
+              <div
+                key={weekIdx}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7, 1fr)",
+                  gridAutoRows: "max-content",
+                  gap: 2,
+                  minHeight: 84,
+                  marginBottom: 2,
+                }}
+              >
+                {week.map(({ date, inMonth }) => {
+                  const isToday = date === TODAY;
+                  const isFuture = date > TODAY;
+                  const entry = entryMap.get(date);
+                  const emotion = entry?.emotion;
+                  const holiday = holidayMap.get(date);
+                  const clickable = inMonth && !isFuture;
+                  const handleClick = () => {
+                    if (inMonth) {
+                      if (clickable) onCellClick(date);
+                    } else {
+                      const [cellYear, cellMonth] = date.split("-").map(Number);
+                      if (
+                        cellYear < year ||
+                        (cellYear === year && cellMonth < month)
+                      )
+                        onPrev();
+                      else onNext();
+                    }
+                  };
+                  const isHoliday = holiday?.is_holiday === true;
+                  const dateNumColor = isFuture
+                    ? "var(--ink-soft)"
+                    : isToday
+                      ? "var(--sage-forest)"
+                      : isHoliday
+                        ? "var(--accent-clay)"
+                        : "var(--ink-body)";
 
-                const borderStyle = (() => {
-                  if (isToday) return "2px solid var(--sage-forest)";
-                  if (!entry) return "1px solid transparent";
-                  if (entry.written_date === undefined)
-                    return "2px solid var(--sage-leaf)";
-                  if (entry.written_date === date)
-                    return "2px solid var(--sage-leaf)";
-                  return "2px dashed var(--sage-leaf)";
-                })();
+                  const borderStyle = (() => {
+                    if (isToday) return "2px solid var(--sage-forest)";
+                    if (!entry) return "1px solid transparent";
+                    if (entry.written_date === undefined)
+                      return "2px solid var(--sage-leaf)";
+                    if (entry.written_date === date)
+                      return "2px solid var(--sage-leaf)";
+                    return "2px dashed var(--sage-leaf)";
+                  })();
 
-                return (
-                  <button
-                    key={date}
-                    aria-label={date}
-                    disabled={inMonth && isFuture}
-                    onClick={handleClick}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 2,
-                      padding: "6px 2px",
-                      minHeight: 60,
-                      gridRow: 1,
-                      borderRadius: "var(--r-2)",
-                      border: borderStyle,
-                      background: isFuture
-                        ? "var(--paper-mist)"
-                        : inMonth
-                          ? "var(--cal-day-bg, var(--paper-pure))"
-                          : "transparent",
-                      cursor: clickable || !inMonth ? "pointer" : "default",
-                      opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
-                      transition: "background var(--dur-1)",
-                    }}
-                  >
-                    <span
+                  return (
+                    <button
+                      key={date}
+                      aria-label={date}
+                      disabled={inMonth && isFuture}
+                      onClick={handleClick}
                       style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "var(--t-xs)",
-                        color: dateNumColor,
-                        fontWeight: isToday ? 700 : 400,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                        padding: "6px 2px",
+                        minHeight: 60,
+                        gridRow: 1,
+                        borderRadius: "var(--r-2)",
+                        border: borderStyle,
+                        background: isFuture
+                          ? "var(--paper-mist)"
+                          : inMonth
+                            ? "var(--cal-day-bg, var(--paper-pure))"
+                            : "transparent",
+                        cursor: clickable || !inMonth ? "pointer" : "default",
+                        opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
+                        transition: "background var(--dur-1)",
                       }}
                     >
-                      {new Date(date).getDate()}
-                    </span>
-                    {holiday && inMonth && (
                       <span
                         style={{
                           fontFamily: "var(--font-sans)",
-                          fontSize: 9,
-                          lineHeight: 1.2,
-                          color: isHoliday
-                            ? "var(--accent-clay)"
-                            : "var(--ink-hint)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          maxWidth: "100%",
-                          display: "block",
+                          fontSize: "var(--t-xs)",
+                          color: dateNumColor,
+                          fontWeight: isToday ? 700 : 400,
                         }}
                       >
-                        {truncateName(holiday.name, 4)}
+                        {new Date(date).getDate()}
                       </span>
-                    )}
-                    {emotion ? (
-                      <MoodEmoji mood={emotion as Mood} size={12} float />
-                    ) : (
-                      <span style={{ width: 12, height: 12 }} />
-                    )}
+                      {holiday && inMonth && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-sans)",
+                            fontSize: 9,
+                            lineHeight: 1.2,
+                            color: isHoliday
+                              ? "var(--accent-clay)"
+                              : "var(--ink-hint)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            maxWidth: "100%",
+                            display: "block",
+                          }}
+                        >
+                          {truncateName(holiday.name, 4)}
+                        </span>
+                      )}
+                      {emotion ? (
+                        <MoodEmoji mood={emotion as Mood} size={12} float />
+                      ) : (
+                        <span style={{ width: 12, height: 12 }} />
+                      )}
+                    </button>
+                  );
+                })}
+                {/* 일정 바 — 최대 3개만 표시 */}
+                {visibleBars.map((bar, barIdx) => (
+                  <button
+                    key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleClick?.(bar.schedule);
+                    }}
+                    title={bar.schedule.situation}
+                    style={{
+                      gridColumn: `${bar.colStart} / ${bar.colEnd}`,
+                      gridRow: bar.rowIndex + 2,
+                      height: 20,
+                      background: "var(--sage-wash)",
+                      borderRadius: "var(--r-2, 8px)",
+                      border: "none",
+                      padding: "0 6px",
+                      cursor: onScheduleClick ? "pointer" : "default",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-sans)",
+                      fontWeight: 500,
+                      fontSize: 11,
+                      lineHeight: "20px",
+                      color: "var(--sage-ink)",
+                      transition: "background var(--dur-2)",
+                      animation: "days-fade-in 200ms var(--ease-out) both",
+                      pointerEvents: onScheduleClick ? "auto" : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "var(--sage-mist)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "var(--sage-wash)";
+                    }}
+                  >
+                    {bar.schedule.situation}
                   </button>
-                );
-              })}
-              {/* 일정 바 — 최대 3개만 표시 */}
-              {visibleBars.map((bar, barIdx) => (
-                <button
-                  key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onScheduleClick?.(bar.schedule);
-                  }}
-                  title={bar.schedule.situation}
-                  style={{
-                    gridColumn: `${bar.colStart} / ${bar.colEnd}`,
-                    gridRow: bar.rowIndex + 2,
-                    height: 20,
-                    background: "var(--sage-wash)",
-                    borderRadius: "var(--r-2, 8px)",
-                    border: "none",
-                    padding: "0 6px",
-                    cursor: onScheduleClick ? "pointer" : "default",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 500,
-                    fontSize: 11,
-                    lineHeight: "20px",
-                    color: "var(--sage-ink)",
-                    transition: "background var(--dur-2)",
-                    animation: "days-fade-in 200ms var(--ease-out) both",
-                    pointerEvents: onScheduleClick ? "auto" : "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      "var(--sage-mist)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      "var(--sage-wash)";
-                  }}
-                >
-                  {bar.schedule.situation}
-                </button>
-              ))}
-              {/* overflow 일정: "+N개 더" 버튼 (T3.4에서 onClick 연결) */}
-              {overflowBars.length > 0 && (
-                <button
-                  data-overflow-week={weekIdx}
-                  onClick={() => setOpenWeekIdx(weekIdx)}
-                  style={{
-                    gridColumn: "1 / 8",
-                    gridRow: 5,
-                    height: 20,
-                    background: "transparent",
-                    border: "none",
-                    padding: "0 6px",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 500,
-                    fontSize: 11,
-                    lineHeight: "20px",
-                    color: "var(--sage-forest)",
-                    textAlign: "left",
-                    animation: "days-fade-in 200ms var(--ease-out) both",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.color =
-                      "var(--sage-ink)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.color =
-                      "var(--sage-forest)";
-                  }}
-                >
-                  +{overflowBars.length}개 더
-                </button>
-              )}
-            </div>
-          );
-        })}
+                ))}
+                {/* overflow 일정: "+N개 더" 버튼 (T3.4에서 onClick 연결) */}
+                {overflowBars.length > 0 && (
+                  <button
+                    data-overflow-week={weekIdx}
+                    onClick={() => setOpenWeekIdx(weekIdx)}
+                    style={{
+                      gridColumn: "1 / 8",
+                      gridRow: 5,
+                      height: 20,
+                      background: "transparent",
+                      border: "none",
+                      padding: "0 6px",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                      fontWeight: 500,
+                      fontSize: 11,
+                      lineHeight: "20px",
+                      color: "var(--sage-forest)",
+                      textAlign: "left",
+                      animation: "days-fade-in 200ms var(--ease-out) both",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.color =
+                        "var(--sage-ink)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.color =
+                        "var(--sage-forest)";
+                    }}
+                  >
+                    +{overflowBars.length}개 더
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
       {/* 주별 일정 더보기 모달 */}
       {openWeekIdx !== null &&

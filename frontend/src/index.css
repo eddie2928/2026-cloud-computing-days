@@ -511,9 +511,44 @@ a:hover {
 
 /* Cloud Mood Emoticons — float animation */
 @keyframes mood-float {
-  0%, 100% { transform: translateY(0)    rotate(-1deg); }
-  50%      { transform: translateY(-5px) rotate(1deg);  }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  [style*="mood-float"] { animation: none !important; }
+  [style*="mood-float"] {
+    animation: none !important;
+  }
+}
+
+/* Calendar month slide transitions */
+@keyframes cal-slide-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes cal-slide-from-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cal-slide-from-right,
+  .cal-slide-from-left {
+    animation: none !important;
+  }
 }
