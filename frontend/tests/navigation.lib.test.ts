@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { getPageIndex, rubberBand, getNavPath } from "../src/lib/navigation";
+import {
+  getPageIndex,
+  rubberBand,
+  getNavPath,
+  resolveDiaryPath,
+} from "../src/lib/navigation";
+import { http, HttpResponse } from "msw";
+import { server } from "./setup";
+import { getMockDate } from "../src/lib/mockDate";
 
 describe("getPageIndex", () => {
   it.each([
@@ -38,5 +46,45 @@ describe("getNavPath", () => {
   });
   it("returns null for diary index 0 (async)", () => {
     expect(getNavPath(0)).toBeNull();
+  });
+});
+
+describe("resolveDiaryPath", () => {
+  const today = "2026-05-29";
+
+  it("returns /diary/:today when entry exists for today", async () => {
+    server.use(
+      http.get("/api/calendar", () =>
+        HttpResponse.json({
+          entries: [{ date: today }],
+          schedules: [],
+        }),
+      ),
+    );
+    const result = await resolveDiaryPath(today);
+    expect(result).toBe(`/diary/${today}`);
+  });
+
+  it("returns /qna/:today when no entry exists for today", async () => {
+    server.use(
+      http.get("/api/calendar", () =>
+        HttpResponse.json({
+          entries: [],
+          schedules: [],
+        }),
+      ),
+    );
+    const result = await resolveDiaryPath(today);
+    expect(result).toBe(`/qna/${today}`);
+  });
+
+  it("returns /qna/:today on API error", async () => {
+    server.use(
+      http.get("/api/calendar", () =>
+        HttpResponse.json({ detail: "Server error" }, { status: 500 }),
+      ),
+    );
+    const result = await resolveDiaryPath(today);
+    expect(result).toBe(`/qna/${today}`);
   });
 });
