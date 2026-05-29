@@ -250,6 +250,19 @@ export function MonthGrid({
                 const emotion = entry?.emotion;
                 const holiday = holidayMap.get(date);
                 const clickable = inMonth && !isFuture;
+                const handleClick = () => {
+                  if (inMonth) {
+                    if (clickable) onCellClick(date);
+                  } else {
+                    const [cellYear, cellMonth] = date.split("-").map(Number);
+                    if (
+                      cellYear < year ||
+                      (cellYear === year && cellMonth < month)
+                    )
+                      onPrev();
+                    else onNext();
+                  }
+                };
                 const isHoliday = holiday?.is_holiday === true;
                 const dateNumColor = isFuture
                   ? "var(--ink-soft)"
@@ -273,8 +286,8 @@ export function MonthGrid({
                   <button
                     key={date}
                     aria-label={date}
-                    disabled={isFuture}
-                    onClick={() => clickable && onCellClick(date)}
+                    disabled={inMonth && isFuture}
+                    onClick={handleClick}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -290,7 +303,7 @@ export function MonthGrid({
                         : inMonth
                           ? "var(--cal-day-bg, var(--paper-pure))"
                           : "transparent",
-                      cursor: clickable ? "pointer" : "default",
+                      cursor: clickable || !inMonth ? "pointer" : "default",
                       opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
                       transition: "background var(--dur-1)",
                     }}
@@ -363,10 +376,12 @@ export function MonthGrid({
                     pointerEvents: onScheduleClick ? "auto" : "none",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--sage-mist)";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "var(--sage-mist)";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--sage-wash)";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "var(--sage-wash)";
                   }}
                 >
                   {bar.schedule.situation}
@@ -394,10 +409,12 @@ export function MonthGrid({
                     animation: "days-fade-in 200ms var(--ease-out) both",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.color = "var(--sage-ink)";
+                    (e.currentTarget as HTMLElement).style.color =
+                      "var(--sage-ink)";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.color = "var(--sage-forest)";
+                    (e.currentTarget as HTMLElement).style.color =
+                      "var(--sage-forest)";
                   }}
                 >
                   +{overflowBars.length}개 더
@@ -408,27 +425,30 @@ export function MonthGrid({
         })}
       </div>
       {/* 주별 일정 더보기 모달 */}
-      {openWeekIdx !== null && (() => {
-        const allBars = weekBars[openWeekIdx] ?? [];
-        const uniqueSchedules = [
-          ...new Map(allBars.map((b) => [b.schedule.id, b.schedule])).values(),
-        ];
-        const weekStart = weeks[openWeekIdx]?.[0]?.date ?? "";
-        const weekEnd = weeks[openWeekIdx]?.[6]?.date ?? "";
-        const label = weekStart && weekEnd ? `${weekStart} ~ ${weekEnd}` : "";
-        return (
-          <WeekSchedulesModal
-            open
-            onClose={() => setOpenWeekIdx(null)}
-            schedules={uniqueSchedules}
-            weekLabel={label}
-            onScheduleClick={(s) => {
-              setOpenWeekIdx(null);
-              onScheduleClick?.(s);
-            }}
-          />
-        );
-      })()}
+      {openWeekIdx !== null &&
+        (() => {
+          const allBars = weekBars[openWeekIdx] ?? [];
+          const uniqueSchedules = [
+            ...new Map(
+              allBars.map((b) => [b.schedule.id, b.schedule]),
+            ).values(),
+          ];
+          const weekStart = weeks[openWeekIdx]?.[0]?.date ?? "";
+          const weekEnd = weeks[openWeekIdx]?.[6]?.date ?? "";
+          const label = weekStart && weekEnd ? `${weekStart} ~ ${weekEnd}` : "";
+          return (
+            <WeekSchedulesModal
+              open
+              onClose={() => setOpenWeekIdx(null)}
+              schedules={uniqueSchedules}
+              weekLabel={label}
+              onScheduleClick={(s) => {
+                setOpenWeekIdx(null);
+                onScheduleClick?.(s);
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }
