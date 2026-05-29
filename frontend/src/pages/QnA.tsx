@@ -43,7 +43,6 @@ export function Qna() {
   const [loadingSteps, setLoadingSteps] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [minReached, setMinReached] = useState(false);
   const [showContinueButtons, setShowContinueButtons] = useState(false);
   const [undoModal, setUndoModal] = useState<{ open: boolean; targetSequence: number }>({
     open: false,
@@ -135,10 +134,8 @@ export function Qna() {
         ]);
       } else {
         const nextSeq = res.data.sequence;
-        const reached = res.data.min_reached ?? false;
         setSequence(nextSeq);
-        setMinReached(reached);
-        if (reached) setShowContinueButtons(true);
+        if (res.data.min_reached) setShowContinueButtons(true);
         setSuggestions(res.data.suggestions ?? []);
         setMessages((m) => [
           ...m,
