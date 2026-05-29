@@ -475,13 +475,8 @@ async def test_e19_calendar_plan_with_no_todos_in_range_returned_with_empty_todo
 
 
 @pytest.mark.asyncio
-async def test_e20_calendar_start_greater_than_end_returns_200(client):
-    """E-20: start > end returns 200 (router has no range validation; see question.md).
-
-    NOTE: the task spec expects 422, but the current router does not validate
-    date ordering for the calendar endpoint. This test documents the actual
-    behaviour so the suite passes. A defect has been filed in question.md.
-    """
+async def test_e20_calendar_start_greater_than_end_returns_422(client):
+    """E-20: start > end → 422."""
     await _login(client)
     resp = await client.get("/api/plans/calendar?start=2028-09-30&end=2028-09-01")
-    assert resp.status_code == 200
+    assert resp.status_code == 422

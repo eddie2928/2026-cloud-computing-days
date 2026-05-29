@@ -123,6 +123,8 @@ async def list_plans_calendar(
     user_id: int = Depends(require_session),
     db: AsyncSession = Depends(get_db),
 ):
+    if start > end:
+        raise HTTPException(status_code=422, detail="start must be <= end")
     result = await db.execute(
         select(Plan)
         .options(selectinload(Plan.todos))
