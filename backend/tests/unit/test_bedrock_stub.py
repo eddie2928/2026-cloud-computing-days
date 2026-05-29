@@ -9,9 +9,10 @@ async def test_generate_question_returns_five_distinct_questions():
     client = BedrockStubClient()
     questions = []
     for seq in range(1, 6):
-        q, schedules, meta = await client.generate_question([], [], seq)
+        q, schedules, suggestions, meta = await client.generate_question([], [], seq)
         questions.append(q)
         assert schedules == []
+        assert isinstance(suggestions, list)
         assert meta["model_id"] == "stub"
     assert len(set(questions)) == 5, "5개 시퀀스 질문이 서로 달라야 한다"
 
@@ -19,8 +20,8 @@ async def test_generate_question_returns_five_distinct_questions():
 @pytest.mark.asyncio
 async def test_generate_question_wraps_at_sequence_6():
     client = BedrockStubClient()
-    q1, _, _ = await client.generate_question([], [], 1)
-    q6, _, _ = await client.generate_question([], [], 6)
+    q1, _, _, _ = await client.generate_question([], [], 1)
+    q6, _, _, _ = await client.generate_question([], [], 6)
     assert q1 == q6, "sequence=6은 sequence=1과 동일한 질문이어야 한다"
 
 

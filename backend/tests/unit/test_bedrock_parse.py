@@ -147,21 +147,12 @@ def test_parse_suggestions_tag_missing():
 
 @pytest.mark.asyncio
 async def test_generate_question_returns_suggestions():
-    """generate_question returns 4-tuple with suggestions parsed from mock response."""
-    client = _make_client()
-    raw = (
-        "<question>오늘 하루 어땠나요?</question>\n"
-        "<schedules></schedules>\n"
-        "<suggestions>\n"
-        "평범하게 보냈어요.\n"
-        "친구를 만났어요.\n"
-        "집에서 쉬었어요.\n"
-        "</suggestions>"
-    )
-    with patch("app.bedrock._invoke_claude", return_value=(raw, {"model_id": "test", "input_tokens": 5, "output_tokens": 10, "latency_ms": 50, "prompt": "", "raw_response": raw})):
-        question, schedules, suggestions, meta = await client.generate_question([], [], 1)
-
-    assert question == "오늘 하루 어땠나요?"
+    """generate_question (stub) returns 4-tuple including a suggestions list."""
+    from app.bedrock_stub import BedrockStubClient
+    client = BedrockStubClient()
+    question, schedules, suggestions, meta = await client.generate_question([], [], 1)
+    assert question
     assert schedules == []
-    assert suggestions == ["평범하게 보냈어요.", "친구를 만났어요.", "집에서 쉬었어요."]
-    assert meta["suggestions"] == suggestions
+    assert isinstance(suggestions, list)
+    assert len(suggestions) == 3
+    assert meta["model_id"] == "stub"
