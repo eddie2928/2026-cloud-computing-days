@@ -4,8 +4,10 @@ import client from "../api/client";
 import { WeekStrip } from "../components/hub/WeekStrip";
 import { TodayDiaryCard } from "../components/hub/TodayDiaryCard";
 import { SearchTriggerCard } from "../components/hub/SearchTriggerCard";
-import { PetCard } from "../components/hub/PetCard";
-import { getWeekWindow, type CalendarEntry } from "../lib/week";
+
+import { PlantVideoCard, type PlantState } from "../components/hub/PlantVideoCard";
+import { PlantVideoCardV2 } from "../components/hub/PlantVideoCardV2";
+import { getWeekWindow, type CalendarEntry, type ScheduleItem } from "../lib/week";
 import { fetchStreak } from "../lib/streak";
 import { useMockDate } from "../hooks/useMockDate";
 
@@ -16,6 +18,8 @@ export function Hub() {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [diaryBody, setDiaryBody] = useState<string | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [plantDesign, setPlantDesign] = useState<1 | 2>(1);
 
   useEffect(() => {
     client
@@ -23,6 +27,10 @@ export function Hub() {
       .then((res) => {
         setEntries(res.data.entries ?? []);
       })
+      .catch(() => {});
+    client
+      .get(`/schedules?month=${thisMonth}`)
+      .then((res) => setSchedules(res.data ?? []))
       .catch(() => {});
   }, [thisMonth]);
 
@@ -46,6 +54,22 @@ export function Hub() {
   const weekDays = getWeekWindow(entries, today);
   const hasDiary = diaryBody !== null;
 
+  // 식물 상태 계산
+  // - 3일 연속 이상 작성 → 3 (무럭무럭)
+  // - 마지막 일기가 3일 이상 전 → 1 (시듦)
+  // - 그 외 (신규 포함) → 2 (보통)
+  const plantState: PlantState = (() => {
+    if (streak !== null && streak >= 3) return 3;
+    if (entries.length > 0) {
+      const lastDate = entries.map(e => e.date).sort().at(-1)!;
+      const daysSince = Math.floor(
+        (new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000
+      );
+      if (daysSince >= 3) return 1;
+    }
+    return 2;
+  })();
+
   return (
     <div
       style={{
@@ -55,6 +79,25 @@ export function Hub() {
         padding: "16px 16px 8px",
       }}
     >
+      {/* 임시 디자인 토글 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+        {([1, 2] as const).map(v => (
+          <button
+            key={v}
+            onClick={() => setPlantDesign(v)}
+            style={{
+              padding: '3px 10px', border: '1px solid var(--line)',
+              borderRadius: 'var(--r-pill)', cursor: 'pointer',
+              font: '500 11px/1 var(--font-sans)',
+              background: plantDesign === v ? 'var(--sage-leaf)' : 'transparent',
+              color: plantDesign === v ? 'var(--paper-pure)' : 'var(--ink-hint)',
+            }}
+          >
+            V{v}
+          </button>
+        ))}
+      </div>
+
       {streak !== null && streak > 0 && (
         <div
           style={{
@@ -69,7 +112,7 @@ export function Hub() {
         </div>
       )}
       <div style={{ animation: "days-rise 320ms var(--ease-out) 40ms both" }}>
-        <WeekStrip days={weekDays} today={today} />
+        <WeekStrip days={weekDays} today={today} schedules={schedules} />
       </div>
 
       <div
@@ -90,9 +133,9 @@ export function Hub() {
         <SearchTriggerCard onClick={() => navigate('/search')} />
       </div>
 
-      <div style={{ animation: "days-rise 320ms var(--ease-out) 200ms both" }}>
-        <PetCard />
-      </div>
+      {plantDesign === 1
+        ? <PlantVideoCard plantState={plantState} />
+        : <PlantVideoCardV2 plantState={plantState} />}
     </div>
   );
 }
