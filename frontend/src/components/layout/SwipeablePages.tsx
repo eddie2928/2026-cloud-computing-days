@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { useSwipeNavigation } from "../../hooks/useSwipeNavigation";
 
 export function SwipeablePages({ children }: { children: ReactNode }) {
@@ -8,6 +9,16 @@ export function SwipeablePages({ children }: { children: ReactNode }) {
   const isExiting = phase === "exiting";
   const isEntering = phase === "entering";
 
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (phase === "entering" && prefersReducedMotion) {
+      handlers.onAnimationEnd();
+    }
+  }, [phase, prefersReducedMotion, handlers.onAnimationEnd]);
+
   const transform = isDragging
     ? `translateX(${offset}px)`
     : isExiting
@@ -16,9 +27,10 @@ export function SwipeablePages({ children }: { children: ReactNode }) {
 
   const transition = isExiting ? "transform 220ms ease-in" : undefined;
 
-  const animation = isEntering
-    ? `${swipeDirection === "left" ? "page-from-right" : "page-from-left"} 280ms var(--ease-out) both`
-    : undefined;
+  const animation =
+    isEntering && !prefersReducedMotion
+      ? `${swipeDirection === "left" ? "page-from-right" : "page-from-left"} 280ms var(--ease-out) both`
+      : undefined;
 
   return (
     <div
@@ -27,6 +39,7 @@ export function SwipeablePages({ children }: { children: ReactNode }) {
         flex: 1,
         display: "flex",
         flexDirection: "column",
+        touchAction: "pan-y",
       }}
       onTouchStart={handlers.onTouchStart}
       onTouchMove={handlers.onTouchMove}

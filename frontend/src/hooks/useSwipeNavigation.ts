@@ -70,9 +70,6 @@ export function useSwipeNavigation(): SwipeNavState {
     }
     if (directionLock.current !== "horizontal") return;
 
-    // Prevent page scroll while swiping horizontally
-    e.preventDefault();
-
     const idx = currentIndex.current;
     const atStart = idx === 0 && dx > 0;
     const atEnd = idx === 3 && dx < 0;
