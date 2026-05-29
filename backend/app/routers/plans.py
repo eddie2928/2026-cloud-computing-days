@@ -150,13 +150,13 @@ async def generate_plan_with_ai(
     db: AsyncSession = Depends(get_db),
 ):
     if not (1 <= len(body.description) <= 2000):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="description must be 1-2000 chars")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="description must be 1-2000 chars")
     if not (1 <= len(body.goal) <= 500):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="goal must be 1-500 chars")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="goal must be 1-500 chars")
     if body.period_end < body.period_start:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="period_end must be >= period_start")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="period_end must be >= period_start")
     if (body.period_end - body.period_start).days > 90:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="period must be <= 90 days")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="period must be <= 90 days")
 
     profile_result = await db.execute(select(UserProfile).where(UserProfile.user_id == user_id))
     profile = profile_result.scalar_one_or_none()
