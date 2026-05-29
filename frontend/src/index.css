@@ -552,3 +552,21 @@ a:hover {
     animation: none !important;
   }
 }
+
+/* Page swipe enter animations */
+@keyframes page-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes page-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
