@@ -143,7 +143,7 @@ def _parse_schedules(raw: str) -> list[dict]:
 #         relevant_schedules: list[str] | None = None,
 #         today: date | None = None,
 #         previously_extracted: str = "",
-#     ) -> tuple[str, list[dict], dict]:
+#     ) -> tuple[str, list[dict], list[str], dict]:
 #         profile_block = _build_profile_block(user_profile)
 #         rag_block = _build_rag_block(rag_summaries)
 #         session_block = _build_session_block(session_so_far)
@@ -166,7 +166,8 @@ def _parse_schedules(raw: str) -> list[dict]:
 #         question_match = re.search(r"<question>(.*?)</question>", raw, re.DOTALL)
 #         question = question_match.group(1).strip() if question_match else raw
 #         schedules = _parse_schedules(raw)
-#         return question, schedules, meta
+#         suggestions = _parse_suggestions(raw)
+#         return question, schedules, suggestions, meta
 #
 #     async def generate_diary(
 #         self,
