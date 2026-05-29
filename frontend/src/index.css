@@ -508,3 +508,12 @@ a:hover {
     transform: scale(1.2);
   }
 }
+
+/* Cloud Mood Emoticons — float animation */
+@keyframes mood-float {
+  0%, 100% { transform: translateY(0)    rotate(-1deg); }
+  50%      { transform: translateY(-5px) rotate(1deg);  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="mood-float"] { animation: none !important; }
+}
