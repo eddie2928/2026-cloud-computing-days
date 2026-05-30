@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from app.schemas import (
     PlanCreate,
     PlanGenerateInput,
     PlanOut,
+    PlanTodoBulkReplace,
     PlanTodoOut,
     PlanTodoUpdate,
     PlanUpdate,
@@ -265,6 +266,58 @@ async def delete_plan(
     plan = await _get_plan_or_404(plan_id, user_id, db)
     await db.delete(plan)
     await db.commit()
+
+
+@router.post("/{plan_id}/todos/bulk_replace", response_model=PlanWithTodosOut)
+async def bulk_replace_todos(
+    plan_id: int,
+    body: PlanTodoBulkReplace,
+    user_id: int = Depends(require_session),
+    db: AsyncSession = Depends(get_db),
+):
+    plan = await _get_plan_or_404(plan_id, user_id, db)
+
+    today = date.today()
+    if plan.period_end < today:
+        return _plan_with_todos_out(plan)
+
+    effective_start = max(today, plan.period_start)
+
+    # Delete todos in [effective_start, period_end]
+    todos_to_delete = [
+        t for t in plan.todos
+        if effective_start <= t.todo_date <= plan.period_end
+    ]
+    for t in todos_to_delete:
+        await db.delete(t)
+    # Flush deletes before inserts to avoid unique constraint violation
+    await db.flush()
+
+    # Insert new todos for each date in range
+    if body.contents:
+        current = effective_start
+        while current <= plan.period_end:
+            for seq, content in enumerate(body.contents, start=1):
+                db.add(PlanTodo(
+                    plan_id=plan.id,
+                    todo_date=current,
+                    sequence=seq,
+                    content=content,
+                ))
+            current += timedelta(days=1)
+
+    await db.commit()
+
+    # Use populate_existing=True so the session identity map is bypassed
+    # (conftest sets expire_on_commit=False, so stale cache must be overwritten)
+    result = await db.execute(
+        select(Plan)
+        .options(selectinload(Plan.todos))
+        .where(Plan.id == plan.id)
+        .execution_options(populate_existing=True)
+    )
+    plan = result.scalars().first()
+    return _plan_with_todos_out(plan)
 
 
 @router.post("/{plan_id}/todos", response_model=PlanTodoOut, status_code=status.HTTP_201_CREATED)
