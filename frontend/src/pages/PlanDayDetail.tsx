@@ -19,6 +19,7 @@ export function PlanDayDetail() {
   const today = useMockDate();
   const id = Number(planId);
   const isToday = date === today;
+  const isFuture = !!date && date > today;
 
   const [plan, setPlan] = useState<PlanWithTodosOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -216,6 +217,24 @@ export function PlanDayDetail() {
         )}
       </div>
 
+      {/* Future date notice */}
+      {isFuture && (
+        <div
+          data-testid="future-notice"
+          style={{
+            margin: "0 16px 12px",
+            padding: "10px 16px",
+            background: "var(--sage-cloud)",
+            borderRadius: 12,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--t-xs)",
+            color: "var(--ink-hint)",
+          }}
+        >
+          미래 날짜는 체크할 수 없어요. 읽기 전용으로 표시됩니다.
+        </div>
+      )}
+
       {/* Todo list */}
       <div style={{ padding: "0 16px" }}>
         {dayTodos.length === 0 ? (
@@ -325,7 +344,7 @@ export function PlanDayDetail() {
         }}
       >
         <Link
-          to={`/plans/${plan.id}`}
+          to={`/plans/${plan.id}/edit`}
           style={{
             fontFamily: "var(--font-sans)",
             fontSize: "var(--t-sm)",
