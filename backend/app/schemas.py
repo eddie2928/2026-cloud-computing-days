@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -260,3 +260,10 @@ class PlanGenerateInput(BaseModel):
     period_start: date
     period_end: date
     goal: str
+
+
+class PlanTodoBulkReplace(BaseModel):
+    contents: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(
+        default_factory=list,
+        max_length=50,
+    )
