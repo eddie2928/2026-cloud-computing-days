@@ -63,3 +63,13 @@ export async function updateTodo(
 export async function deleteTodo(planId: number, todoId: number): Promise<void> {
   await client.delete(`/plans/${planId}/todos/${todoId}`);
 }
+
+export async function bulkReplaceTodos(
+  planId: number,
+  contents: string[],
+): Promise<PlanWithTodosOut> {
+  const res = await client.post<PlanWithTodosOut>(`/plans/${planId}/todos/bulk_replace`, {
+    contents,
+  });
+  return res.data;
+}
