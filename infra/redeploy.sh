@@ -122,7 +122,10 @@ DB_URL="$DB_URL" APP_PASSWORD="$APP_PASSWORD" SESSION_SECRET="$SESSION_SECRET" \
   BEDROCK_MODEL_ID="$BEDROCK_MODEL_ID" AWS_REGION="$AWS_REGION" \
   .venv/bin/alembic upgrade head
 
-DB_URL="$DB_URL" .venv/bin/python -m scripts.seed_holidays
+# seed_holidays 도 app.config.Settings 를 import 하므로 알렘빅과 동일한 env 5종 필요
+DB_URL="$DB_URL" APP_PASSWORD="$APP_PASSWORD" SESSION_SECRET="$SESSION_SECRET" \
+  BEDROCK_MODEL_ID="$BEDROCK_MODEL_ID" AWS_REGION="$AWS_REGION" \
+  .venv/bin/python -m scripts.seed_holidays
 
 systemctl daemon-reload
 systemctl enable nginx qna-api
