@@ -4,6 +4,7 @@ import {
   type HolidayItem,
   type ScheduleItem,
 } from "../../lib/week";
+import type { PlanWithTodosOut } from "../../lib/plans";
 import { MoodEmoji, type Mood } from "../days/MoodEmoji";
 import { Icon } from "../days/Icon";
 import { WeekSchedulesModal } from "./WeekSchedulesModal";
@@ -15,10 +16,12 @@ interface MonthGridProps {
   entries: CalendarEntry[];
   schedules?: ScheduleItem[];
   holidays?: HolidayItem[];
+  plans?: PlanWithTodosOut[];
   onPrev: () => void;
   onNext: () => void;
   onCellClick: (date: string) => void;
   onScheduleClick?: (schedule: ScheduleItem) => void;
+  onPlanDayClick?: (planId: number, date: string) => void;
 }
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -96,6 +99,49 @@ function getScheduleBars(
   return weeks;
 }
 
+interface PlanDaySegment {
+  plan: PlanWithTodosOut;
+  colIndex: number; // 1-indexed column within the week
+  date: string;
+  isFirstInWeek: boolean;
+}
+
+interface PlanWeekRow {
+  planRowIndex: number; // stack offset for multiple plans
+  segments: PlanDaySegment[];
+}
+
+function getPlanWeekRows(
+  cells: Array<{ date: string; inMonth: boolean }>,
+  plans: PlanWithTodosOut[],
+): PlanWeekRow[][] {
+  const weeks: PlanWeekRow[][] = Array.from({ length: 6 }, () => []);
+
+  for (const plan of plans) {
+    for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+      const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
+      const overlapping = weekCells
+        .map((c, i) => ({ ...c, colIndex: i + 1 }))
+        .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
+
+      if (overlapping.length === 0) continue;
+
+      const planRowIndex = weeks[weekIdx].length;
+      weeks[weekIdx].push({
+        planRowIndex,
+        segments: overlapping.map((c, segIdx) => ({
+          plan,
+          colIndex: c.colIndex,
+          date: c.date,
+          isFirstInWeek: segIdx === 0,
+        })),
+      });
+    }
+  }
+
+  return weeks;
+}
+
 export function MonthGrid({
   year,
   month,
@@ -103,10 +149,12 @@ export function MonthGrid({
   entries,
   schedules = [],
   holidays = [],
+  plans = [],
   onPrev,
   onNext,
   onCellClick,
   onScheduleClick,
+  onPlanDayClick,
 }: MonthGridProps) {
   const [openWeekIdx, setOpenWeekIdx] = useState<number | null>(null);
 
@@ -147,6 +195,7 @@ export function MonthGrid({
   }
 
   const weekBars = getScheduleBars(cells, schedules);
+  const planWeekRows = getPlanWeekRows(cells, plans);
   const weeks = chunkCells(cells, 7);
 
   return (
@@ -428,6 +477,45 @@ export function MonthGrid({
                   >
                     +{overflowBars.length}개 더
                   </button>
+                )}
+                {/* Plan bar — 일자별 점선 구분 세그먼트 */}
+                {(planWeekRows[weekIdx] ?? []).flatMap((row) =>
+                  row.segments.map((seg) => (
+                    <button
+                      key={`plan-${seg.plan.id}-${seg.date}`}
+                      data-testid={`plan-bar-${seg.plan.id}-${seg.date}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlanDayClick?.(seg.plan.id, seg.date);
+                      }}
+                      title={seg.plan.title}
+                      style={{
+                        gridColumn: `${seg.colIndex} / ${seg.colIndex + 1}`,
+                        gridRow: 6 + row.planRowIndex,
+                        height: 18,
+                        background: "var(--sage-leaf)",
+                        opacity: 0.85,
+                        border: "none",
+                        borderRight: "1px dashed var(--paper-pure)",
+                        padding: 0,
+                        paddingLeft: seg.isFirstInWeek ? 4 : 0,
+                        cursor: onPlanDayClick ? "pointer" : "default",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 500,
+                        fontSize: 10,
+                        lineHeight: "18px",
+                        color: "var(--paper-pure)",
+                        textAlign: "left",
+                        animation: "days-fade-in 200ms var(--ease-out) both",
+                        pointerEvents: onPlanDayClick ? "auto" : "none",
+                      }}
+                    >
+                      {seg.isFirstInWeek ? truncateName(seg.plan.title, 6) : ""}
+                    </button>
+                  )),
                 )}
               </div>
             );

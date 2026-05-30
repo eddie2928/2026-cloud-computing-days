@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
+import { listPlansForCalendar } from "../api/plans";
 import { MonthGrid } from "../components/calendar/MonthGrid";
 import {
   type CalendarEntry,
   type HolidayItem,
   type ScheduleItem,
 } from "../lib/week";
+import type { PlanWithTodosOut } from "../lib/plans";
 
 const now = new Date();
 
@@ -18,6 +20,7 @@ export function Calendar() {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [holidays, setHolidays] = useState<HolidayItem[]>([]);
+  const [plans, setPlans] = useState<PlanWithTodosOut[]>([]);
 
   const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, "0")}`;
@@ -31,9 +34,22 @@ export function Calendar() {
       .catch(() => {});
   }, [year, month]);
 
+  const fetchPlans = useCallback(() => {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+    const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+    listPlansForCalendar(monthStart, monthEnd)
+      .then(setPlans)
+      .catch(() => setPlans([]));
+  }, [year, month]);
+
   useEffect(() => {
     fetchCalendar();
   }, [fetchCalendar]);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
 
   const goPrev = () => {
     setDirection("left");
@@ -60,6 +76,7 @@ export function Calendar() {
         entries={entries}
         schedules={schedules}
         holidays={holidays}
+        plans={plans}
         onPrev={goPrev}
         onNext={goNext}
         onCellClick={(date) => {
@@ -67,6 +84,7 @@ export function Calendar() {
           else navigate(`/qna/${date}`);
         }}
         onScheduleClick={(s) => navigate(`/schedule/${s.id}`)}
+        onPlanDayClick={(planId, date) => navigate(`/plans/${planId}/day/${date}`)}
       />
       <div
         style={{
