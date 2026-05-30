@@ -4,12 +4,15 @@ import client from "../api/client";
 import { WeekStrip } from "../components/hub/WeekStrip";
 import { TodayDiaryCard } from "../components/hub/TodayDiaryCard";
 import { SearchTriggerCard } from "../components/hub/SearchTriggerCard";
+import { DailyTodoCard } from "../components/hub/DailyTodoCard";
 
 import { PlantVideoCard, type PlantState } from "../components/hub/PlantVideoCard";
 import { PlantVideoCardV2 } from "../components/hub/PlantVideoCardV2";
 import { getWeekWindow, type CalendarEntry, type ScheduleItem } from "../lib/week";
 import { fetchStreak } from "../lib/streak";
 import { useMockDate } from "../hooks/useMockDate";
+import { listPlans, listPlansForCalendar } from "../api/plans";
+import type { PlanOut } from "../lib/plans";
 
 export function Hub() {
   const navigate = useNavigate();
@@ -20,6 +23,26 @@ export function Hub() {
   const [streak, setStreak] = useState<number | null>(null);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [plantDesign, setPlantDesign] = useState<1 | 2>(1);
+  const [plans, setPlans] = useState<PlanOut[]>([]);
+  const [activeTodayTodos, setActiveTodayTodos] = useState(0);
+
+  useEffect(() => {
+    listPlans()
+      .then(setPlans)
+      .catch(() => setPlans([]));
+  }, []);
+
+  useEffect(() => {
+    listPlansForCalendar(today, today)
+      .then((plansWithTodos) => {
+        const count = plansWithTodos.reduce(
+          (sum, p) => sum + p.todos.filter((t) => t.todo_date === today).length,
+          0,
+        );
+        setActiveTodayTodos(count);
+      })
+      .catch(() => setActiveTodayTodos(0));
+  }, [today]);
 
   useEffect(() => {
     client
@@ -53,6 +76,8 @@ export function Hub() {
 
   const weekDays = getWeekWindow(entries, today);
   const hasDiary = diaryBody !== null;
+
+  const activePlanCount = plans.length;
 
   // 식물 상태 계산
   // - 3일 연속 이상 작성 → 3 (무럭무럭)
@@ -132,6 +157,12 @@ export function Hub() {
         />
         <SearchTriggerCard onClick={() => navigate('/search')} />
       </div>
+
+      <DailyTodoCard
+        onClick={() => navigate('/plans')}
+        planCount={activePlanCount}
+        activeTodayTodos={activeTodayTodos}
+      />
 
       {plantDesign === 1
         ? <PlantVideoCard plantState={plantState} />

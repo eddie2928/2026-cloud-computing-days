@@ -12,6 +12,10 @@ import { Share } from './pages/Share'
 import { Search } from './pages/Search'
 import { Schedule } from './pages/Schedule'
 import { ScheduleNew } from './pages/ScheduleNew'
+import { Plans } from './pages/Plans'
+import { PlanCreate } from './pages/PlanCreate'
+import { PlanDetail } from './pages/PlanDetail'
+import { PlanDayDetail } from './pages/PlanDayDetail'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { useMockDate } from './hooks/useMockDate'
@@ -39,6 +43,10 @@ export default function App() {
         <Route path="/search" element={<ProtectedRoute><AppLayout><Search /></AppLayout></ProtectedRoute>} />
         <Route path="/schedule/new" element={<ProtectedRoute><AppLayout><ScheduleNew /></AppLayout></ProtectedRoute>} />
         <Route path="/schedule/:id" element={<ProtectedRoute><AppLayout><Schedule /></AppLayout></ProtectedRoute>} />
+        <Route path="/plans/new" element={<ProtectedRoute><AppLayout><PlanCreate /></AppLayout></ProtectedRoute>} />
+        <Route path="/plans/:planId/day/:date" element={<ProtectedRoute><AppLayout><PlanDayDetail /></AppLayout></ProtectedRoute>} />
+        <Route path="/plans/:planId" element={<ProtectedRoute><AppLayout><PlanDetail /></AppLayout></ProtectedRoute>} />
+        <Route path="/plans" element={<ProtectedRoute><AppLayout><Plans /></AppLayout></ProtectedRoute>} />
         <Route path="/share/:token" element={<Share />} />
         <Route path="*" element={<Navigate to="/hub" replace />} />
       </Routes>
