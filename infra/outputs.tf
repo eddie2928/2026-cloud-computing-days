@@ -44,3 +44,18 @@ output "ssh_private_key_pem" {
   value       = tls_private_key.app.private_key_pem
   sensitive   = true
 }
+
+output "mcp_public_ip" {
+  description = "Public IP of the MCP server EC2 (SSH only)"
+  value       = aws_instance.mcp.public_ip
+}
+
+output "mcp_ssh_command" {
+  description = "SSH command to connect to MCP EC2"
+  value       = "ssh -i ${local_sensitive_file.private_key.filename} ec2-user@${aws_instance.mcp.public_ip}"
+}
+
+output "mcp_private_url" {
+  description = "MCP server Streamable HTTP endpoint (VPC-internal, accessible from app EC2 only)"
+  value       = "http://${aws_instance.mcp.private_ip}:8080/mcp"
+}

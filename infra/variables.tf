@@ -100,3 +100,9 @@ variable "cookie_secure" {
   type        = bool
   default     = false
 }
+
+variable "mcp_ec2_instance_type" {
+  description = "EC2 instance type for MCP server"
+  type        = string
+  default     = "t3.micro"
+}
