@@ -30,6 +30,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     profile: Mapped["UserProfile | None"] = relationship(back_populates="user", uselist=False)
+    taste_profile: Mapped["TasteProfile | None"] = relationship(back_populates="user", uselist=False)
     sessions: Mapped[list["QnASession"]] = relationship(back_populates="user")
     diary_entries: Mapped[list["DiaryEntry"]] = relationship(back_populates="user")
     plans: Mapped[list["Plan"]] = relationship(back_populates="user")
@@ -206,6 +207,36 @@ class Plan(Base):
     todos: Mapped[list["PlanTodo"]] = relationship(
         back_populates="plan", cascade="all, delete-orphan"
     )
+
+
+class TasteProfile(Base):
+    __tablename__ = "taste_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+
+    music_genres: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    favorite_artists: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    preferred_music_mood: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+
+    mbti: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    ideal_type: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+
+    personality_keywords: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    movie_genres: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    food_preferences: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+    life_values: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}")
+
+    weekend_style: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    love_language: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+
+    answers: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    completed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="taste_profile")
 
 
 class PlanTodo(Base):
