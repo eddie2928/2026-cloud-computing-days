@@ -1,0 +1,5 @@
+{
+  "test_dir": "backend/tests/unit",
+  "test_command": "cd backend && python -m pytest -q",
+  "entries": []
+}
