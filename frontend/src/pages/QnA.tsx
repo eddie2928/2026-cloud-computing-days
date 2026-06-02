@@ -265,7 +265,7 @@ export function Qna() {
   const progressValue = Math.min(sequence, totalQuestions);
   const extraQuestions = sequence > totalQuestions ? sequence - totalQuestions : 0;
 
-  const currentModalSchedule = done
+  const currentModalSchedule = !thinking
     ? accumulatedSchedules.find(
         (s) => {
           const st = scheduleStatuses.get(scheduleKey(s));
