@@ -394,7 +394,7 @@ export function MonthGrid({
                         </span>
                       )}
                       {emotion ? (
-                        <MoodEmoji mood={emotion as Mood} size={12} float />
+                        <MoodEmoji mood={emotion as Mood} size={18} float />
                       ) : (
                         <span style={{ width: 12, height: 12 }} />
                       )}
