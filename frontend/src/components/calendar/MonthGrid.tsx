@@ -17,6 +17,7 @@ interface MonthGridProps {
   schedules?: ScheduleItem[];
   holidays?: HolidayItem[];
   plans?: PlanWithTodosOut[];
+  mode?: "schedule" | "plan";
   onPrev: () => void;
   onNext: () => void;
   onCellClick: (date: string) => void;
@@ -194,6 +195,7 @@ export function MonthGrid({
   schedules = [],
   holidays = [],
   plans = [],
+  mode,
   onPrev,
   onNext,
   onCellClick,
@@ -249,7 +251,9 @@ export function MonthGrid({
     if (!bTime) return -1;
     return aTime.localeCompare(bTime);
   });
-  const allWeekBars = getWeekBars(cells, sortedSchedules, plans);
+  const barsSchedules = mode === "plan" ? [] : sortedSchedules;
+  const barsPlans = mode === "schedule" ? [] : plans;
+  const allWeekBars = getWeekBars(cells, barsSchedules, barsPlans);
   const weeks = chunkCells(cells, 7);
 
   return (
