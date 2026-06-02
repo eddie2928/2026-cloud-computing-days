@@ -23,7 +23,7 @@ data "aws_subnet" "public" {
 }
 
 data "aws_iam_instance_profile" "ec2" {
-  name = "SafeInstanceProfileForUser-2026-inha-cc-06"
+  name = "SafeInstanceProfile-2026-inha-cc-06"
 }
 
 data "aws_security_group" "ec2_sg" {
