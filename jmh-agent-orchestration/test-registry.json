@@ -19,6 +19,18 @@
       "covers": "backend/app/routers/taste.py, schemas (TasteProfileIn/Out)",
       "created": "2026-06-02T00:00:00+09:00",
       "task": "Task 2"
+    },
+    {
+      "test_path": "backend/tests/unit/test_recommend_stub.py",
+      "covers": "backend/app/recommend_stub.py, routers/recommend.py",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 3"
+    },
+    {
+      "test_path": "frontend/src/lib/taste.test.ts, frontend/src/pages/TasteSurvey.test.tsx",
+      "covers": "frontend taste survey flow + lib/taste",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 6"
     }
   ]
 }
