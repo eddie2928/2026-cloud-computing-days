@@ -69,6 +69,38 @@ describe('MonthGrid — plans prop', () => {
     expect(calledDate).toMatch(/^2026-05-/);
   });
 
+  it('period_start 세그먼트(2026-05-11)에 좌측 borderRadius가 적용된다', () => {
+    renderGrid(noop);
+    const seg = screen.getByTestId('plan-bar-7-2026-05-11');
+    expect(seg.style.borderRadius).toBe('9px 0px 0px 9px');
+  });
+
+  it('period_end 세그먼트(2026-05-17)에 우측 borderRadius가 적용된다', () => {
+    renderGrid(noop);
+    const seg = screen.getByTestId('plan-bar-7-2026-05-17');
+    expect(seg.style.borderRadius).toBe('0px 9px 9px 0px');
+  });
+
+  it('중간 세그먼트(2026-05-12)는 borderRadius가 없다', () => {
+    renderGrid(noop);
+    const seg = screen.getByTestId('plan-bar-7-2026-05-12');
+    // borderRadius가 없거나 0px 0px 0px 0px
+    const r = seg.style.borderRadius;
+    expect(r === '' || r === '0px 0px 0px 0px' || r === '0px').toBe(true);
+  });
+
+  it('period_end 세그먼트는 점선 borderRight가 없다', () => {
+    renderGrid(noop);
+    const seg = screen.getByTestId('plan-bar-7-2026-05-17');
+    expect(seg.style.borderRight).not.toContain('dashed');
+  });
+
+  it('중간 세그먼트는 점선 borderRight를 유지한다', () => {
+    renderGrid(noop);
+    const seg = screen.getByTestId('plan-bar-7-2026-05-12');
+    expect(seg.style.borderRight).toContain('dashed');
+  });
+
   it('plans prop 없이도 정상 렌더링된다', () => {
     render(
       <MemoryRouter>
