@@ -60,6 +60,8 @@ interface WeekBarPlanSegment {
   colEnd: number; // colStart + 1
   date: string;
   isFirstInWeek: boolean;
+  isPlanStart: boolean;
+  isPlanEnd: boolean;
   rowIndex: number;
 }
 
@@ -85,21 +87,18 @@ export function computePlanRowByDate(
   return result;
 }
 
-function getWeekBars(
+function getWeekScheduleBars(
   cells: Array<{ date: string; inMonth: boolean }>,
   schedules: ScheduleItem[],
-  plans: PlanWithTodosOut[],
-): WeekBarItem[][] {
-  const weeks: WeekBarItem[][] = Array.from({ length: 6 }, () => []);
+): WeekBarSchedule[][] {
+  const weeks: WeekBarSchedule[][] = Array.from({ length: 6 }, () => []);
 
   for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
     const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
     const weekDates = weekCells.map((c) => c.date);
 
     type Candidate = {
-      kind: "schedule" | "plan";
-      scheduleRef?: ScheduleItem;
-      planRef?: PlanWithTodosOut;
+      scheduleRef: ScheduleItem;
       colStart: number;
       colEnd: number;
       span: number;
@@ -121,29 +120,11 @@ function getWeekBars(
         }
       }
       candidates.push({
-        kind: "schedule",
         scheduleRef: schedule,
         colStart: firstOverlap + 1,
         colEnd: lastOverlap + 2,
         span: lastOverlap - firstOverlap + 1,
         startTime: schedule.start_time ?? null,
-      });
-    }
-
-    for (const plan of plans) {
-      const overlapping = weekDates
-        .map((d, i) => ({ date: d, colIndex: i + 1 }))
-        .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
-      if (overlapping.length === 0) continue;
-      const firstCol = overlapping[0].colIndex;
-      const lastCol = overlapping[overlapping.length - 1].colIndex;
-      candidates.push({
-        kind: "plan",
-        planRef: plan,
-        colStart: firstCol,
-        colEnd: lastCol + 1,
-        span: lastCol - firstCol + 1,
-        startTime: null,
       });
     }
 
@@ -174,32 +155,50 @@ function getWeekBars(
         rowIndex++;
       }
       slots.push({ colStart: cand.colStart, colEnd: cand.colEnd, rowIndex });
+      weeks[weekIdx].push({
+        kind: "schedule",
+        schedule: cand.scheduleRef,
+        colStart: cand.colStart,
+        colEnd: cand.colEnd,
+        rowIndex,
+      });
+    }
+  }
 
-      if (cand.kind === "schedule") {
+  return weeks;
+}
+
+function getWeekPlanSegments(
+  cells: Array<{ date: string; inMonth: boolean }>,
+  plans: PlanWithTodosOut[],
+  rowByDate: Map<string, Map<number, number>>,
+): WeekBarPlanSegment[][] {
+  const weeks: WeekBarPlanSegment[][] = Array.from({ length: 6 }, () => []);
+
+  for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
+    const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
+    const weekDates = weekCells.map((c) => c.date);
+
+    for (const plan of plans) {
+      const overlapping = weekDates
+        .map((d, i) => ({ date: d, colIndex: i + 1 }))
+        .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
+      if (overlapping.length === 0) continue;
+
+      for (let segIdx = 0; segIdx < overlapping.length; segIdx++) {
+        const seg = overlapping[segIdx];
+        const rowIndex = rowByDate.get(seg.date)?.get(plan.id) ?? 0;
         weeks[weekIdx].push({
-          kind: "schedule",
-          schedule: cand.scheduleRef!,
-          colStart: cand.colStart,
-          colEnd: cand.colEnd,
+          kind: "plan",
+          plan,
+          colStart: seg.colIndex,
+          colEnd: seg.colIndex + 1,
+          date: seg.date,
+          isFirstInWeek: segIdx === 0,
+          isPlanStart: seg.date === plan.period_start,
+          isPlanEnd: seg.date === plan.period_end,
           rowIndex,
         });
-      } else {
-        const plan = cand.planRef!;
-        const overlapping = weekDates
-          .map((d, i) => ({ date: d, colIndex: i + 1 }))
-          .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
-        for (let segIdx = 0; segIdx < overlapping.length; segIdx++) {
-          const seg = overlapping[segIdx];
-          weeks[weekIdx].push({
-            kind: "plan",
-            plan,
-            colStart: seg.colIndex,
-            colEnd: seg.colIndex + 1,
-            date: seg.date,
-            isFirstInWeek: segIdx === 0,
-            rowIndex,
-          });
-        }
       }
     }
   }
@@ -273,7 +272,13 @@ export function MonthGrid({
   });
   const barsSchedules = mode === "plan" ? [] : sortedSchedules;
   const barsPlans = mode === "schedule" ? [] : plans;
-  const allWeekBars = getWeekBars(cells, barsSchedules, barsPlans);
+  const rowByDate = computePlanRowByDate(cells.map((c) => c.date), barsPlans);
+  const scheduleBarsWeeks = getWeekScheduleBars(cells, barsSchedules);
+  const planSegsWeeks = getWeekPlanSegments(cells, barsPlans, rowByDate);
+  const allWeekBars: WeekBarItem[][] = scheduleBarsWeeks.map((sb, w) => [
+    ...sb,
+    ...planSegsWeeks[w],
+  ]);
   const weeks = chunkCells(cells, 7);
 
   return (
