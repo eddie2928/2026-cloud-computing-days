@@ -52,6 +52,8 @@ export function Qna() {
     targetSequence: 0,
   });
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
+  const [inputAreaHeight, setInputAreaHeight] = useState(100);
 
   const STEP_LABELS: Record<string, string> = {
     schedules: "사용자 일정 읽어오는 중..",
@@ -261,6 +263,16 @@ export function Qna() {
     }
   }, [done, accumulatedSchedules.length, allProcessed, navigate, date]);
 
+  useEffect(() => {
+    const el = inputAreaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      setInputAreaHeight(el.getBoundingClientRect().height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const totalQuestions = 5;
   const progressValue = Math.min(sequence, totalQuestions);
   const extraQuestions = sequence > totalQuestions ? sequence - totalQuestions : 0;
@@ -326,7 +338,7 @@ export function Qna() {
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "8px 16px",
+          padding: `8px 16px ${inputAreaHeight}px`,
           display: "flex",
           flexDirection: "column",
           gap: 12,
@@ -366,7 +378,19 @@ export function Qna() {
       </div>
 
       <div
-        style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
+        ref={inputAreaRef}
+        style={{
+          position: "fixed",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          maxWidth: 480,
+          bottom: "var(--bottom-nav-h, 60px)",
+          zIndex: 90,
+          background: "var(--paper-bone)",
+          padding: "8px 16px 16px",
+          boxSizing: "border-box",
+        } as React.CSSProperties}
       >
         {showContinueButtons && !done && (
           <div
