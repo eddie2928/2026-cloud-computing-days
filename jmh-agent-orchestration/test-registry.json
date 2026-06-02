@@ -13,6 +13,12 @@
       "covers": "backend/app/routers/music.py (iTunes proxy)",
       "created": "2026-06-02T00:00:00+09:00",
       "task": "Task 4"
+    },
+    {
+      "test_path": "backend/tests/unit/test_taste_router.py",
+      "covers": "backend/app/routers/taste.py, schemas (TasteProfileIn/Out)",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 2"
     }
   ]
 }
