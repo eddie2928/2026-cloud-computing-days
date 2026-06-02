@@ -65,6 +65,8 @@ async def create_schedule(
         user_id=user_id,
         period_start=body.period_start,
         period_end=body.period_end,
+        start_time=body.start_time,
+        end_time=body.end_time,
         situation=body.situation,
     )
     db.add(schedule)
@@ -112,6 +114,10 @@ async def update_schedule(
         schedule.period_start = body.period_start
     if body.period_end is not None:
         schedule.period_end = body.period_end
+    if body.start_time is not None:
+        schedule.start_time = body.start_time
+    if body.end_time is not None:
+        schedule.end_time = body.end_time
     if body.situation is not None:
         schedule.situation = body.situation
 
