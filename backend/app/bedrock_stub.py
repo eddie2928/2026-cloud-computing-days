@@ -68,7 +68,18 @@ class BedrockStubClient:
         idx = ((next_sequence - 1) % 5)
         question = _STUB_QUESTIONS[idx]
         suggestions = _STUB_SUGGESTIONS[idx]
-        return question, [], suggestions, dict(_STUB_META)
+        # sequence 3(2번째 답변 후)에서 시간 포함 샘플 일정 반환 — UI 모달 흐름 확인용
+        schedules: list[dict] = []
+        if next_sequence == 3:
+            today_str = str(today or date.today())
+            schedules = [{
+                "period_start": today_str,
+                "period_end": today_str,
+                "start_time": "14:00",
+                "end_time": "16:00",
+                "situation": "친구와 카페에서 공부 (더미 일정)",
+            }]
+        return question, schedules, suggestions, dict(_STUB_META)
 
     async def generate_diary(
         self,
