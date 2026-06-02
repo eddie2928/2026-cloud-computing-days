@@ -27,11 +27,6 @@ data "aws_security_group" "ec2_sg" {
   vpc_id = data.aws_vpc.main.id
 }
 
-data "aws_security_group" "rds_sg" {
-  name   = "qna-diary-rds-sg"
-  vpc_id = data.aws_vpc.main.id
-}
-
 data "aws_key_pair" "app" {
   key_name = "qna-diary-key"
 }
