@@ -95,9 +95,13 @@ def _to_pending_schedules(extracted: list[dict]) -> list[PendingSchedule]:
     result = []
     for sched in extracted:
         try:
+            start_time = sched.get("start_time", "") or None
+            end_time = sched.get("end_time", "") or None
             ps = PendingSchedule(
                 period_start=sched["period_start"],
                 period_end=sched["period_end"],
+                start_time=start_time,
+                end_time=end_time,
                 situation=sched.get("situation", "").strip(),
             )
             if ps.situation:
