@@ -7,7 +7,8 @@ import { ChatBubble } from "../components/qna/ChatBubble";
 import { ThinkingDots } from "../components/qna/ThinkingDots";
 import { ChatInput } from "../components/qna/ChatInput";
 import { ProgressBar } from "../components/days/ProgressBar";
-import { ScheduleCard } from "../components/qna/ScheduleCard";
+import { ScheduleConfirmModal } from "../components/qna/ScheduleConfirmModal";
+import type { PendingScheduleItem } from "../components/qna/ScheduleConfirmModal";
 import { SuggestionChips } from "../components/qna/SuggestionChips";
 import { finalizeQna, undoQna } from "../lib/qnaApi";
 import { UndoConfirmModal } from "../components/qna/UndoConfirmModal";
@@ -22,6 +23,8 @@ interface PendingSchedule {
   period_start: string;
   period_end: string;
   situation: string;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 function scheduleKey(s: PendingSchedule) {
@@ -147,12 +150,14 @@ export function Qna() {
     }
   };
 
-  const handleAccept = async (s: PendingSchedule) => {
-    const key = scheduleKey(s);
+  const handleAccept = async (s: PendingScheduleItem) => {
+    const key = scheduleKey(s as PendingSchedule);
     try {
       await client.post("/schedules", {
         period_start: s.period_start,
         period_end: s.period_end,
+        start_time: s.start_time ?? null,
+        end_time: s.end_time ?? null,
         situation: s.situation,
       });
     } catch (err: unknown) {
@@ -162,9 +167,9 @@ export function Qna() {
     setScheduleStatuses((prev) => new Map(prev).set(key, "accepted"));
   };
 
-  const handleReject = (s: PendingSchedule) => {
+  const handleReject = (s: PendingSchedule | PendingScheduleItem) => {
     setScheduleStatuses((prev) =>
-      new Map(prev).set(scheduleKey(s), "rejected"),
+      new Map(prev).set(scheduleKey(s as PendingSchedule), "rejected"),
     );
   };
 
@@ -260,65 +265,14 @@ export function Qna() {
   const progressValue = Math.min(sequence, totalQuestions);
   const extraQuestions = sequence > totalQuestions ? sequence - totalQuestions : 0;
 
-  if (done && accumulatedSchedules.length > 0) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          minHeight: "calc(100dvh - 80px)",
-          animation: "days-fade-in 300ms var(--ease-out) both",
-        }}
-      >
-        <Header title={date ?? ""} showBack />
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "var(--t-sm)",
-              color: "var(--ink-body)",
-              marginBottom: 16,
-            }}
-          >
-            이번 대화에서 나온 일정들을 확인해 주세요.
-          </p>
-          {accumulatedSchedules.map((s) => (
-            <ScheduleCard
-              key={scheduleKey(s)}
-              schedule={s}
-              status={scheduleStatuses.get(scheduleKey(s)) ?? "pending"}
-              onAccept={() => handleAccept(s)}
-              onReject={() => handleReject(s)}
-            />
-          ))}
-        </div>
-        {!allProcessed && (
-          <div
-            style={{ padding: "8px 16px 16px", background: "var(--paper-bone)" }}
-          >
-            <button
-              type="button"
-              onClick={() => navigate(`/diary/${date}`)}
-              style={{
-                width: "100%",
-                padding: "12px",
-                background: "var(--paper-pure)",
-                border: "1px solid var(--ink-hint)",
-                borderRadius: 12,
-                fontFamily: "var(--font-sans)",
-                fontSize: "var(--t-sm)",
-                color: "var(--ink-meta)",
-                cursor: "pointer",
-              }}
-            >
-              건너뛰기
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
+  const currentModalSchedule = done
+    ? accumulatedSchedules.find(
+        (s) => {
+          const st = scheduleStatuses.get(scheduleKey(s));
+          return st === undefined || st === "pending";
+        }
+      ) ?? null
+    : null;
 
   return (
     <div
@@ -492,6 +446,12 @@ export function Qna() {
         onClose={() => setUndoModal((s) => ({ ...s, open: false }))}
         onConfirm={handleUndoConfirm}
         targetSequence={undoModal.targetSequence}
+      />
+      <ScheduleConfirmModal
+        open={!!currentModalSchedule}
+        schedule={currentModalSchedule}
+        onAccept={(s) => handleAccept(s)}
+        onReject={() => currentModalSchedule && handleReject(currentModalSchedule)}
       />
     </div>
   );
