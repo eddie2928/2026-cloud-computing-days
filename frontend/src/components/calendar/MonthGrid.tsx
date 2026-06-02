@@ -461,9 +461,9 @@ export function MonthGrid({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
-                  gridAutoRows: "max-content",
-                  gap: 2,
-                  minHeight: 100,
+                  gridTemplateRows: overflowCount > 0
+                    ? `auto repeat(${MAX_BARS}, ${SLOT_H}px) ${OVERFLOW_H}px`
+                    : `auto repeat(${MAX_BARS}, ${SLOT_H}px)`,
                   marginBottom: 2,
                 }}
               >
