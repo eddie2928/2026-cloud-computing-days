@@ -40,8 +40,8 @@ function renderGrid(
 }
 
 describe('MonthGrid — cells & overflow', () => {
-  it('MAX_BARS(3) 초과 시 해당 일자 칩에 숨김 카운트가 표시된다', () => {
-    // 4 schedules on same day → rowIndex 0,1,2 visible, rowIndex 3 hidden
+  it('MAX_BARS(2) 초과 시 해당 일자 칩에 숨김 카운트가 표시된다', () => {
+    // 4 schedules → rowIndex 0,1 visible, rowIndex 2,3 hidden
     const schedules = [
       makeSchedule(1, '2026-05-01', '2026-05-01', '일정A'),
       makeSchedule(2, '2026-05-01', '2026-05-01', '일정B'),
@@ -51,7 +51,7 @@ describe('MonthGrid — cells & overflow', () => {
     renderGrid(schedules);
     const chip = document.querySelector('[data-overflow-date="2026-05-01"]');
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toMatch(/\+1/);
+    expect(chip!.textContent).toMatch(/\+2/);
   });
 
   it('멀티데이 일정이 단일일 일정보다 낮은 gridRow(위쪽 슬롯)에 배치된다', () => {
