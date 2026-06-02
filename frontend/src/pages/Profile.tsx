@@ -14,6 +14,8 @@ import { getPushState, subscribePush, unsubscribePush, type PushState } from '..
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
 import { InstallGuideModal } from '../components/days/InstallGuideModal'
 import { Icon } from '../components/days/Icon'
+import { getTasteProfile } from '../api/taste'
+import type { TasteFormData } from '../lib/taste'
 
 interface ProfileData {
   nickname: string
@@ -32,6 +34,8 @@ export function Profile() {
   const [draft, setDraft] = useState<ProfileData | null>(null)
   const [saving, setSaving] = useState(false)
   const [pushState, setPushState] = useState<PushState>('default')
+  const [tasteProfile, setTasteProfile] = useState<TasteFormData | null>(null)
+  const [tasteLoading, setTasteLoading] = useState(true)
   const [pushLoading, setPushLoading] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
   const { canInstall, isIOSSafari, isStandalone, promptInstall } = useInstallPrompt()
@@ -75,6 +79,13 @@ export function Profile() {
 
   useEffect(() => {
     getPushState().then(setPushState)
+  }, [])
+
+  useEffect(() => {
+    getTasteProfile()
+      .then(setTasteProfile)
+      .catch(() => setTasteProfile(null))
+      .finally(() => setTasteLoading(false))
   }, [])
 
   const handlePushToggle = async () => {
@@ -210,6 +221,47 @@ export function Profile() {
               </PillButton>
             )}
           </div>
+        </SectionCard>
+
+        {/* 취향 섹션 */}
+        <SectionCard title="취향">
+          {tasteLoading ? (
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-sm)', color: 'var(--ink-hint)' }}>
+              로딩 중...
+            </span>
+          ) : tasteProfile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tasteProfile.music_genres.length > 0 && (
+                <FieldRow label="음악 장르" value={tasteProfile.music_genres.join(', ')} />
+              )}
+              {tasteProfile.mbti && (
+                <FieldRow label="MBTI" value={tasteProfile.mbti} />
+              )}
+              {tasteProfile.preferred_music_mood.length > 0 && (
+                <FieldRow label="음악 분위기" value={tasteProfile.preferred_music_mood.join(', ')} />
+              )}
+              {tasteProfile.movie_genres.length > 0 && (
+                <FieldRow label="좋아하는 장르" value={tasteProfile.movie_genres.join(', ')} />
+              )}
+              {tasteProfile.weekend_style && (
+                <FieldRow label="주말 성향" value={tasteProfile.weekend_style} />
+              )}
+              <div style={{ marginTop: 8 }}>
+                <PillButton onClick={() => navigate('/profile/taste')}>
+                  취향 수정하기
+                </PillButton>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--t-sm)', color: 'var(--ink-meta)' }}>
+                아직 취향 문진을 작성하지 않았어요.
+              </span>
+              <PillButton onClick={() => navigate('/profile/taste')}>
+                취향 문진 시작하기
+              </PillButton>
+            </div>
+          )}
         </SectionCard>
 
         {!isStandalone && (

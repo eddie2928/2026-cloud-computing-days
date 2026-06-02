@@ -17,6 +17,7 @@ import { PlanCreate } from './pages/PlanCreate'
 import { PlanDetail } from './pages/PlanDetail'
 import { PlanEdit } from './pages/PlanEdit'
 import { PlanDayDetail } from './pages/PlanDayDetail'
+import { TasteSurvey } from './pages/TasteSurvey'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { useMockDate } from './hooks/useMockDate'
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/diary/:date" element={<ProtectedRoute><AppLayout><Diary /></AppLayout></ProtectedRoute>} />
         <Route path="/qna/:date" element={<ProtectedRoute><AppLayout><Qna /></AppLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
+        <Route path="/profile/taste" element={<ProtectedRoute><AppLayout><TasteSurvey /></AppLayout></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute requireProfile={false}><AppLayout><Admin /></AppLayout></ProtectedRoute>} />
         <Route path="/search" element={<ProtectedRoute><AppLayout><Search /></AppLayout></ProtectedRoute>} />
         <Route path="/schedule/new" element={<ProtectedRoute><AppLayout><ScheduleNew /></AppLayout></ProtectedRoute>} />
