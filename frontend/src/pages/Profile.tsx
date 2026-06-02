@@ -114,7 +114,7 @@ export function Profile() {
           border: '2px solid var(--sage-mist)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <CloudLeaf size={36} color="var(--sage-forest)" stroke={2.5} />
+          <CloudLeaf size={54} color="var(--sage-forest)" stroke={2.5} />
         </div>
         <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'var(--t-lg)', color: 'var(--sage-ink)' }}>
           {data.nickname || '닉네임 없음'}
