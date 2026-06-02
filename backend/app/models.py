@@ -151,6 +151,8 @@ class UserSchedule(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     period_start: Mapped[date] = mapped_column(DATE, nullable=False)
     period_end: Mapped[date] = mapped_column(DATE, nullable=False)
+    start_time: Mapped[time | None] = mapped_column(TIME, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(TIME, nullable=True)
     situation: Mapped[str] = mapped_column(TEXT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
