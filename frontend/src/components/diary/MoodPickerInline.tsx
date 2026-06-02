@@ -60,7 +60,7 @@ export function MoodPickerInline({ date, initial }: MoodPickerInlineProps) {
             } as React.CSSProperties
           }
         >
-          <MoodEmoji mood={mood} size={32} float />
+          <MoodEmoji mood={mood} size={48} float />
         </button>
       ))}
     </div>
