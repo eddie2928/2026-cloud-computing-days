@@ -83,6 +83,7 @@ WorkingDirectory=/opt/app/backend
 ExecStart=/opt/app/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
+EnvironmentFile=-/etc/qna-diary/env
 Environment=APP_PASSWORD=$APP_PASSWORD
 Environment=SESSION_SECRET=$SESSION_SECRET
 Environment=DB_URL=$DB_URL
