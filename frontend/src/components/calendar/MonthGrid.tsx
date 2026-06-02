@@ -7,7 +7,7 @@ import {
 import type { PlanWithTodosOut } from "../../lib/plans";
 import { MoodEmoji, type Mood } from "../days/MoodEmoji";
 import { Icon } from "../days/Icon";
-import { WeekSchedulesModal } from "./WeekSchedulesModal";
+import { DayItemsModal } from "./DayItemsModal";
 
 interface MonthGridProps {
   year: number;
@@ -700,8 +700,54 @@ export function MonthGrid({
           })}
         </div>
       </div>
-      {/* 일자별 더보기 모달 — C2에서 DayItemsModal로 구현 */}
-      {openDayDate !== null && null}
+      {/* 일자별 더보기 모달 */}
+      {(() => {
+        if (!openDayDate) return null;
+        const cellIndex = cells.findIndex((c) => c.date === openDayDate);
+        if (cellIndex === -1) return null;
+        const wIdx = Math.floor(cellIndex / 7);
+        const colIdx = (cellIndex % 7) + 1;
+        const weekItems = allWeekBars[wIdx] ?? [];
+        const daySchedules = [
+          ...new Map(
+            weekItems
+              .filter(
+                (b): b is WeekBarSchedule =>
+                  b.kind === "schedule" &&
+                  b.colStart <= colIdx &&
+                  b.colEnd > colIdx,
+              )
+              .map((b) => [b.schedule.id, b.schedule]),
+          ).values(),
+        ];
+        const dayPlans = [
+          ...new Map(
+            weekItems
+              .filter(
+                (b): b is WeekBarPlanSegment =>
+                  b.kind === "plan" && b.colStart === colIdx,
+              )
+              .map((b) => [b.plan.id, b.plan]),
+          ).values(),
+        ];
+        return (
+          <DayItemsModal
+            open
+            onClose={() => setOpenDayDate(null)}
+            date={openDayDate}
+            schedules={daySchedules}
+            plans={dayPlans}
+            onScheduleClick={(s) => {
+              setOpenDayDate(null);
+              onScheduleClick?.(s);
+            }}
+            onPlanDayClick={(planId, d) => {
+              setOpenDayDate(null);
+              onPlanDayClick?.(planId, d);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
