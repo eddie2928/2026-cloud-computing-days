@@ -516,10 +516,10 @@ export function MonthGrid({
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
+                        justifyContent: "flex-start",
                         gap: 2,
                         padding: "6px 2px",
-                        minHeight: 80,
-                        gridRow: 1,
+                        gridRow: "1 / -1",
                         borderRadius: "var(--r-2)",
                         border: borderStyle,
                         background: inMonth
