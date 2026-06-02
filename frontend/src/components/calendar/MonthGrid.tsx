@@ -322,12 +322,12 @@ export function MonthGrid({
                     }
                   };
                   const isHoliday = holiday?.is_holiday === true;
-                  const dateNumColor = isFuture
-                    ? "var(--ink-soft)"
-                    : isToday
-                      ? "var(--sage-forest)"
-                      : isHoliday
-                        ? "var(--accent-clay)"
+                  const dateNumColor = isToday
+                    ? "var(--sage-forest)"
+                    : isHoliday
+                      ? "var(--accent-clay)"
+                      : isFuture && inMonth
+                        ? "var(--ink-hint)"
                         : "var(--ink-body)";
 
                   const borderStyle = (() => {
@@ -356,13 +356,11 @@ export function MonthGrid({
                         gridRow: 1,
                         borderRadius: "var(--r-2)",
                         border: borderStyle,
-                        background: isFuture
-                          ? "var(--paper-mist)"
-                          : inMonth
-                            ? "var(--cal-day-bg, var(--paper-pure))"
-                            : "transparent",
+                        background: inMonth
+                          ? "var(--cal-day-bg, var(--paper-pure))"
+                          : "transparent",
                         cursor: clickable || !inMonth ? "pointer" : "default",
-                        opacity: isFuture ? 0.6 : inMonth ? 1 : 0.35,
+                        opacity: inMonth ? 1 : 0.35,
                         transition: "background var(--dur-1)",
                       }}
                     >
