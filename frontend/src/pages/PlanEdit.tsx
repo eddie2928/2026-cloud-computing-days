@@ -167,7 +167,7 @@ export function PlanEdit() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: "20px 16px 120px", display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ flex: 1, padding: "20px 16px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
 
         {/* Title */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -324,50 +324,47 @@ export function PlanEdit() {
             {saveError}
           </p>
         )}
-      </div>
 
-      {/* Fixed bottom buttons */}
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: "var(--paper-bone)",
-        borderTop: "1px solid var(--line-faint)",
-        padding: "12px 16px",
-        display: "flex",
-        gap: 10,
-      }}>
-        <button
-          type="button"
-          onClick={() => navigate(`/plans/${id}`)}
-          style={{
-            flex: 1, padding: "12px 0",
-            background: "var(--sage-cloud)", border: "none",
-            borderRadius: "var(--r-pill)",
-            font: "500 15px/1 var(--font-sans)", color: "var(--ink-body)",
-            cursor: "pointer",
-          }}
-        >
-          취소
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            flex: 2, padding: "12px 0",
-            background: saving ? "var(--sage-mist)" : "var(--sage-leaf)",
-            border: "none",
-            borderRadius: "var(--r-pill)",
-            font: "600 15px/1 var(--font-sans)", color: "var(--paper-pure)",
-            cursor: saving ? "wait" : "pointer",
-            opacity: saving ? 0.7 : 1,
-            transition: "background var(--dur-1) var(--ease-out)",
-          }}
-        >
-          {saving ? "저장 중..." : "저장"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              flex: 1,
+              background: saving ? "var(--sage-mist)" : "var(--sage-leaf)",
+              border: "none",
+              borderRadius: "var(--r-pill)",
+              padding: "10px 0",
+              fontFamily: "var(--font-sans)",
+              fontWeight: 600,
+              fontSize: 14,
+              color: "var(--paper-pure)",
+              cursor: saving ? "wait" : "pointer",
+              opacity: saving ? 0.7 : 1,
+              transition: "background var(--dur-1) var(--ease-out)",
+            }}
+          >
+            {saving ? "저장 중..." : "저장"}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/plans/${id}`)}
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: "var(--r-3)",
+              padding: "10px 16px",
+              fontFamily: "var(--font-sans)",
+              fontWeight: 500,
+              fontSize: 14,
+              color: "var(--ink-meta)",
+              cursor: "pointer",
+            }}
+          >
+            취소
+          </button>
+        </div>
       </div>
     </div>
   );
