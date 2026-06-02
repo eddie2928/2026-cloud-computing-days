@@ -76,10 +76,10 @@
 - [x] Task 2: 취향 API (GET/PUT) + 스키마 — type: NEW_FEATURE, worker: jmh-worker-backend, depends: Task 1
 - [x] Task 3: 추천 Stub 모듈 + /api/recommend/songs — type: NEW_FEATURE, worker: jmh-worker-backend, depends: Task 2
 - [x] Task 4: 음원 프록시 /api/music/search (iTunes) + httpx — type: NEW_FEATURE, worker: jmh-worker-backend, depends: none
-- [!] Task 5: 백엔드 통합 테스트 (취향 CRUD + 추천 stub + 음원 프록시 mock) — type: INTEGRATION_TEST, worker: jmh-worker-backend, depends: Task 2, Task 3, Task 4
+- [x] Task 5: 백엔드 통합 테스트 (취향 CRUD + 추천 stub + 음원 프록시 mock) — type: INTEGRATION_TEST, worker: jmh-worker-backend, depends: Task 2, Task 3, Task 4
 - [x] Task 6: 취향 문진 플로우 페이지 + 라우트 + Profile 진입/요약 — type: NEW_FEATURE, worker: jmh-worker-frontend, depends: Task 2
-- [!] Task 7: 개발자 페이지(Admin) 음악 API 테스트 탭 — type: NEW_FEATURE, worker: jmh-worker-frontend, depends: Task 4
-- [ ] Task 8: 프론트 E2E/빌드 검증 (tsc --noEmit + vitest) — type: INTEGRATION_TEST, worker: jmh-worker-frontend, depends: Task 6, Task 7
+- [x] Task 7: 개발자 페이지(Admin) 음악 API 테스트 탭 — type: NEW_FEATURE, worker: jmh-worker-frontend, depends: Task 4
+- [!] Task 8: 프론트 E2E/빌드 검증 (tsc --noEmit + vitest) — type: INTEGRATION_TEST, worker: jmh-worker-frontend, depends: Task 6, Task 7
 
 ## 의존성 그래프
 ```

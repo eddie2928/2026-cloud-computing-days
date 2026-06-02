@@ -31,6 +31,18 @@
       "covers": "frontend taste survey flow + lib/taste",
       "created": "2026-06-02T00:00:00+09:00",
       "task": "Task 6"
+    },
+    {
+      "test_path": "backend/tests/integration/test_taste_profile.py, test_recommend.py, test_music_proxy.py",
+      "covers": "taste API CRUD, recommend stub, music proxy (mocked)",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 5"
+    },
+    {
+      "test_path": "frontend/src/pages/Admin music tab test",
+      "covers": "Admin.tsx music tab, api/music.ts",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 7"
     }
   ]
 }
