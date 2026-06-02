@@ -61,7 +61,7 @@ export function WeekStrip({ days, today, schedules = [] }: WeekStripProps) {
               fontWeight: isToday ? 700 : 500,
             }}>{dayNum}</span>
             {day.emotion ? (
-              <MoodEmoji mood={day.emotion as Mood} size={16} float />
+              <MoodEmoji mood={day.emotion as Mood} size={24} float />
             ) : (
               <span style={{ width: 16, height: 16, display: 'inline-block' }} />
             )}
