@@ -150,21 +150,21 @@ export function Qna() {
     }
   };
 
-  const handleAccept = async (s: PendingScheduleItem) => {
-    const key = scheduleKey(s as PendingSchedule);
+  const handleAccept = async (edited: PendingScheduleItem, original: PendingScheduleItem) => {
+    const originalKey = scheduleKey(original as PendingSchedule);
     try {
       await client.post("/schedules", {
-        period_start: s.period_start,
-        period_end: s.period_end,
-        start_time: s.start_time ?? null,
-        end_time: s.end_time ?? null,
-        situation: s.situation,
+        period_start: edited.period_start,
+        period_end: edited.period_end,
+        start_time: edited.start_time ?? null,
+        end_time: edited.end_time ?? null,
+        situation: edited.situation,
       });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
       if (status !== 409) return;
     }
-    setScheduleStatuses((prev) => new Map(prev).set(key, "accepted"));
+    setScheduleStatuses((prev) => new Map(prev).set(originalKey, "accepted"));
   };
 
   const handleReject = (s: PendingSchedule | PendingScheduleItem) => {
@@ -450,7 +450,7 @@ export function Qna() {
       <ScheduleConfirmModal
         open={!!currentModalSchedule}
         schedule={currentModalSchedule}
-        onAccept={(s) => handleAccept(s)}
+        onAccept={(edited) => handleAccept(edited, currentModalSchedule!)}
         onReject={() => currentModalSchedule && handleReject(currentModalSchedule)}
       />
     </div>
