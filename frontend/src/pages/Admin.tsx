@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import client from '../api/client'
+import { searchMusic, type MusicSearchResult } from '../api/music'
 import { ThinkingDots } from '../components/qna/ThinkingDots'
 import { getMockDate, setMockDate, clearMockDate, hasMockDate } from '../lib/mockDate'
 import { getPushState, subscribePush, type PushState } from '../lib/push'
@@ -65,7 +66,7 @@ const TABLE_FIELD_HINTS: Record<string, Record<string, string>> = {
   },
 }
 
-type Tab = 'db' | 'bedrock' | 'date' | 'push'
+type Tab = 'db' | 'bedrock' | 'date' | 'push' | 'music'
 
 interface BedrockLog {
   id: number
@@ -135,6 +136,32 @@ export function Admin() {
   const [testPushRaw, setTestPushRaw] = useState(false)
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null)
   const [debugLoading, setDebugLoading] = useState(false)
+
+  // 음악 API 탭
+  const [musicTerm, setMusicTerm] = useState('')
+  const [musicLimit, setMusicLimit] = useState(10)
+  const [musicLoading, setMusicLoading] = useState(false)
+  const [musicResult, setMusicResult] = useState<MusicSearchResult | null>(null)
+  const [musicRaw, setMusicRaw] = useState(false)
+
+  const handleMusicSearch = async () => {
+    if (!musicTerm.trim()) return
+    setMusicLoading(true)
+    try {
+      const res = await searchMusic(musicTerm.trim(), musicLimit)
+      setMusicResult(res)
+    } catch (e) {
+      setMusicResult({
+        ok: false,
+        status_code: null,
+        latency_ms: 0,
+        results: [],
+        error: e instanceof Error ? e.message : String(e),
+      })
+    } finally {
+      setMusicLoading(false)
+    }
+  }
 
   const refreshPushStatus = useCallback(async () => {
     const state = await getPushState()
@@ -297,6 +324,7 @@ export function Admin() {
           날짜{isMockActive ? ' ●' : ''}
         </button>
         <button style={tabStyle(tab === 'push')} onClick={() => setTab('push')}>푸시</button>
+        <button style={tabStyle(tab === 'music')} onClick={() => setTab('music')}>음악 API</button>
       </div>
 
       {/* DB 조회 탭 */}
@@ -767,6 +795,227 @@ export function Admin() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* 음악 API 탭 */}
+      {tab === 'music' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 680 }}>
+          {/* 검색 입력 */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', display: 'block', marginBottom: 6 }}>
+                검색어 (term)
+              </label>
+              <input
+                type="text"
+                value={musicTerm}
+                onChange={e => setMusicTerm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleMusicSearch()}
+                placeholder="예: IU, BTS, jazz..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  border: '1.5px solid var(--line)',
+                  background: 'var(--paper-bone)',
+                  font: '400 14px/1.4 var(--font-sans)',
+                  color: 'var(--ink-deep)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', display: 'block', marginBottom: 6 }}>
+                limit
+              </label>
+              <input
+                type="number"
+                value={musicLimit}
+                min={1}
+                max={25}
+                onChange={e => setMusicLimit(Math.min(25, Math.max(1, Number(e.target.value))))}
+                style={{
+                  width: 72,
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  border: '1.5px solid var(--line)',
+                  background: 'var(--paper-bone)',
+                  font: '400 14px/1 var(--font-sans)',
+                  color: 'var(--ink-deep)',
+                  outline: 'none',
+                }}
+              />
+            </div>
+            <button
+              onClick={handleMusicSearch}
+              disabled={musicLoading || !musicTerm.trim()}
+              style={{
+                padding: '10px 20px',
+                borderRadius: 12,
+                border: 'none',
+                background: (musicLoading || !musicTerm.trim()) ? 'var(--sage-mist)' : 'var(--sage-leaf)',
+                color: 'var(--paper-pure)',
+                font: '600 14px/1 var(--font-sans)',
+                cursor: (musicLoading || !musicTerm.trim()) ? 'not-allowed' : 'pointer',
+                opacity: (musicLoading || !musicTerm.trim()) ? 0.6 : 1,
+                transition: 'background var(--dur-1) var(--ease-out)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {musicLoading ? '검색 중...' : '검색 / 통신 테스트'}
+            </button>
+          </div>
+
+          {musicLoading && (
+            <div style={{ padding: '8px 0' }}>
+              <ThinkingDots visible />
+            </div>
+          )}
+
+          {/* 통신 결과 패널 */}
+          {musicResult != null && !musicLoading && (
+            <>
+              <div style={{
+                background: 'var(--paper-pure)',
+                border: '1px solid var(--line-faint)',
+                borderRadius: 10,
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    background: musicResult.ok ? 'var(--sage-wash)' : 'var(--accent-clay-soft)',
+                    color: musicResult.ok ? 'var(--sage-forest)' : 'var(--accent-clay)',
+                  }}>
+                    {musicResult.ok ? '성공' : '실패'}
+                  </span>
+                  {musicResult.status_code != null && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-meta)' }}>
+                      HTTP {musicResult.status_code}
+                    </span>
+                  )}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-meta)' }}>
+                    {musicResult.latency_ms} ms
+                  </span>
+                  {musicResult.count != null && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-meta)' }}>
+                      {musicResult.count}건
+                    </span>
+                  )}
+                </div>
+                {!musicResult.ok && musicResult.error && (
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent-clay)', margin: '4px 0 0', wordBreak: 'break-word' }}>
+                    {musicResult.error}
+                  </p>
+                )}
+              </div>
+
+              {/* Raw/Pretty 토글 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                <button
+                  onClick={() => setMusicRaw(r => !r)}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--line)',
+                    borderRadius: 6,
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    color: 'var(--ink-meta)',
+                    cursor: 'pointer',
+                    padding: '2px 8px',
+                  }}
+                >
+                  {musicRaw ? 'Pretty' : 'Raw'}
+                </button>
+              </div>
+
+              {musicRaw ? (
+                <pre style={{
+                  background: 'var(--paper-mist)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  color: 'var(--ink-deep)',
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                }}>
+                  {JSON.stringify(musicResult, null, 2)}
+                </pre>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {musicResult.results.length === 0 ? (
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-hint)' }}>결과 없음</p>
+                  ) : (
+                    musicResult.results.map((track, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          background: 'var(--paper-pure)',
+                          border: '1px solid var(--line)',
+                          borderRadius: 14,
+                          padding: '12px 14px',
+                          display: 'flex',
+                          gap: 12,
+                          alignItems: 'flex-start',
+                        }}
+                      >
+                        {track.artworkUrl100 && (
+                          <img
+                            src={track.artworkUrl100}
+                            alt={track.trackName}
+                            width={56}
+                            height={56}
+                            style={{ borderRadius: 8, flexShrink: 0, objectFit: 'cover' }}
+                          />
+                        )}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <p style={{ font: '600 14px/1.3 var(--font-sans)', color: 'var(--ink-deep)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {track.trackName || '(제목 없음)'}
+                          </p>
+                          <p style={{ font: '400 12px/1.3 var(--font-sans)', color: 'var(--ink-meta)', margin: 0 }}>
+                            {track.artistName}
+                          </p>
+                          <p style={{ font: '400 11px/1.3 var(--font-sans)', color: 'var(--ink-hint)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {track.collectionName}
+                          </p>
+                          {track.previewUrl && (
+                            <audio
+                              controls
+                              src={track.previewUrl}
+                              style={{ width: '100%', height: 32, marginTop: 4 }}
+                            />
+                          )}
+                          {track.trackViewUrl && (
+                            <a
+                              href={track.trackViewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ font: '400 11px/1 var(--font-sans)', color: 'var(--sage-leaf)', marginTop: 2 }}
+                            >
+                              iTunes에서 보기
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
