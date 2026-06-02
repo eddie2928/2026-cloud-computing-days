@@ -352,8 +352,7 @@ export function MonthGrid({
     if (!bTime) return -1;
     return aTime.localeCompare(bTime);
   });
-  const weekBars = getScheduleBars(cells, sortedSchedules);
-  const planWeekRows = getPlanWeekRows(cells, plans);
+  const allWeekBars = getWeekBars(cells, sortedSchedules, plans);
   const weeks = chunkCells(cells, 7);
 
   return (
@@ -444,9 +443,18 @@ export function MonthGrid({
           }}
         >
           {weeks.map((week, weekIdx) => {
-            const bars = weekBars[weekIdx] ?? [];
-            const visibleBars = bars.filter((b) => b.rowIndex < 3);
-            const overflowBars = bars.filter((b) => b.rowIndex >= 3);
+            const allBars = allWeekBars[weekIdx] ?? [];
+            const visibleScheduleBars = allBars.filter(
+              (b): b is WeekBarSchedule => b.kind === "schedule" && b.rowIndex < MAX_BARS,
+            );
+            const visiblePlanSegs = allBars.filter(
+              (b): b is WeekBarPlanSegment => b.kind === "plan" && b.rowIndex < MAX_BARS,
+            );
+            const overflowCount = new Set(
+              allBars
+                .filter((b) => b.rowIndex >= MAX_BARS)
+                .map((b) => (b.kind === "schedule" ? `s:${b.schedule.id}` : `p:${b.plan.id}`)),
+            ).size;
             return (
               <div
                 key={weekIdx}
@@ -559,8 +567,8 @@ export function MonthGrid({
                     </button>
                   );
                 })}
-                {/* 일정 바 — 최대 3개만 표시 */}
-                {visibleBars.map((bar, barIdx) => (
+                {/* 일정 바 — rowIndex < MAX_BARS만 표시 */}
+                {visibleScheduleBars.map((bar, barIdx) => (
                   <button
                     key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
                     onClick={(e) => {
@@ -571,7 +579,7 @@ export function MonthGrid({
                     style={{
                       gridColumn: `${bar.colStart} / ${bar.colEnd}`,
                       gridRow: bar.rowIndex + 2,
-                      height: 20,
+                      height: SLOT_H - 2,
                       background: "var(--sage-wash)",
                       borderRadius: "var(--r-2, 8px)",
                       border: "none",
@@ -583,7 +591,7 @@ export function MonthGrid({
                       fontFamily: "var(--font-sans)",
                       fontWeight: 500,
                       fontSize: 11,
-                      lineHeight: "20px",
+                      lineHeight: `${SLOT_H - 2}px`,
                       color: "var(--sage-ink)",
                       transition: "background var(--dur-2)",
                       animation: "days-fade-in 200ms var(--ease-out) both",
@@ -603,15 +611,15 @@ export function MonthGrid({
                       : bar.schedule.situation}
                   </button>
                 ))}
-                {/* overflow 일정: "+N개 더" 버튼 (T3.4에서 onClick 연결) */}
-                {overflowBars.length > 0 && (
+                {/* overflow 일정+플랜: 주 단위 "+N개 더" 버튼 */}
+                {overflowCount > 0 && (
                   <button
                     data-overflow-week={weekIdx}
                     onClick={() => setOpenWeekIdx(weekIdx)}
                     style={{
                       gridColumn: "1 / 8",
-                      gridRow: 5,
-                      height: 20,
+                      gridRow: MAX_BARS + 2,
+                      height: OVERFLOW_H,
                       background: "transparent",
                       border: "none",
                       padding: "0 6px",
@@ -619,7 +627,7 @@ export function MonthGrid({
                       fontFamily: "var(--font-sans)",
                       fontWeight: 500,
                       fontSize: 11,
-                      lineHeight: "20px",
+                      lineHeight: `${OVERFLOW_H}px`,
                       color: "var(--sage-forest)",
                       textAlign: "left",
                       animation: "days-fade-in 200ms var(--ease-out) both",
@@ -633,48 +641,46 @@ export function MonthGrid({
                         "var(--sage-forest)";
                     }}
                   >
-                    +{overflowBars.length}개 더
+                    +{overflowCount}개 더
                   </button>
                 )}
-                {/* Plan bar — 일자별 점선 구분 세그먼트 */}
-                {(planWeekRows[weekIdx] ?? []).flatMap((row) =>
-                  row.segments.map((seg) => (
-                    <button
-                      key={`plan-${seg.plan.id}-${seg.date}`}
-                      data-testid={`plan-bar-${seg.plan.id}-${seg.date}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlanDayClick?.(seg.plan.id, seg.date);
-                      }}
-                      title={seg.plan.title}
-                      style={{
-                        gridColumn: `${seg.colIndex} / ${seg.colIndex + 1}`,
-                        gridRow: 6 + row.planRowIndex,
-                        height: 18,
-                        background: "var(--sage-leaf)",
-                        opacity: 0.85,
-                        border: "none",
-                        borderRight: "1px dashed var(--paper-pure)",
-                        padding: 0,
-                        paddingLeft: seg.isFirstInWeek ? 4 : 0,
-                        cursor: onPlanDayClick ? "pointer" : "default",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontFamily: "var(--font-sans)",
-                        fontWeight: 500,
-                        fontSize: 10,
-                        lineHeight: "18px",
-                        color: "var(--paper-pure)",
-                        textAlign: "left",
-                        animation: "days-fade-in 200ms var(--ease-out) both",
-                        pointerEvents: onPlanDayClick ? "auto" : "none",
-                      }}
-                    >
-                      {seg.isFirstInWeek ? truncateName(seg.plan.title, 6) : ""}
-                    </button>
-                  )),
-                )}
+                {/* Plan bar — 일자별 점선 구분 세그먼트, 통합 rowIndex 사용 */}
+                {visiblePlanSegs.map((seg) => (
+                  <button
+                    key={`plan-${seg.plan.id}-${seg.date}`}
+                    data-testid={`plan-bar-${seg.plan.id}-${seg.date}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPlanDayClick?.(seg.plan.id, seg.date);
+                    }}
+                    title={seg.plan.title}
+                    style={{
+                      gridColumn: `${seg.colStart} / ${seg.colEnd}`,
+                      gridRow: seg.rowIndex + 2,
+                      height: 18,
+                      background: "var(--sage-leaf)",
+                      opacity: 0.85,
+                      border: "none",
+                      borderRight: "1px dashed var(--paper-pure)",
+                      padding: 0,
+                      paddingLeft: seg.isFirstInWeek ? 4 : 0,
+                      cursor: onPlanDayClick ? "pointer" : "default",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-sans)",
+                      fontWeight: 500,
+                      fontSize: 10,
+                      lineHeight: "18px",
+                      color: "var(--paper-pure)",
+                      textAlign: "left",
+                      animation: "days-fade-in 200ms var(--ease-out) both",
+                      pointerEvents: onPlanDayClick ? "auto" : "none",
+                    }}
+                  >
+                    {seg.isFirstInWeek ? truncateName(seg.plan.title, 6) : ""}
+                  </button>
+                ))}
               </div>
             );
           })}
@@ -683,10 +689,12 @@ export function MonthGrid({
       {/* 주별 일정 더보기 모달 */}
       {openWeekIdx !== null &&
         (() => {
-          const allBars = weekBars[openWeekIdx] ?? [];
+          const weekAllBars = allWeekBars[openWeekIdx] ?? [];
           const uniqueSchedules = [
             ...new Map(
-              allBars.map((b) => [b.schedule.id, b.schedule]),
+              weekAllBars
+                .filter((b): b is WeekBarSchedule => b.kind === "schedule")
+                .map((b) => [b.schedule.id, b.schedule]),
             ).values(),
           ];
           const weekStart = weeks[openWeekIdx]?.[0]?.date ?? "";
