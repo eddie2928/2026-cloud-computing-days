@@ -369,8 +369,8 @@ export function MonthGrid({
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
                   gridTemplateRows: hasAnyOverflow
-                    ? `auto repeat(${MAX_BARS}, ${SLOT_H}px) ${OVERFLOW_H}px`
-                    : `auto repeat(${MAX_BARS}, ${SLOT_H}px)`,
+                    ? `${HEADER_H}px repeat(${MAX_BARS}, ${SLOT_H}px) ${OVERFLOW_H}px`
+                    : `${HEADER_H}px repeat(${MAX_BARS}, ${SLOT_H}px)`,
                   marginBottom: 2,
                 }}
               >
