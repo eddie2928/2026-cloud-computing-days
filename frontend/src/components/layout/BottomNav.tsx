@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Icon } from "../days/Icon";
 import { useMockDate } from "../../hooks/useMockDate";
@@ -41,9 +42,24 @@ export function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const TODAY = useMockDate();
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty(
+        "--bottom-nav-h",
+        `${el.getBoundingClientRect().height}px`,
+      );
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <nav
+      ref={navRef}
       aria-label="하단 내비게이션"
       style={{
         position: "fixed",
