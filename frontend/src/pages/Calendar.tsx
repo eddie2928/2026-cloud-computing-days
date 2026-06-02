@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import client from "../api/client";
 import { listPlansForCalendar } from "../api/plans";
 import { MonthGrid } from "../components/calendar/MonthGrid";
@@ -21,7 +21,8 @@ export function Calendar() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [holidays, setHolidays] = useState<HolidayItem[]>([]);
   const [plans, setPlans] = useState<PlanWithTodosOut[]>([]);
-  const [view, setView] = useState<"schedule" | "plan">("schedule");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view: "schedule" | "plan" = searchParams.get("view") === "plan" ? "plan" : "schedule";
 
   const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, "0")}`;
@@ -75,7 +76,11 @@ export function Calendar() {
         {(["schedule", "plan"] as const).map((v) => (
           <button
             key={v}
-            onClick={() => setView(v)}
+            onClick={() =>
+              v === "plan"
+                ? setSearchParams({ view: "plan" }, { replace: true })
+                : setSearchParams({}, { replace: true })
+            }
             style={{
               padding: "3px 10px",
               border: "1px solid var(--line)",
