@@ -1,5 +1,5 @@
 /// <reference types="@testing-library/jest-dom" />
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MonthGrid } from '../../../components/calendar/MonthGrid';
@@ -16,22 +16,6 @@ function makeSchedule(
   startTime?: string,
 ): ScheduleItem {
   return { id, period_start: start, period_end: end, situation, start_time: startTime ?? null };
-}
-
-function makePlan(id: number, start: string, end: string, title: string): PlanWithTodosOut {
-  return {
-    id,
-    user_id: 1,
-    title,
-    description_input: null,
-    goal_input: null,
-    period_start: start,
-    period_end: end,
-    source: 'manual',
-    created_at: `${start}T00:00:00Z`,
-    progress: 0,
-    todos: [],
-  };
 }
 
 function renderGrid(
