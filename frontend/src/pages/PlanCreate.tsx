@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { generatePlan } from '../api/plans';
 import type { PlanWithTodosOut } from '../lib/plans';
 import { todosByDate } from '../lib/plans';
@@ -20,6 +20,7 @@ function formatDateKo(dateStr: string): string {
 
 export function PlanCreate() {
   const navigate = useNavigate();
+  const backTo = (useLocation().state as { from?: string })?.from ?? '/plans';
 
   const [description, setDescription] = useState('');
   const [goal, setGoal] = useState('');
@@ -72,7 +73,7 @@ export function PlanCreate() {
   };
 
   if (preview) {
-    return <PreviewSection preview={preview} onSave={handleSave} onRegenerate={handleRegenerate} />;
+    return <PreviewSection preview={preview} onSave={handleSave} onRegenerate={handleRegenerate} backTo={backTo} />;
   }
 
   return (
@@ -92,7 +93,7 @@ export function PlanCreate() {
         <button
           type="button"
           aria-label="뒤로 가기"
-          onClick={() => navigate('/plans')}
+          onClick={() => navigate(backTo)}
           style={{
             background: 'none',
             border: 'none',
@@ -346,9 +347,10 @@ interface PreviewSectionProps {
   preview: PlanWithTodosOut;
   onSave: () => void;
   onRegenerate: () => void;
+  backTo: string;
 }
 
-function PreviewSection({ preview, onSave, onRegenerate }: PreviewSectionProps) {
+function PreviewSection({ preview, onSave, onRegenerate, backTo }: PreviewSectionProps) {
   const navigate = useNavigate();
   const grouped = todosByDate(preview.todos);
   const dates = Object.keys(grouped).sort();
@@ -370,7 +372,7 @@ function PreviewSection({ preview, onSave, onRegenerate }: PreviewSectionProps) 
         <button
           type="button"
           aria-label="뒤로 가기"
-          onClick={() => navigate('/plans')}
+          onClick={() => navigate(backTo)}
           style={{
             background: 'none',
             border: 'none',
@@ -560,7 +562,7 @@ function PreviewSection({ preview, onSave, onRegenerate }: PreviewSectionProps) 
 
         <button
           type="button"
-          onClick={() => navigate('/plans')}
+          onClick={() => navigate(backTo)}
           style={{
             background: 'none',
             border: 0,

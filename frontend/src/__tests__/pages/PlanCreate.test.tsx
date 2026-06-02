@@ -111,4 +111,14 @@ describe('PlanCreate 페이지', () => {
       expect(screen.getByText('두 번째 할 일')).toBeInTheDocument();
     });
   });
+
+  it('state.from이 있으면 뒤로 가기 클릭 시 from 경로로 navigate한다', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/plans/new', state: { from: '/calendar?view=plan' } }]}>
+        <PlanCreate />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /뒤로 가기/ }));
+    expect(mockNavigate).toHaveBeenCalledWith('/calendar?view=plan');
+  });
 });
