@@ -194,7 +194,18 @@ export function MonthGrid({
     });
   }
 
-  const weekBars = getScheduleBars(cells, schedules);
+  const sortedSchedules = [...schedules].sort((a, b) => {
+    const aMulti = a.period_end > a.period_start ? 0 : 1;
+    const bMulti = b.period_end > b.period_start ? 0 : 1;
+    if (aMulti !== bMulti) return aMulti - bMulti;
+    const aTime = a.start_time ?? "";
+    const bTime = b.start_time ?? "";
+    if (!aTime && !bTime) return 0;
+    if (!aTime) return 1;
+    if (!bTime) return -1;
+    return aTime.localeCompare(bTime);
+  });
+  const weekBars = getScheduleBars(cells, sortedSchedules);
   const planWeekRows = getPlanWeekRows(cells, plans);
   const weeks = chunkCells(cells, 7);
 
@@ -440,7 +451,9 @@ export function MonthGrid({
                         "var(--sage-wash)";
                     }}
                   >
-                    {bar.schedule.situation}
+                    {bar.schedule.start_time
+                      ? `${bar.schedule.start_time.slice(0, 5)} ${bar.schedule.situation}`
+                      : bar.schedule.situation}
                   </button>
                 ))}
                 {/* overflow 일정: "+N개 더" 버튼 (T3.4에서 onClick 연결) */}
