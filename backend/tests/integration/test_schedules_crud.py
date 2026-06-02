@@ -148,3 +148,66 @@ async def test_duplicate_schedule_returns_409(client):
     assert first.status_code == 201
     second = await client.post("/api/schedules", json=payload)
     assert second.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_schedule_time_round_trip(client):
+    """POST에 시간 포함 → GET에서 시간 그대로 반환 (A6)."""
+    await _login(client)
+    create = await client.post("/api/schedules", json={
+        "period_start": "2027-06-01",
+        "period_end": "2027-06-01",
+        "start_time": "14:00:00",
+        "end_time": "16:00:00",
+        "situation": "시간 왕복 테스트",
+    })
+    assert create.status_code == 201
+    data = create.json()
+    assert data["start_time"] == "14:00:00"
+    assert data["end_time"] == "16:00:00"
+
+    schedule_id = data["id"]
+    get_resp = await client.get(f"/api/schedules/{schedule_id}")
+    assert get_resp.status_code == 200
+    got = get_resp.json()
+    assert got["start_time"] == "14:00:00"
+    assert got["end_time"] == "16:00:00"
+
+
+@pytest.mark.asyncio
+async def test_schedule_time_patch(client):
+    """PATCH으로 시간 변경이 DB에 반영됨 (A6)."""
+    await _login(client)
+    create = await client.post("/api/schedules", json={
+        "period_start": "2027-07-01",
+        "period_end": "2027-07-01",
+        "start_time": "09:00:00",
+        "end_time": "10:00:00",
+        "situation": "시간 수정 테스트",
+    })
+    assert create.status_code == 201
+    schedule_id = create.json()["id"]
+
+    patch_resp = await client.patch(f"/api/schedules/{schedule_id}", json={
+        "start_time": "15:00:00",
+        "end_time": "17:30:00",
+    })
+    assert patch_resp.status_code == 200
+    data = patch_resp.json()
+    assert data["start_time"] == "15:00:00"
+    assert data["end_time"] == "17:30:00"
+
+
+@pytest.mark.asyncio
+async def test_schedule_without_time_returns_null(client):
+    """시간 없이 생성 시 start_time/end_time=null (하위호환, A6)."""
+    await _login(client)
+    create = await client.post("/api/schedules", json={
+        "period_start": "2027-08-01",
+        "period_end": "2027-08-31",
+        "situation": "시간 없는 일정",
+    })
+    assert create.status_code == 201
+    data = create.json()
+    assert data["start_time"] is None
+    assert data["end_time"] is None
