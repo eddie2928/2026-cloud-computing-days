@@ -1,5 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 
+from app.time_kst import kst_today
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -277,7 +279,7 @@ async def bulk_replace_todos(
 ):
     plan = await _get_plan_or_404(plan_id, user_id, db)
 
-    today = date.today()
+    today = kst_today()
     if plan.period_end < today:
         return _plan_with_todos_out(plan)
 

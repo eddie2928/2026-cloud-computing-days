@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -8,6 +8,7 @@ from app.auth import require_session
 from app.db import get_db
 from app.models import DiaryEntry
 from app.schemas import StreakResponse
+from app.time_kst import kst_today
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
@@ -17,7 +18,7 @@ async def get_streak(
     user_id: int = Depends(require_session),
     db: AsyncSession = Depends(get_db),
 ) -> StreakResponse:
-    today = date.today()
+    today = kst_today()
     streak = 0
     check_date = today
     while True:
