@@ -94,12 +94,34 @@ def test_build_rag_block_empty():
 
 
 def test_parse_schedules_normal():
-    """Normal schedule lines parsed correctly."""
+    """3-field (legacy) lines parsed with empty start_time/end_time (하위호환)."""
     raw = "<question>질문</question>\n<schedules>\n2026-06-01|2026-06-07|기말 시험\n2026-06-10|2026-06-12|여행\n</schedules>"
     result = _parse_schedules(raw)
     assert len(result) == 2
-    assert result[0] == {"period_start": "2026-06-01", "period_end": "2026-06-07", "situation": "기말 시험"}
-    assert result[1] == {"period_start": "2026-06-10", "period_end": "2026-06-12", "situation": "여행"}
+    assert result[0] == {
+        "period_start": "2026-06-01",
+        "period_end": "2026-06-07",
+        "start_time": "",
+        "end_time": "",
+        "situation": "기말 시험",
+    }
+    assert result[1]["situation"] == "여행"
+    assert result[1]["start_time"] == ""
+    assert result[1]["end_time"] == ""
+
+
+def test_parse_schedules_with_time():
+    """5-field lines parsed with start_time/end_time."""
+    raw = "<schedules>\n2026-06-01|2026-06-01|14:00|16:00|회의\n</schedules>"
+    result = _parse_schedules(raw)
+    assert len(result) == 1
+    assert result[0] == {
+        "period_start": "2026-06-01",
+        "period_end": "2026-06-01",
+        "start_time": "14:00",
+        "end_time": "16:00",
+        "situation": "회의",
+    }
 
 
 def test_parse_schedules_empty_body():
@@ -115,6 +137,7 @@ def test_parse_schedules_malformed_line_skipped():
     result = _parse_schedules(raw)
     assert len(result) == 1
     assert result[0]["situation"] == "정상 일정"
+    assert result[0]["start_time"] == ""
 
 
 def test_parse_suggestions_normal():

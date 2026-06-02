@@ -89,13 +89,23 @@ def _parse_schedules(raw: str) -> list[dict]:
         line = line.strip()
         if not line:
             continue
-        parts = line.split("|")
-        if len(parts) != 3:
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) == 5:
+            period_start, period_end, start_time, end_time, situation = parts
+        elif len(parts) == 3:
+            period_start, period_end, situation = parts
+            start_time, end_time = "", ""
+        else:
             continue
-        period_start, period_end, situation = (p.strip() for p in parts)
         if not period_start or not period_end or not situation:
             continue
-        result.append({"period_start": period_start, "period_end": period_end, "situation": situation})
+        result.append({
+            "period_start": period_start,
+            "period_end": period_end,
+            "start_time": start_time,
+            "end_time": end_time,
+            "situation": situation,
+        })
     return result
 
 
