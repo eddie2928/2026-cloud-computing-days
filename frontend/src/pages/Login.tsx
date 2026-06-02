@@ -77,7 +77,7 @@ export function Login() {
         }}
       >
         <div style={{ animation: 'days-drift 8s ease-in-out infinite' }}>
-          <CloudLeaf size={72} color="var(--sage-forest)" stroke={2.4} />
+          <CloudLeaf size={108} color="var(--sage-forest)" stroke={2.4} />
         </div>
         <h1
           style={{
