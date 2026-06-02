@@ -508,9 +508,7 @@ export function MonthGrid({
                         "var(--sage-wash)";
                     }}
                   >
-                    {bar.schedule.start_time
-                      ? `${bar.schedule.start_time.slice(0, 5)} ${bar.schedule.situation}`
-                      : bar.schedule.situation}
+                    {bar.schedule.situation}
                   </button>
                 ))}
                 {/* 일자별 overflow "+N개" 칩 */}
