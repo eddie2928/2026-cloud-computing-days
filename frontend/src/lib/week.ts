@@ -8,6 +8,8 @@ export interface ScheduleItem {
   id: number;
   period_start: string;
   period_end: string;
+  start_time?: string | null;
+  end_time?: string | null;
   situation: string;
 }
 
