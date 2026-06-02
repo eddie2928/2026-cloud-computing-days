@@ -6,7 +6,7 @@ import {
 } from "../../lib/week";
 import { getSeoulToday } from "../../lib/today";
 import type { PlanWithTodosOut } from "../../lib/plans";
-import { computePlanRowByDate } from "./planRowUtils";
+import { computePlanRowByDate, packIntervalsIntoRows, type PackInterval } from "./planRowUtils";
 import { MoodEmoji, type Mood } from "../days/MoodEmoji";
 import { Icon } from "../days/Icon";
 import { DayItemsModal } from "./DayItemsModal";
@@ -69,6 +69,12 @@ interface WeekBarPlanSegment {
 
 type WeekBarItem = WeekBarSchedule | WeekBarPlanSegment;
 
+function startTimeKey(st: string | null | undefined): number {
+  if (!st) return Number.MAX_SAFE_INTEGER;
+  const parts = st.split(":");
+  return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2] ?? "0", 10);
+}
+
 function getWeekScheduleBars(
   cells: Array<{ date: string; inMonth: boolean }>,
   schedules: ScheduleItem[],
@@ -79,15 +85,11 @@ function getWeekScheduleBars(
     const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
     const weekDates = weekCells.map((c) => c.date);
 
-    type Candidate = {
-      scheduleRef: ScheduleItem;
+    const candidates: Array<{
+      schedule: ScheduleItem;
       colStart: number;
       colEnd: number;
-      span: number;
-      startTime: string | null;
-    };
-
-    const candidates: Candidate[] = [];
+    }> = [];
 
     for (const schedule of schedules) {
       const firstOverlap = weekDates.findIndex(
@@ -102,49 +104,30 @@ function getWeekScheduleBars(
         }
       }
       candidates.push({
-        scheduleRef: schedule,
+        schedule,
         colStart: firstOverlap + 1,
         colEnd: lastOverlap + 2,
-        span: lastOverlap - firstOverlap + 1,
-        startTime: schedule.start_time ?? null,
       });
     }
 
-    // Sort: ① multi-day (span > 1) first → ② start_time ascending (null last)
-    candidates.sort((a, b) => {
-      const aMulti = a.span > 1 ? 0 : 1;
-      const bMulti = b.span > 1 ? 0 : 1;
-      if (aMulti !== bMulti) return aMulti - bMulti;
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime);
-    });
+    const intervals: PackInterval[] = candidates.map((c) => ({
+      colStart: c.colStart,
+      colEnd: c.colEnd,
+      isMultiDay: c.colEnd - c.colStart > 1,
+      sortKey: startTimeKey(c.schedule.start_time),
+    }));
 
-    // Assign rowIndex (non-conflicting slot)
-    const slots: Array<{ colStart: number; colEnd: number; rowIndex: number }> = [];
+    const rowIndices = packIntervalsIntoRows(intervals);
 
-    for (const cand of candidates) {
-      let rowIndex = 0;
-      while (
-        slots.some(
-          (s) =>
-            s.rowIndex === rowIndex &&
-            s.colStart < cand.colEnd &&
-            s.colEnd > cand.colStart,
-        )
-      ) {
-        rowIndex++;
-      }
-      slots.push({ colStart: cand.colStart, colEnd: cand.colEnd, rowIndex });
+    candidates.forEach((c, i) => {
       weeks[weekIdx].push({
         kind: "schedule",
-        schedule: cand.scheduleRef,
-        colStart: cand.colStart,
-        colEnd: cand.colEnd,
-        rowIndex,
+        schedule: c.schedule,
+        colStart: c.colStart,
+        colEnd: c.colEnd,
+        rowIndex: rowIndices[i],
       });
-    }
+    });
   }
 
   return weeks;
