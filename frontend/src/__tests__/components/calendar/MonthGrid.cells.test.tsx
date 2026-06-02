@@ -96,3 +96,59 @@ describe('MonthGrid — cells & overflow', () => {
     expect(barBtn).toBeInTheDocument();
   });
 });
+
+const plan: PlanWithTodosOut = {
+  id: 99,
+  user_id: 1,
+  title: '테스트플랜',
+  description_input: null,
+  goal_input: null,
+  period_start: '2026-05-05',
+  period_end: '2026-05-05',
+  source: 'manual',
+  created_at: '2026-05-05T00:00:00Z',
+  progress: 0,
+  todos: [],
+};
+
+describe('MonthGrid — mode prop', () => {
+  it('mode="schedule"이면 plan-bar-* 가 렌더링되지 않는다', () => {
+    const schedule = makeSchedule(1, '2026-05-05', '2026-05-05', '회의');
+    render(
+      <MemoryRouter>
+        <MonthGrid
+          year={2026} month={5} entries={[]} holidays={[]}
+          schedules={[schedule]} plans={[plan]}
+          mode="schedule"
+          onPrev={noop} onNext={noop} onCellClick={noop}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryAllByTestId(/plan-bar-99/)).toHaveLength(0);
+    expect(screen.getByTitle('회의')).toBeInTheDocument();
+  });
+
+  it('mode="plan"이면 schedule 바가 렌더링되지 않는다', () => {
+    const schedule = makeSchedule(1, '2026-05-05', '2026-05-05', '회의');
+    render(
+      <MemoryRouter>
+        <MonthGrid
+          year={2026} month={5} entries={[]} holidays={[]}
+          schedules={[schedule]} plans={[plan]}
+          mode="plan"
+          onPrev={noop} onNext={noop} onCellClick={noop}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTitle('회의')).toBeNull();
+    expect(screen.getAllByTestId(/plan-bar-99/)).not.toHaveLength(0);
+  });
+
+  it('일정 바 텍스트에 start_time이 포함되지 않는다', () => {
+    const schedule = makeSchedule(1, '2026-05-05', '2026-05-05', '회의', '09:00');
+    renderGrid([schedule]);
+    const bar = screen.getByTitle('회의');
+    expect(bar.textContent).toBe('회의');
+    expect(bar.textContent).not.toContain('09:00');
+  });
+});
