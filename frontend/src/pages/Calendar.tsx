@@ -21,6 +21,7 @@ export function Calendar() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [holidays, setHolidays] = useState<HolidayItem[]>([]);
   const [plans, setPlans] = useState<PlanWithTodosOut[]>([]);
+  const [view, setView] = useState<"schedule" | "plan">("schedule");
 
   const fetchCalendar = useCallback(() => {
     const m = `${year}-${String(month).padStart(2, "0")}`;
@@ -69,6 +70,26 @@ export function Calendar() {
 
   return (
     <div style={{ padding: "8px 16px" }}>
+      {/* 일정 / 플랜 버전 토글 */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 4 }}>
+        {(["schedule", "plan"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            style={{
+              padding: "3px 10px",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-pill)",
+              cursor: "pointer",
+              font: "500 11px/1 var(--font-sans)",
+              background: view === v ? "var(--sage-leaf)" : "transparent",
+              color: view === v ? "var(--paper-pure)" : "var(--ink-hint)",
+            }}
+          >
+            {v === "schedule" ? "일정" : "플랜"}
+          </button>
+        ))}
+      </div>
       <MonthGrid
         year={year}
         month={month}
@@ -77,6 +98,7 @@ export function Calendar() {
         schedules={schedules}
         holidays={holidays}
         plans={plans}
+        mode={view}
         onPrev={goPrev}
         onNext={goNext}
         onCellClick={(date) => {
@@ -95,7 +117,7 @@ export function Calendar() {
         }}
       >
         <button
-          onClick={() => navigate("/schedule/new")}
+          onClick={() => navigate(view === "schedule" ? "/schedule/new" : "/plans/new")}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -112,7 +134,7 @@ export function Calendar() {
           }}
         >
           <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
-          일정 추가
+          {view === "schedule" ? "일정 추가" : "플랜 추가"}
         </button>
       </div>
     </div>
