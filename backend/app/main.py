@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import admin, auth, calendar, diary, insights, pet, plans, profile, push, qna, schedules, share, user
+from app.routers import admin, auth, calendar, diary, insights, music, pet, plans, profile, push, qna, schedules, share, user
 from app.scheduler import create_scheduler
 
 
@@ -43,6 +43,7 @@ app.include_router(insights.router)
 app.include_router(plans.router)
 app.include_router(share.router)
 app.include_router(push.router)
+app.include_router(music.router)
 
 
 @app.get("/api/health")
