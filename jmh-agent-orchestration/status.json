@@ -2,14 +2,14 @@
   "project": "days-taste-music",
   "status": "IN_PROGRESS",
   "created": "2026-06-02T00:00:00+09:00",
-  "updated": "2026-06-01T19:14:36.644595+00:00",
+  "updated": "2026-06-02T02:33:46.957230+00:00",
   "tasks": [
     {
       "id": 1,
       "name": "Task 1: 취향 DB 스키마 + 마이그레이션 + 모델",
       "agent": "agent-task1",
       "skill": "jmh-worker-backend",
-      "status": "RUNNING",
+      "status": "DONE",
       "retry": 0,
       "max_retry": 5,
       "started": null,

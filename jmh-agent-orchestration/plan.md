@@ -72,7 +72,7 @@
 
 ## Todo List
 
-- [!] Task 1: 취향 DB 스키마 + 마이그레이션 + 모델 — type: NEW_FEATURE, worker: jmh-worker-backend, depends: none
+- [x] Task 1: 취향 DB 스키마 + 마이그레이션 + 모델 — type: NEW_FEATURE, worker: jmh-worker-backend, depends: none
 - [ ] Task 2: 취향 API (GET/PUT) + 스키마 — type: NEW_FEATURE, worker: jmh-worker-backend, depends: Task 1
 - [ ] Task 3: 추천 Stub 모듈 + /api/recommend/songs — type: NEW_FEATURE, worker: jmh-worker-backend, depends: Task 2
 - [!] Task 4: 음원 프록시 /api/music/search (iTunes) + httpx — type: NEW_FEATURE, worker: jmh-worker-backend, depends: none

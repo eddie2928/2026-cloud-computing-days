@@ -1,5 +1,12 @@
 {
   "test_dir": "backend/tests/unit",
   "test_command": "cd backend && python -m pytest -q",
-  "entries": []
+  "entries": [
+    {
+      "test_path": "backend/tests/unit/test_taste_models.py",
+      "covers": "backend/app/models.py (TasteProfile)",
+      "created": "2026-06-02T00:00:00+09:00",
+      "task": "Task 1"
+    }
+  ]
 }
