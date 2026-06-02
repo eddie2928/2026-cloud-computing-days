@@ -54,6 +54,7 @@ export function Qna() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
   const [inputAreaHeight, setInputAreaHeight] = useState(100);
+  const [inputAreaBottom, setInputAreaBottom] = useState<string>("var(--bottom-nav-h, 60px)");
 
   const STEP_LABELS: Record<string, string> = {
     schedules: "사용자 일정 읽어오는 중..",
@@ -273,6 +274,30 @@ export function Qna() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const keyboardHeight = Math.max(
+        0,
+        window.innerHeight - vv.height - vv.offsetTop,
+      );
+      const bnhStr = getComputedStyle(document.documentElement).getPropertyValue("--bottom-nav-h");
+      const bnhPx = parseFloat(bnhStr) || 60;
+      if (keyboardHeight > 10) {
+        setInputAreaBottom(`${Math.max(bnhPx, keyboardHeight)}px`);
+      } else {
+        setInputAreaBottom("var(--bottom-nav-h, 60px)");
+      }
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   const totalQuestions = 5;
   const progressValue = Math.min(sequence, totalQuestions);
   const extraQuestions = sequence > totalQuestions ? sequence - totalQuestions : 0;
@@ -385,7 +410,7 @@ export function Qna() {
           transform: "translateX(-50%)",
           width: "100%",
           maxWidth: 480,
-          bottom: "var(--bottom-nav-h, 60px)",
+          bottom: inputAreaBottom,
           zIndex: 90,
           background: "var(--paper-bone)",
           padding: "8px 16px 16px",
