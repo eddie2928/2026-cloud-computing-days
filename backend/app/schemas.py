@@ -26,6 +26,8 @@ class PendingSchedule(BaseModel):
     period_start: str
     period_end: str
     situation: str
+    start_time: str | None = None
+    end_time: str | None = None
 
 
 class QnAStartResponse(BaseModel):
@@ -57,6 +59,8 @@ class ScheduleOut(BaseModel):
     id: int
     period_start: date
     period_end: date
+    start_time: time | None = None
+    end_time: time | None = None
     situation: str
 
     model_config = {"from_attributes": True}
@@ -65,12 +69,16 @@ class ScheduleOut(BaseModel):
 class ScheduleUpdate(BaseModel):
     period_start: date | None = None
     period_end: date | None = None
+    start_time: time | None = None
+    end_time: time | None = None
     situation: str | None = None
 
 
 class ScheduleConfirm(BaseModel):
     period_start: date
     period_end: date
+    start_time: time | None = None
+    end_time: time | None = None
     situation: str
 
 
