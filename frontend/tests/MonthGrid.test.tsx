@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { MonthGrid } from "../src/components/calendar/MonthGrid";
+import { getSeoulToday } from "../src/lib/today";
 
 const noop = vi.fn();
 
@@ -118,7 +119,7 @@ describe("MonthGrid", () => {
   });
 
   it("오늘 날짜 — sage-forest solid border", () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getSeoulToday();
     const [y, m] = today.split("-").map(Number);
     render(
       <MonthGrid
@@ -135,7 +136,7 @@ describe("MonthGrid", () => {
   });
 
   it("오늘이면서 일기도 있는 날 — today 스타일 우선", () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getSeoulToday();
     const [y, m] = today.split("-").map(Number);
     render(
       <MonthGrid

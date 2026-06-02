@@ -9,13 +9,14 @@ import {
   type ScheduleItem,
 } from "../lib/week";
 import type { PlanWithTodosOut } from "../lib/plans";
+import { getSeoulToday } from "../lib/today";
 
-const now = new Date();
+const [initYear, initMonth] = getSeoulToday().split('-').map(Number);
 
 export function Calendar() {
   const navigate = useNavigate();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(initYear);
+  const [month, setMonth] = useState(initMonth);
   const [direction, setDirection] = useState<"left" | "right">("left");
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);

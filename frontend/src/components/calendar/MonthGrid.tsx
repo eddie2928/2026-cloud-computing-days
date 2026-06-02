@@ -4,6 +4,7 @@ import {
   type HolidayItem,
   type ScheduleItem,
 } from "../../lib/week";
+import { getSeoulToday } from "../../lib/today";
 import type { PlanWithTodosOut } from "../../lib/plans";
 import { computePlanRowByDate } from "./planRowUtils";
 import { MoodEmoji, type Mood } from "../days/MoodEmoji";
@@ -27,7 +28,7 @@ interface MonthGridProps {
 }
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = getSeoulToday();
 
 function truncateName(name: string, max: number): string {
   return name.length > max ? name.slice(0, max) + ".." : name;

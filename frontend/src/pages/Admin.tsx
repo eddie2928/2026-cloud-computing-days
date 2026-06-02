@@ -3,6 +3,7 @@ import client from '../api/client'
 import { searchMusic, type MusicSearchResult } from '../api/music'
 import { ThinkingDots } from '../components/qna/ThinkingDots'
 import { getMockDate, setMockDate, clearMockDate, hasMockDate } from '../lib/mockDate'
+import { getSeoulToday } from '../lib/today'
 import { getPushState, subscribePush, type PushState } from '../lib/push'
 
 const TABLES = [
@@ -578,8 +579,7 @@ export function Admin() {
               <button
                 onClick={() => {
                   clearMockDate()
-                  const real = new Date().toISOString().split('T')[0]
-                  setMockDateInput(real)
+                  setMockDateInput(getSeoulToday())
                   setIsMockActive(false)
                 }}
                 style={{
