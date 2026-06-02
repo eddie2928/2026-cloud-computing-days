@@ -122,7 +122,12 @@ export function Calendar() {
         }}
       >
         <button
-          onClick={() => navigate(view === "schedule" ? "/schedule/new" : "/plans/new")}
+          onClick={() =>
+            navigate(
+              view === "schedule" ? "/schedule/new" : "/plans/new",
+              { state: { from: `/calendar?view=${view}` } }
+            )
+          }
           style={{
             display: "inline-flex",
             alignItems: "center",
