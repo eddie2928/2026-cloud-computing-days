@@ -8,6 +8,8 @@ export function ScheduleNew() {
   const [situation, setSituation] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -18,6 +20,8 @@ export function ScheduleNew() {
         situation,
         period_start: periodStart,
         period_end: periodEnd,
+        start_time: startTime || null,
+        end_time: endTime || null,
       });
       navigate(-1);
     } finally {
@@ -145,6 +149,64 @@ export function ScheduleNew() {
               }}
             />
           </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  color: "var(--ink-meta)",
+                }}
+              >
+                시작 시간
+              </span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{
+                  background: "var(--paper-bone)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  color: "var(--ink-deep)",
+                  outline: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  color: "var(--ink-meta)",
+                }}
+              >
+                종료 시간
+              </span>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{
+                  background: "var(--paper-bone)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  color: "var(--ink-deep)",
+                  outline: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              />
+            </label>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
