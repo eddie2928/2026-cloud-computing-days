@@ -1,8 +1,10 @@
+import { getSeoulToday } from './today'
+
 const KEY = 'days_mock_date'
 const EVENT = 'days-mock-date-changed'
 
 export function getMockDate(): string {
-  return localStorage.getItem(KEY) ?? new Date().toISOString().split('T')[0]
+  return localStorage.getItem(KEY) ?? getSeoulToday()
 }
 
 export function setMockDate(date: string): void {
