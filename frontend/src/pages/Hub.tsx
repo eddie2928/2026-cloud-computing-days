@@ -8,7 +8,7 @@ import { DailyTodoCard } from "../components/hub/DailyTodoCard";
 
 import { PlantVideoCard, type PlantState } from "../components/hub/PlantVideoCard";
 import { PlantVideoCardV2 } from "../components/hub/PlantVideoCardV2";
-import { getWeekWindow, type CalendarEntry, type ScheduleItem } from "../lib/week";
+import { getWeekWindow, type CalendarEntry } from "../lib/week";
 import { fetchStreak } from "../lib/streak";
 import { useMockDate } from "../hooks/useMockDate";
 import { listPlans, listPlansForCalendar } from "../api/plans";
@@ -21,7 +21,6 @@ export function Hub() {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [diaryBody, setDiaryBody] = useState<string | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [plantDesign, setPlantDesign] = useState<1 | 2>(1);
   const [plans, setPlans] = useState<PlanOut[]>([]);
   const [activeTodayTodos, setActiveTodayTodos] = useState(0);
@@ -50,10 +49,6 @@ export function Hub() {
       .then((res) => {
         setEntries(res.data.entries ?? []);
       })
-      .catch(() => {});
-    client
-      .get(`/schedules?month=${thisMonth}`)
-      .then((res) => setSchedules(res.data ?? []))
       .catch(() => {});
   }, [thisMonth]);
 
@@ -137,7 +132,7 @@ export function Hub() {
         </div>
       )}
       <div style={{ animation: "days-rise 320ms var(--ease-out) 40ms both" }}>
-        <WeekStrip days={weekDays} today={today} schedules={schedules} />
+        <WeekStrip days={weekDays} today={today} />
       </div>
 
       <div
