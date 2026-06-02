@@ -297,7 +297,7 @@ export function MonthGrid({
                   gridTemplateColumns: "repeat(7, 1fr)",
                   gridAutoRows: "max-content",
                   gap: 2,
-                  minHeight: 84,
+                  minHeight: 100,
                   marginBottom: 2,
                 }}
               >
@@ -352,7 +352,7 @@ export function MonthGrid({
                         alignItems: "center",
                         gap: 2,
                         padding: "6px 2px",
-                        minHeight: 60,
+                        minHeight: 80,
                         gridRow: 1,
                         borderRadius: "var(--r-2)",
                         border: borderStyle,
@@ -396,7 +396,7 @@ export function MonthGrid({
                       {emotion ? (
                         <MoodEmoji mood={emotion as Mood} size={18} float />
                       ) : (
-                        <span style={{ width: 12, height: 12 }} />
+                        <span style={{ width: 18, height: 18 }} />
                       )}
                     </button>
                   );
