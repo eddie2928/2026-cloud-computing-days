@@ -43,9 +43,10 @@ function chunkCells<T>(cells: T[], size: number): T[][] {
 }
 
 // Layout constants
-const MAX_BARS = 3;
+const MAX_BARS = 2;
 const SLOT_H = 20; // BAR_H(18) + BAR_GAP(2)
 const OVERFLOW_H = 16;
+const HEADER_H = 68; // 날짜·공휴일·이모지 고정 헤더 (108px − MAX_BARS×SLOT_H)
 
 interface WeekBarSchedule {
   kind: "schedule";
