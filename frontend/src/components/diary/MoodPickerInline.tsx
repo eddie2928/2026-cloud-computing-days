@@ -1,6 +1,7 @@
 import { useState } from "react";
 import client from "../../api/client";
 import { MoodEmoji, type Mood, MOOD_EMOJI } from "../days/MoodEmoji";
+import { EMOTION_LABEL } from "../../lib/emotions";
 
 const MOODS: Mood[] = ["happy", "sad", "angry", "neutral", "bored"];
 
@@ -44,6 +45,10 @@ export function MoodPickerInline({ date, initial }: MoodPickerInlineProps) {
           onClick={() => pick(mood)}
           style={
             {
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
               border: "none",
               cursor: "pointer",
               padding: "8px",
@@ -61,6 +66,15 @@ export function MoodPickerInline({ date, initial }: MoodPickerInlineProps) {
           }
         >
           <MoodEmoji mood={mood} size={48} float />
+          <span style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--t-xs)",
+            color: selected === mood ? "var(--sage-forest)" : "var(--ink-hint)",
+            fontWeight: selected === mood ? 700 : 400,
+            transition: "color var(--dur-1), font-weight var(--dur-1)",
+          }}>
+            {EMOTION_LABEL[mood]}
+          </span>
         </button>
       ))}
     </div>
