@@ -3,7 +3,7 @@
 ## 메타 정보
 - 생성 일시: 2026-06-02T00:00:00+09:00
 - 마지막 업데이트: 2026-06-02T00:00:00+09:00
-- 상태: IN_PROGRESS
+- 상태: COMPLETED
 - 통합 테스트 명령어 (backend): `cd backend && python -m pytest -q`
 - 통합 테스트 명령어 (frontend): `cd frontend && npx tsc --noEmit && npm test -- --run`
 - 테스트 디렉토리: backend/tests/{unit,integration}, frontend/src/**/*.test.tsx
@@ -79,7 +79,7 @@
 - [x] Task 5: 백엔드 통합 테스트 (취향 CRUD + 추천 stub + 음원 프록시 mock) — type: INTEGRATION_TEST, worker: jmh-worker-backend, depends: Task 2, Task 3, Task 4
 - [x] Task 6: 취향 문진 플로우 페이지 + 라우트 + Profile 진입/요약 — type: NEW_FEATURE, worker: jmh-worker-frontend, depends: Task 2
 - [x] Task 7: 개발자 페이지(Admin) 음악 API 테스트 탭 — type: NEW_FEATURE, worker: jmh-worker-frontend, depends: Task 4
-- [!] Task 8: 프론트 E2E/빌드 검증 (tsc --noEmit + vitest) — type: INTEGRATION_TEST, worker: jmh-worker-frontend, depends: Task 6, Task 7
+- [x] Task 8: 프론트 E2E/빌드 검증 (tsc --noEmit + vitest) — type: INTEGRATION_TEST, worker: jmh-worker-frontend, depends: Task 6, Task 7
 
 ## 의존성 그래프
 ```
