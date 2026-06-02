@@ -13,6 +13,8 @@ export function Schedule() {
   const [situation, setSituation] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export function Schedule() {
         setSituation(s.situation);
         setPeriodStart(s.period_start);
         setPeriodEnd(s.period_end);
+        setStartTime(s.start_time ?? "");
+        setEndTime(s.end_time ?? "");
       })
       .catch((e) => {
         if (e.response?.status === 404) setNotFound(true);
@@ -39,6 +43,8 @@ export function Schedule() {
         situation,
         period_start: periodStart,
         period_end: periodEnd,
+        start_time: startTime || null,
+        end_time: endTime || null,
       });
       navigate(-1);
     } finally {
@@ -141,11 +147,28 @@ export function Schedule() {
                 fontSize: 13,
                 lineHeight: 1,
                 color: "var(--ink-hint)",
-                margin: "0 0 20px",
+                margin: "0 0 4px",
               }}
             >
               {schedule.period_start} ~ {schedule.period_end}
             </p>
+            {(schedule.start_time || schedule.end_time) && (
+              <p
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 400,
+                  fontSize: 13,
+                  lineHeight: 1,
+                  color: "var(--ink-hint)",
+                  margin: "0 0 20px",
+                }}
+              >
+                {schedule.start_time ?? ""}{schedule.start_time && schedule.end_time ? " – " : ""}{schedule.end_time ?? ""}
+              </p>
+            )}
+            {!schedule.start_time && !schedule.end_time && (
+              <div style={{ marginBottom: 20 }} />
+            )}
             <hr
               style={{
                 border: "none",
@@ -298,6 +321,52 @@ export function Schedule() {
                   }}
                 />
               </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                  <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-meta)" }}>
+                    시작 시간
+                  </span>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    style={{
+                      background: "var(--paper-bone)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      padding: "8px 12px",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 14,
+                      color: "var(--ink-deep)",
+                      outline: "none",
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                  <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-meta)" }}>
+                    종료 시간
+                  </span>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    style={{
+                      background: "var(--paper-bone)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      padding: "8px 12px",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 14,
+                      color: "var(--ink-deep)",
+                      outline: "none",
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </label>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button
