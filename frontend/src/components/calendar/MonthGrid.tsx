@@ -303,7 +303,7 @@ export function MonthGrid({
   onScheduleClick,
   onPlanDayClick,
 }: MonthGridProps) {
-  const [openWeekIdx, setOpenWeekIdx] = useState<number | null>(null);
+  const [openDayDate, setOpenDayDate] = useState<string | null>(null);
 
   const holidayMap = new Map(holidays.map((h) => [h.date, h]));
   const entryMap = new Map(entries.map((e) => [e.date, e]));
@@ -450,18 +450,23 @@ export function MonthGrid({
             const visiblePlanSegs = allBars.filter(
               (b): b is WeekBarPlanSegment => b.kind === "plan" && b.rowIndex < MAX_BARS,
             );
-            const overflowCount = new Set(
-              allBars
-                .filter((b) => b.rowIndex >= MAX_BARS)
-                .map((b) => (b.kind === "schedule" ? `s:${b.schedule.id}` : `p:${b.plan.id}`)),
-            ).size;
+            // Per-day hidden item count
+            const hiddenCountsByCol = new Map<number, number>();
+            allBars
+              .filter((b) => b.rowIndex >= MAX_BARS)
+              .forEach((b) => {
+                for (let col = b.colStart; col < b.colEnd; col++) {
+                  hiddenCountsByCol.set(col, (hiddenCountsByCol.get(col) ?? 0) + 1);
+                }
+              });
+            const hasAnyOverflow = hiddenCountsByCol.size > 0;
             return (
               <div
                 key={weekIdx}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
-                  gridTemplateRows: overflowCount > 0
+                  gridTemplateRows: hasAnyOverflow
                     ? `auto repeat(${MAX_BARS}, ${SLOT_H}px) ${OVERFLOW_H}px`
                     : `auto repeat(${MAX_BARS}, ${SLOT_H}px)`,
                   marginBottom: 2,
@@ -611,39 +616,48 @@ export function MonthGrid({
                       : bar.schedule.situation}
                   </button>
                 ))}
-                {/* overflow 일정+플랜: 주 단위 "+N개 더" 버튼 */}
-                {overflowCount > 0 && (
-                  <button
-                    data-overflow-week={weekIdx}
-                    onClick={() => setOpenWeekIdx(weekIdx)}
-                    style={{
-                      gridColumn: "1 / 8",
-                      gridRow: MAX_BARS + 2,
-                      height: OVERFLOW_H,
-                      background: "transparent",
-                      border: "none",
-                      padding: "0 6px",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-sans)",
-                      fontWeight: 500,
-                      fontSize: 11,
-                      lineHeight: `${OVERFLOW_H}px`,
-                      color: "var(--sage-forest)",
-                      textAlign: "left",
-                      animation: "days-fade-in 200ms var(--ease-out) both",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.color =
-                        "var(--sage-ink)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.color =
-                        "var(--sage-forest)";
-                    }}
-                  >
-                    +{overflowCount}개 더
-                  </button>
-                )}
+                {/* 일자별 overflow "+N개" 칩 */}
+                {week.map(({ date }, colIdx) => {
+                  const col = colIdx + 1;
+                  const hidden = hiddenCountsByCol.get(col) ?? 0;
+                  if (hidden === 0) return null;
+                  return (
+                    <button
+                      key={`overflow-${date}`}
+                      data-overflow-date={date}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenDayDate(date);
+                      }}
+                      style={{
+                        gridColumn: `${col} / ${col + 1}`,
+                        gridRow: MAX_BARS + 2,
+                        height: OVERFLOW_H,
+                        background: "transparent",
+                        border: "none",
+                        padding: "0 4px",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 600,
+                        fontSize: 10,
+                        lineHeight: `${OVERFLOW_H}px`,
+                        color: "var(--sage-forest)",
+                        textAlign: "center",
+                        animation: "days-fade-in 200ms var(--ease-out) both",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.color =
+                          "var(--sage-ink)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.color =
+                          "var(--sage-forest)";
+                      }}
+                    >
+                      +{hidden}개
+                    </button>
+                  );
+                })}
                 {/* Plan bar — 일자별 점선 구분 세그먼트, 통합 rowIndex 사용 */}
                 {visiblePlanSegs.map((seg) => (
                   <button
@@ -686,33 +700,8 @@ export function MonthGrid({
           })}
         </div>
       </div>
-      {/* 주별 일정 더보기 모달 */}
-      {openWeekIdx !== null &&
-        (() => {
-          const weekAllBars = allWeekBars[openWeekIdx] ?? [];
-          const uniqueSchedules = [
-            ...new Map(
-              weekAllBars
-                .filter((b): b is WeekBarSchedule => b.kind === "schedule")
-                .map((b) => [b.schedule.id, b.schedule]),
-            ).values(),
-          ];
-          const weekStart = weeks[openWeekIdx]?.[0]?.date ?? "";
-          const weekEnd = weeks[openWeekIdx]?.[6]?.date ?? "";
-          const label = weekStart && weekEnd ? `${weekStart} ~ ${weekEnd}` : "";
-          return (
-            <WeekSchedulesModal
-              open
-              onClose={() => setOpenWeekIdx(null)}
-              schedules={uniqueSchedules}
-              weekLabel={label}
-              onScheduleClick={(s) => {
-                setOpenWeekIdx(null);
-                onScheduleClick?.(s);
-              }}
-            />
-          );
-        })()}
+      {/* 일자별 더보기 모달 — C2에서 DayItemsModal로 구현 */}
+      {openDayDate !== null && null}
     </div>
   );
 }
