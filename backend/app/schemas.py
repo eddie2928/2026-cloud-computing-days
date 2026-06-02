@@ -275,3 +275,41 @@ class PlanTodoBulkReplace(BaseModel):
         default_factory=list,
         max_length=50,
     )
+
+
+class TasteProfileIn(BaseModel):
+    music_genres: list[str] = []
+    favorite_artists: list[str] = []
+    preferred_music_mood: list[str] = []
+    mbti: Optional[str] = None
+    ideal_type: Optional[str] = None
+    personality_keywords: list[str] = []
+    movie_genres: list[str] = []
+    food_preferences: list[str] = []
+    life_values: list[str] = []
+    weekend_style: Optional[str] = None
+    love_language: Optional[str] = None
+    answers: Optional[dict] = None
+    completed: bool = False
+
+    def model_post_init(self, __context):
+        if self.mbti == "":
+            self.mbti = None
+
+
+class TasteProfileOut(BaseModel):
+    music_genres: list[str]
+    favorite_artists: list[str]
+    preferred_music_mood: list[str]
+    mbti: Optional[str]
+    ideal_type: Optional[str]
+    personality_keywords: list[str]
+    movie_genres: list[str]
+    food_preferences: list[str]
+    life_values: list[str]
+    weekend_style: Optional[str]
+    love_language: Optional[str]
+    answers: Optional[dict]
+    completed: bool
+
+    model_config = {"from_attributes": True}
