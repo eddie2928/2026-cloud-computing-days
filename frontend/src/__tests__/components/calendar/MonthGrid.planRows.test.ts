@@ -1,104 +1,64 @@
 import { describe, it, expect } from 'vitest';
-import { computePlanRowByDate } from '../../../components/calendar/planRowUtils';
-import type { PlanWithTodosOut } from '../../../lib/plans';
+import {
+  packIntervalsIntoRows,
+  type PackInterval,
+} from '../../../components/calendar/planRowUtils';
 
-function makePlan(id: number, start: string, end: string): PlanWithTodosOut {
+// 플랜 막대 배치 관련 케이스 — sortKey = plan.id
+
+function planIv(
+  colStart: number,
+  colEnd: number,
+  planId: number,
+): PackInterval {
   return {
-    id,
-    user_id: 1,
-    title: `Plan ${id}`,
-    description_input: '',
-    goal_input: '',
-    period_start: start,
-    period_end: end,
-    source: 'ai',
-    created_at: '2026-01-01T00:00:00Z',
-    progress: 0,
-    todos: [],
+    colStart,
+    colEnd,
+    isMultiDay: colEnd - colStart > 1,
+    sortKey: planId,
   };
 }
 
-describe('computePlanRowByDate', () => {
-  const A = makePlan(1, '2026-06-01', '2026-06-10');
-  const B = makePlan(2, '2026-06-02', '2026-06-04');
-  const C = makePlan(3, '2026-06-03', '2026-06-10');
-
-  const dates = [
-    '2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04',
-    '2026-06-05', '2026-06-10', '2026-06-11',
-  ];
-
-  it('6/1: A만 활성 → A=row0', () => {
-    const result = computePlanRowByDate(['2026-06-01'], [A, B, C]);
-    expect(result.get('2026-06-01')?.get(A.id)).toBe(0);
-    expect(result.get('2026-06-01')?.get(B.id)).toBeUndefined();
+describe('packIntervalsIntoRows — 플랜 배치 케이스', () => {
+  it('단일 플랜(단독) → row0', () => {
+    const [row] = packIntervalsIntoRows([planIv(1, 8, 1)]);
+    expect(row).toBe(0);
   });
 
-  it('6/2: A,B 활성 → A=0, B=1', () => {
-    const result = computePlanRowByDate(['2026-06-02'], [A, B, C]);
-    const day = result.get('2026-06-02')!;
-    expect(day.get(A.id)).toBe(0);
-    expect(day.get(B.id)).toBe(1);
+  it('긴 플랜(span=7)이 짧은 플랜(span=3)보다 먼저 row0 선점', () => {
+    // 두 플랜이 겹침: A(1-8,span=7), B(1-4,span=3)
+    const [rowA, rowB] = packIntervalsIntoRows([planIv(1, 8, 1), planIv(1, 4, 2)]);
+    expect(rowA).toBe(0);
+    expect(rowB).toBe(1);
   });
 
-  it('6/3: A,B,C 활성 → A=0, B=1, C=2', () => {
-    const result = computePlanRowByDate(['2026-06-03'], [A, B, C]);
-    const day = result.get('2026-06-03')!;
-    expect(day.get(A.id)).toBe(0);
-    expect(day.get(B.id)).toBe(1);
-    expect(day.get(C.id)).toBe(2);
+  it('겹치지 않는 두 플랜 → 같은 row0에 패킹', () => {
+    // A(1-3), B(4-7) — 안 겹침
+    const [rowA, rowB] = packIntervalsIntoRows([planIv(1, 3, 1), planIv(4, 7, 2)]);
+    expect(rowA).toBe(0);
+    expect(rowB).toBe(0);
   });
 
-  it('6/5: A,C 활성 → A=0, C=1 (B 끝나도 빈 줄 없음)', () => {
-    const result = computePlanRowByDate(['2026-06-05'], [A, B, C]);
-    const day = result.get('2026-06-05')!;
-    expect(day.get(A.id)).toBe(0);
-    expect(day.get(B.id)).toBeUndefined();
-    expect(day.get(C.id)).toBe(1);
+  it('id 오름차 tie-break: id=3보다 id=1이 먼저 row0', () => {
+    // 동일 구간, id만 다름
+    const [rowHigh, rowLow] = packIntervalsIntoRows([planIv(1, 8, 3), planIv(1, 8, 1)]);
+    expect(rowHigh).toBe(1); // id=3
+    expect(rowLow).toBe(0);  // id=1
   });
 
-  it('6/10: A,C 활성 → A=0, C=1', () => {
-    const result = computePlanRowByDate(['2026-06-10'], [A, B, C]);
-    const day = result.get('2026-06-10')!;
-    expect(day.get(A.id)).toBe(0);
-    expect(day.get(C.id)).toBe(1);
+  it('세 플랜 모두 겹침 → row0, row1, row2 순', () => {
+    // span 순: A(7)>B(5)>C(3)
+    const rows = packIntervalsIntoRows([
+      planIv(1, 8, 1), // span=7
+      planIv(2, 7, 2), // span=5
+      planIv(3, 6, 3), // span=3
+    ]);
+    expect(rows[0]).toBe(0); // A
+    expect(rows[1]).toBe(1); // B
+    expect(rows[2]).toBe(2); // C
   });
 
-  it('6/11: 활성 없음 → 빈 맵', () => {
-    const result = computePlanRowByDate(['2026-06-11'], [A, B, C]);
-    const day = result.get('2026-06-11');
-    expect(day?.size ?? 0).toBe(0);
-  });
-
-  it('복수 날짜 한 번에 계산', () => {
-    const result = computePlanRowByDate(dates, [A, B, C]);
-    // 6/5에 C가 row1
-    expect(result.get('2026-06-05')?.get(C.id)).toBe(1);
-    // 6/11에 아무것도 없음
-    expect(result.get('2026-06-11')?.size ?? 0).toBe(0);
-  });
-
-  it('동일 시작일: end asc 정렬 → D(끝6/2)=0, E(끝6/9)=1', () => {
-    const D = makePlan(5, '2026-06-01', '2026-06-02');
-    const E = makePlan(3, '2026-06-01', '2026-06-09');
-    const result = computePlanRowByDate(['2026-06-01'], [D, E]);
-    const day = result.get('2026-06-01')!;
-    expect(day.get(D.id)).toBe(0);
-    expect(day.get(E.id)).toBe(1);
-  });
-
-  it('동일 시작/종료일: id asc 정렬', () => {
-    const X = makePlan(10, '2026-06-01', '2026-06-05');
-    const Y = makePlan(5, '2026-06-01', '2026-06-05');
-    const result = computePlanRowByDate(['2026-06-01'], [X, Y]);
-    const day = result.get('2026-06-01')!;
-    expect(day.get(Y.id)).toBe(0); // id=5 먼저
-    expect(day.get(X.id)).toBe(1); // id=10 다음
-  });
-
-  it('단일 일자 플랜 단독 → row0', () => {
-    const F = makePlan(7, '2026-06-05', '2026-06-05');
-    const result = computePlanRowByDate(['2026-06-05'], [F]);
-    expect(result.get('2026-06-05')?.get(F.id)).toBe(0);
+  it('빈 배열 → 빈 배열', () => {
+    expect(packIntervalsIntoRows([])).toEqual([]);
   });
 });
