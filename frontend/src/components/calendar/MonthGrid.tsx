@@ -373,7 +373,7 @@ export function MonthGrid({
                   marginBottom: 2,
                 }}
               >
-                {week.map(({ date, inMonth }) => {
+                {week.map(({ date, inMonth }, cellColIdx) => {
                   const isToday = date === TODAY;
                   const isFuture = date > TODAY;
                   const entry = entryMap.get(date);
@@ -425,6 +425,7 @@ export function MonthGrid({
                         justifyContent: "flex-start",
                         gap: 2,
                         padding: "6px 2px",
+                        gridColumn: `${cellColIdx + 1} / ${cellColIdx + 2}`,
                         gridRow: "1 / -1",
                         position: "relative",
                         zIndex: 0,
