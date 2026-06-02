@@ -2,7 +2,7 @@
   "project": "days-taste-music",
   "status": "IN_PROGRESS",
   "created": "2026-06-02T00:00:00+09:00",
-  "updated": "2026-06-02T02:33:46.957230+00:00",
+  "updated": "2026-06-02T02:49:24.618478+00:00",
   "tasks": [
     {
       "id": 1,
@@ -23,7 +23,7 @@
       "name": "Task 2: 취향 API (GET/PUT) + 스키마",
       "agent": "agent-task2",
       "skill": "jmh-worker-backend",
-      "status": "PENDING",
+      "status": "RUNNING",
       "retry": 0,
       "max_retry": 5,
       "started": null,
@@ -55,7 +55,7 @@
       "name": "Task 4: 음원 프록시 /api/music/search (iTunes) + httpx",
       "agent": "agent-task4",
       "skill": "jmh-worker-backend",
-      "status": "RUNNING",
+      "status": "DONE",
       "retry": 0,
       "max_retry": 5,
       "started": null,
