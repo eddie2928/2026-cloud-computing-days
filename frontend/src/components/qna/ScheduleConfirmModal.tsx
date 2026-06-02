@@ -16,11 +16,15 @@ interface ScheduleConfirmModalProps {
 }
 
 export function ScheduleConfirmModal({ open, schedule, onAccept, onReject }: ScheduleConfirmModalProps) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
 
   useEffect(() => {
     if (schedule) {
+      setStartDate(schedule.period_start);
+      setEndDate(schedule.period_end);
       setStartTime(schedule.start_time || "09:00");
       setEndTime(schedule.end_time || "10:00");
     }
@@ -28,9 +32,14 @@ export function ScheduleConfirmModal({ open, schedule, onAccept, onReject }: Sch
 
   if (!open || !schedule) return null;
 
+  const isInvalidDate = endDate < startDate;
+
   const handleAccept = () => {
+    if (isInvalidDate) return;
     onAccept({
       ...schedule,
+      period_start: startDate,
+      period_end: endDate,
       start_time: startTime || null,
       end_time: endTime || null,
     });
@@ -108,17 +117,6 @@ export function ScheduleConfirmModal({ open, schedule, onAccept, onReject }: Sch
         >
           {schedule.situation}
         </h2>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 13,
-            color: "var(--ink-hint)",
-            margin: "0 0 20px",
-          }}
-        >
-          {schedule.period_start} ~ {schedule.period_end}
-        </p>
-
         <div
           style={{
             borderTop: "1px solid var(--line-faint)",
@@ -126,6 +124,46 @@ export function ScheduleConfirmModal({ open, schedule, onAccept, onReject }: Sch
             marginBottom: 20,
           }}
         >
+          <p
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 12,
+              color: "var(--ink-meta)",
+              margin: "0 0 8px",
+            }}
+          >
+            날짜 설정
+          </p>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-meta)" }}>
+                시작일
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={inputStyle}
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-meta)" }}>
+                종료일
+              </span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={inputStyle}
+              />
+            </label>
+          </div>
+          {isInvalidDate && (
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--accent-clay)", margin: "0 0 8px" }}>
+              종료일은 시작일 이후여야 합니다.
+            </p>
+          )}
           <p
             style={{
               fontFamily: "var(--font-sans)",
@@ -166,18 +204,19 @@ export function ScheduleConfirmModal({ open, schedule, onAccept, onReject }: Sch
           <button
             type="button"
             onClick={handleAccept}
+            disabled={isInvalidDate}
             style={{
               flex: 1,
               padding: "12px 20px",
               borderRadius: 999,
               border: 0,
-              background: "var(--sage-leaf)",
+              background: isInvalidDate ? "var(--line)" : "var(--sage-leaf)",
               fontFamily: "var(--font-sans)",
               fontWeight: 600,
               fontSize: 15,
               color: "var(--paper-pure)",
-              cursor: "pointer",
-              boxShadow: "var(--shadow-2)",
+              cursor: isInvalidDate ? "not-allowed" : "pointer",
+              boxShadow: isInvalidDate ? "none" : "var(--shadow-2)",
               transition: "background var(--dur-1) var(--ease-out)",
             }}
           >
