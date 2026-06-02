@@ -22,10 +22,6 @@ data "aws_subnet" "public" {
   id = "subnet-060cf4d51b935ce02"
 }
 
-data "aws_iam_instance_profile" "ec2" {
-  name = "SafeInstanceProfile-2026-inha-cc-06"
-}
-
 data "aws_security_group" "ec2_sg" {
   name   = "qna-diary-ec2-sg"
   vpc_id = data.aws_vpc.main.id

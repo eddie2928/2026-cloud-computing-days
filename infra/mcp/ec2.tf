@@ -57,7 +57,7 @@ resource "aws_instance" "mcp" {
   instance_type          = "t3.small"
   subnet_id              = data.aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.mcp_sg.id]
-  iam_instance_profile   = data.aws_iam_instance_profile.ec2.name
+  iam_instance_profile   = "SafeInstanceProfile-2026-inha-cc-06"
   key_name               = data.aws_key_pair.app.key_name
 
   root_block_device {
