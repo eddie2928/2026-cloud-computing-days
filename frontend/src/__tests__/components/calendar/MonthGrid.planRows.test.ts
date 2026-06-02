@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePlanRowByDate } from '../../../components/calendar/MonthGrid';
+import { computePlanRowByDate } from '../../../components/calendar/planRowUtils';
 import type { PlanWithTodosOut } from '../../../lib/plans';
 
 function makePlan(id: number, start: string, end: string): PlanWithTodosOut {
