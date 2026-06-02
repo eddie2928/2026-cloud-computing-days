@@ -1,3 +1,13 @@
+"""
+@reusable
+@scope project-local
+@description httpx.AsyncClient async context manager를 monkeypatch하는 패턴 (_make_async_client_mock).
+             FastAPI 라우터가 외부 HTTP 호출 시 AsyncClient를 사용할 때 동일하게 적용 가능.
+@usage 1) _make_async_client_mock 함수를 복사  2) patch 대상을 "app.routers.{your_module}.httpx.AsyncClient"로 변경
+       3) app, router, dependency override는 각 라우터에 맞게 교체
+@origin proj_days / agent-task4 음원 프록시 + httpx
+@created 2026-06-02
+"""
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
