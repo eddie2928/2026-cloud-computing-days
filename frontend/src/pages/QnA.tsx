@@ -12,6 +12,7 @@ import type { PendingScheduleItem } from "../components/qna/ScheduleConfirmModal
 import { SuggestionChips } from "../components/qna/SuggestionChips";
 import { finalizeQna, undoQna } from "../lib/qnaApi";
 import { UndoConfirmModal } from "../components/qna/UndoConfirmModal";
+import { AnswerEditBubble } from "../components/qna/AnswerEditBubble";
 
 interface Message {
   role: "ai" | "user";
@@ -51,6 +52,7 @@ export function Qna() {
     open: false,
     targetSequence: 0,
   });
+  const [editing, setEditing] = useState<{ sequence: number; text: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
   const [inputAreaHeight, setInputAreaHeight] = useState(100);
@@ -184,48 +186,81 @@ export function Qna() {
   const handleUndoConfirm = async (mode: 'keep' | 'discard') => {
     if (!sessionId) return;
     setUndoModal((s) => ({ ...s, open: false }));
+
+    if (mode === 'keep') {
+      const targetSeq = undoModal.targetSequence;
+      const userMsg = messages.find((m) => m.role === 'user' && m.sequence === targetSeq);
+      setEditing({ sequence: targetSeq, text: userMsg?.text ?? '' });
+      return;
+    }
+
     setThinking(true);
     try {
-      const res = await undoQna(sessionId, undoModal.targetSequence, mode);
+      const res = await undoQna(sessionId, undoModal.targetSequence, 'discard');
       setThinking(false);
-      setSuggestions(res.suggestions);
-      setSequence(res.sequence);
+      setSequence(undoModal.targetSequence);
       setShowContinueButtons(false);
       setInputValue('');
+      setSuggestions([]);
 
-      if (mode === 'discard') {
-        // Trim messages to before target sequence USER message, then push new AI question
-        setMessages((prev) => {
-          const idx = prev.findIndex(
-            (m) => m.role === 'user' && m.sequence === undoModal.targetSequence
-          );
-          const base = idx >= 0 ? prev.slice(0, idx) : prev;
-          return [...base, { role: 'ai' as const, text: res.question, sequence: res.sequence }];
-        });
-        // Remove schedule keys returned by undo
-        if (res.removed_schedule_keys.length > 0) {
-          const removedSet = new Set(res.removed_schedule_keys);
-          setAccumulatedSchedules((prev) =>
-            prev.filter((s) => !removedSet.has(`${s.period_start}|${s.period_end}|${s.situation}`))
-          );
-        }
-      } else {
-        // keep: remove target USER message, replace target AI question with new one
-        setMessages((prev) => {
-          const withoutUserAnswer = prev.filter(
-            (m) => !(m.role === 'user' && m.sequence === undoModal.targetSequence)
-          );
-          return withoutUserAnswer.map((m) =>
-            m.role === 'ai' && m.sequence === undoModal.targetSequence
-              ? { ...m, text: res.question }
-              : m
-          );
-        });
+      // Trim from target user message onwards; target AI question stays visible
+      setMessages((prev) => {
+        const idx = prev.findIndex(
+          (m) => m.role === 'user' && m.sequence === undoModal.targetSequence
+        );
+        return idx >= 0 ? prev.slice(0, idx) : prev;
+      });
+
+      if (res.removed_schedule_keys.length > 0) {
+        const removedSet = new Set(res.removed_schedule_keys);
+        setAccumulatedSchedules((prev) =>
+          prev.filter((s) => !removedSet.has(`${s.period_start}|${s.period_end}|${s.situation}`))
+        );
       }
     } catch {
       setThinking(false);
     }
   };
+
+  const handleEditSave = async () => {
+    if (!sessionId || !editing) return;
+    setThinking(true);
+    try {
+      const res = await undoQna(sessionId, editing.sequence, 'keep', editing.text);
+      setThinking(false);
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.role === 'user' && m.sequence === editing.sequence) return { ...m, text: editing.text };
+          if (m.role === 'ai' && m.sequence === res.sequence) return { ...m, text: res.question };
+          return m;
+        })
+      );
+      setSequence(res.sequence);
+      setSuggestions(res.suggestions);
+      setShowContinueButtons(false);
+
+      if (res.removed_schedule_keys.length > 0) {
+        const removedSet = new Set(res.removed_schedule_keys);
+        setAccumulatedSchedules((prev) =>
+          prev.filter((s) => !removedSet.has(`${s.period_start}|${s.period_end}|${s.situation}`))
+        );
+      }
+      if (res.pending_schedules.length > 0) {
+        setAccumulatedSchedules((prev) => {
+          const existingKeys = new Set(prev.map(scheduleKey));
+          const newOnes = (res.pending_schedules as PendingSchedule[]).filter(
+            (s) => !existingKeys.has(scheduleKey(s))
+          );
+          return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+        });
+      }
+      setEditing(null);
+    } catch {
+      setThinking(false);
+    }
+  };
+
+  const handleEditCancel = () => setEditing(null);
 
   const handleFinalize = async () => {
     if (!sessionId || thinking || done) return;
@@ -385,13 +420,23 @@ export function Qna() {
         ))}
         {messages.map((msg, i) => (
           <div key={i}>
-            <ChatBubble
-              role={msg.role}
-              onUndo={msg.role === 'user' && msg.sequence !== undefined ? () => openUndoModal(msg.sequence!) : undefined}
-              undoDisabled={thinking || done}
-            >
-              {msg.text}
-            </ChatBubble>
+            {editing?.sequence === msg.sequence && msg.role === 'user' ? (
+              <AnswerEditBubble
+                value={editing.text}
+                onChange={(v) => setEditing((e) => e ? { ...e, text: v } : e)}
+                onSave={handleEditSave}
+                onCancel={handleEditCancel}
+                saving={thinking}
+              />
+            ) : (
+              <ChatBubble
+                role={msg.role}
+                onUndo={msg.role === 'user' && msg.sequence !== undefined ? () => openUndoModal(msg.sequence!) : undefined}
+                undoDisabled={thinking || done || editing !== null}
+              >
+                {msg.text}
+              </ChatBubble>
+            )}
           </div>
         ))}
         {thinking && (
@@ -481,11 +526,11 @@ export function Qna() {
         <SuggestionChips
           suggestions={suggestions}
           onPick={(t) => setInputValue(t)}
-          disabled={thinking || done}
+          disabled={thinking || done || editing !== null}
         />
         <ChatInput
           onSend={handleSend}
-          disabled={thinking || done}
+          disabled={thinking || done || editing !== null}
           value={inputValue}
           onChange={setInputValue}
         />
