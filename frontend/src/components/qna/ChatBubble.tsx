@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { Icon } from '../days/Icon';
 
 interface ChatBubbleProps {
   role: 'ai' | 'user';
@@ -19,7 +20,7 @@ export function ChatBubble({ role, children, onUndo, undoDisabled }: ChatBubbleP
         {isUser && onUndo && (
           <button
             type="button"
-            aria-label="답변 되돌리기"
+            aria-label="답변 수정"
             onClick={undoDisabled ? undefined : onUndo}
             disabled={undoDisabled}
             style={{
@@ -38,7 +39,6 @@ export function ChatBubble({ role, children, onUndo, undoDisabled }: ChatBubbleP
               cursor: undoDisabled ? 'not-allowed' : 'pointer',
               opacity: undoDisabled ? 0.4 : 1,
               zIndex: 1,
-              fontSize: 12,
               color: 'var(--ink-meta)',
               padding: 0,
               transition: 'background var(--dur-1), color var(--dur-1)',
@@ -54,7 +54,7 @@ export function ChatBubble({ role, children, onUndo, undoDisabled }: ChatBubbleP
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-meta)';
             }}
           >
-            ↶
+            <Icon name="pencil" size={13} />
           </button>
         )}
         <div style={{
