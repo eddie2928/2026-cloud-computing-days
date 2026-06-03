@@ -343,6 +343,7 @@ export function MonthGrid({
           }}
         >
           {weeks.map((week, weekIdx) => {
+            if (!week.some((c) => c.inMonth)) return null;
             const allBars = allWeekBars[weekIdx] ?? [];
             const visibleScheduleBars = allBars.filter(
               (b): b is WeekBarSchedule => b.kind === "schedule" && b.rowIndex < MAX_BARS,
