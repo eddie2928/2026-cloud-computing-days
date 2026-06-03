@@ -6,7 +6,7 @@ import { getSeoulToday } from "../src/lib/today";
 const noop = vi.fn();
 
 describe("MonthGrid", () => {
-  it("2026-05 → 6개 주행(week-row), 각 행 7개 셀 = 총 42개 (7×6)", () => {
+  it("2026-05 → 6개 주행(week-row), in-month 버튼 31개 (5월 일수)", () => {
     render(
       <MonthGrid
         year={2026}
@@ -19,11 +19,12 @@ describe("MonthGrid", () => {
     );
     const grid = screen.getByTestId("month-grid");
     expect(grid.children).toHaveLength(6); // 6 week rows
+    // 다른 달 칸은 placeholder div로 렌더 — aria-label 버튼은 in-month만
     const dateCells = grid.querySelectorAll("button[aria-label]");
-    expect(dateCells).toHaveLength(42); // 7×6 date cells
+    expect(dateCells).toHaveLength(31); // 5월 31일만
   });
 
-  it("일요일 시작 — 첫 셀이 일요일(일)", () => {
+  it("다른 달 칸은 버튼 없음 — 일요일 leading placeholder", () => {
     render(
       <MonthGrid
         year={2026}
@@ -34,9 +35,10 @@ describe("MonthGrid", () => {
         onCellClick={noop}
       />,
     );
-    // 2026-05-01은 금요일(5). 첫 셀은 4/26(일요일).
-    const cells = screen.getAllByRole("button", { name: /2026-04-26/ });
-    expect(cells).toHaveLength(1);
+    // 2026-05-01은 금요일(5). leading 칸(4/26~4/30)은 placeholder — 버튼 없음
+    expect(screen.queryByRole("button", { name: /2026-04-26/ })).toBeNull();
+    // 첫 in-month 칸은 2026-05-01
+    expect(screen.getByLabelText("2026-05-01")).toBeInTheDocument();
   });
 
   it("이전/다음 달 네비 버튼 존재", () => {

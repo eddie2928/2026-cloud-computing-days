@@ -374,31 +374,34 @@ export function MonthGrid({
                 }}
               >
                 {week.map(({ date, inMonth }, cellColIdx) => {
+                  if (!inMonth) {
+                    return (
+                      <div
+                        key={date}
+                        style={{
+                          gridColumn: `${cellColIdx + 1} / ${cellColIdx + 2}`,
+                          gridRow: "1 / -1",
+                          background: "transparent",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    );
+                  }
                   const isToday = date === TODAY;
                   const isFuture = date > TODAY;
                   const entry = entryMap.get(date);
                   const emotion = entry?.emotion;
                   const holiday = holidayMap.get(date);
-                  const clickable = inMonth && !isFuture;
+                  const clickable = !isFuture;
                   const handleClick = () => {
-                    if (inMonth) {
-                      if (clickable) onCellClick(date);
-                    } else {
-                      const [cellYear, cellMonth] = date.split("-").map(Number);
-                      if (
-                        cellYear < year ||
-                        (cellYear === year && cellMonth < month)
-                      )
-                        onPrev();
-                      else onNext();
-                    }
+                    if (clickable) onCellClick(date);
                   };
                   const isHoliday = holiday?.is_holiday === true;
                   const dateNumColor = isToday
                     ? "var(--sage-forest)"
                     : isHoliday
                       ? "var(--accent-clay)"
-                      : isFuture && inMonth
+                      : isFuture
                         ? "var(--ink-hint)"
                         : "var(--ink-body)";
 
@@ -416,7 +419,7 @@ export function MonthGrid({
                     <button
                       key={date}
                       aria-label={date}
-                      disabled={inMonth && isFuture}
+                      disabled={isFuture}
                       onClick={handleClick}
                       style={{
                         display: "flex",
@@ -431,11 +434,8 @@ export function MonthGrid({
                         zIndex: 0,
                         borderRadius: "var(--r-2)",
                         border: borderStyle,
-                        background: inMonth
-                          ? "var(--cal-day-bg, var(--paper-pure))"
-                          : "transparent",
-                        cursor: clickable || !inMonth ? "pointer" : "default",
-                        opacity: inMonth ? 1 : 0.35,
+                        background: "var(--cal-day-bg, var(--paper-pure))",
+                        cursor: clickable ? "pointer" : "default",
                         transition: "background var(--dur-1)",
                       }}
                     >
@@ -449,7 +449,7 @@ export function MonthGrid({
                       >
                         {new Date(date).getDate()}
                       </span>
-                      {holiday && inMonth && (
+                      {holiday && (
                         <span
                           style={{
                             fontFamily: "var(--font-sans)",
