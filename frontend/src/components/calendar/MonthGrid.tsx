@@ -93,12 +93,12 @@ function getWeekScheduleBars(
 
     for (const schedule of schedules) {
       const firstOverlap = weekCells.findIndex(
-        (c) => c.inMonth && c.date >= schedule.period_start && c.date <= schedule.period_end,
+        (c) => c.date >= schedule.period_start && c.date <= schedule.period_end,
       );
       if (firstOverlap === -1) continue;
       let lastOverlap = firstOverlap;
       for (let i = 6; i >= 0; i--) {
-        if (weekCells[i].inMonth && weekCells[i].date >= schedule.period_start && weekCells[i].date <= schedule.period_end) {
+        if (weekCells[i].date >= schedule.period_start && weekCells[i].date <= schedule.period_end) {
           lastOverlap = i;
           break;
         }
@@ -152,7 +152,7 @@ function getWeekPlanSegments(
     for (const plan of plans) {
       const overlapping = weekCells
         .map((c, i) => ({ date: c.date, colIndex: i + 1 }))
-        .filter((c, i) => weekCells[i].inMonth && c.date >= plan.period_start && c.date <= plan.period_end);
+        .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
       if (overlapping.length === 0) continue;
       candidates.push({
         plan,
@@ -344,6 +344,9 @@ export function MonthGrid({
         >
           {weeks.map((week, weekIdx) => {
             if (!week.some((c) => c.inMonth)) return null;
+            const inMonthColSet = new Set(
+              week.map((c, i) => c.inMonth ? i + 1 : null).filter((v): v is number => v !== null),
+            );
             const allBars = allWeekBars[weekIdx] ?? [];
             const visibleScheduleBars = allBars.filter(
               (b): b is WeekBarSchedule => b.kind === "schedule" && b.rowIndex < MAX_BARS,
@@ -376,9 +379,17 @@ export function MonthGrid({
               >
                 {week.map(({ date, inMonth }, cellColIdx) => {
                   if (!inMonth) {
+                    const outEntry = entryMap.get(date);
+                    const outEmotion = outEntry?.emotion;
+                    const [cellYear, cellMonth] = date.split("-").map(Number);
+                    const handleOutClick = () =>
+                      cellYear < year || (cellYear === year && cellMonth < month)
+                        ? onPrev()
+                        : onNext();
                     return (
-                      <div
+                      <button
                         key={date}
+                        onClick={handleOutClick}
                         style={{
                           display: "flex",
                           flexDirection: "column",
@@ -392,7 +403,7 @@ export function MonthGrid({
                           border: "1px solid transparent",
                           background: "var(--cal-day-bg, var(--paper-pure))",
                           opacity: 0.35,
-                          pointerEvents: "none",
+                          cursor: "pointer",
                         }}
                       >
                         <span
@@ -405,8 +416,12 @@ export function MonthGrid({
                         >
                           {new Date(date).getDate()}
                         </span>
-                        <span style={{ width: 27, height: 21 }} />
-                      </div>
+                        {outEmotion ? (
+                          <MoodEmoji mood={outEmotion as Mood} size={27} />
+                        ) : (
+                          <span style={{ width: 27, height: 21 }} />
+                        )}
+                      </button>
                     );
                   }
                   const isToday = date === TODAY;
@@ -499,7 +514,12 @@ export function MonthGrid({
                   );
                 })}
                 {/* 일정 바 — rowIndex < MAX_BARS만 표시 */}
-                {visibleScheduleBars.map((bar, barIdx) => (
+                {visibleScheduleBars.map((bar, barIdx) => {
+                  const scheduleOutOfMonth = Array.from(
+                    { length: bar.colEnd - bar.colStart },
+                    (_, i) => bar.colStart + i,
+                  ).every((col) => !inMonthColSet.has(col));
+                  return (
                   <button
                     key={`${bar.schedule.id}-w${weekIdx}-${barIdx}`}
                     onClick={(e) => {
@@ -531,6 +551,7 @@ export function MonthGrid({
                       transition: "background var(--dur-2)",
                       animation: "days-fade-in 200ms var(--ease-out) both",
                       pointerEvents: onScheduleClick ? "auto" : "none",
+                      opacity: scheduleOutOfMonth ? 0.35 : 1,
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLElement).style.background =
@@ -543,7 +564,8 @@ export function MonthGrid({
                   >
                     {bar.schedule.situation}
                   </button>
-                ))}
+                  );
+                })}
                 {/* 일자별 overflow "+N개" 칩 */}
                 {week.map(({ date }, colIdx) => {
                   const col = colIdx + 1;
@@ -608,7 +630,7 @@ export function MonthGrid({
                       position: "relative",
                       zIndex: 2,
                       background: "var(--sage-leaf)",
-                      opacity: 0.85,
+                      opacity: inMonthColSet.has(seg.colStart) ? 0.85 : 0.3,
                       border: "none",
                       borderRadius: `${seg.isPlanStart ? 9 : 0}px ${seg.isPlanEnd ? 9 : 0}px ${seg.isPlanEnd ? 9 : 0}px ${seg.isPlanStart ? 9 : 0}px`,
                       borderRight: seg.isPlanEnd ? "none" : "1px dashed var(--paper-pure)",

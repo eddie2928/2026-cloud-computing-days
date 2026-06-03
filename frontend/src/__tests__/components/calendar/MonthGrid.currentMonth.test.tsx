@@ -66,7 +66,7 @@ describe('MonthGrid — 현재 달만 표시 (2026-06)', () => {
     expect(week0.style.gridTemplateRows).toMatch(/^60px/);
   });
 
-  it('7. 월 경계 플랜(6/29~7/3): in-month 날짜는 바 존재, out-of-month 날짜는 바 없음', () => {
+  it('7. 월 경계 플랜(6/29~7/3): in-month·out-of-month 모두 바 렌더, 각각 opacity 차이', () => {
     const crossMonthPlan: PlanWithTodosOut = {
       id: 99,
       user_id: 1,
@@ -81,7 +81,13 @@ describe('MonthGrid — 현재 달만 표시 (2026-06)', () => {
       todos: [],
     };
     renderJune([crossMonthPlan]);
-    expect(screen.getByTestId('plan-bar-99-2026-06-29')).toBeInTheDocument();
-    expect(screen.queryByTestId('plan-bar-99-2026-07-01')).toBeNull();
+    // in-month 바: opacity 0.85 (정상)
+    const inMonthBar = screen.getByTestId('plan-bar-99-2026-06-29');
+    expect(inMonthBar).toBeInTheDocument();
+    expect(inMonthBar.style.opacity).toBe('0.85');
+    // out-of-month 바: opacity 0.3 (흐릿)
+    const outBar = screen.getByTestId('plan-bar-99-2026-07-01');
+    expect(outBar).toBeInTheDocument();
+    expect(outBar.style.opacity).toBe('0.3');
   });
 });
