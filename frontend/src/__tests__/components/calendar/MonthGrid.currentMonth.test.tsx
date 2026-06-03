@@ -60,10 +60,10 @@ describe('MonthGrid — 현재 달만 표시 (2026-06)', () => {
     expect(screen.getByTestId('week-0')).toBeInTheDocument();
   });
 
-  it('6. week-0의 gridTemplateRows는 HEADER_H=52px로 시작한다', () => {
+  it('6. week-0의 gridTemplateRows는 HEADER_H=60px로 시작한다', () => {
     renderJune();
     const week0 = screen.getByTestId('week-0');
-    expect(week0.style.gridTemplateRows).toMatch(/^52px/);
+    expect(week0.style.gridTemplateRows).toMatch(/^60px/);
   });
 
   it('7. 월 경계 플랜(6/29~7/3): in-month 날짜는 바 존재, out-of-month 날짜는 바 없음', () => {

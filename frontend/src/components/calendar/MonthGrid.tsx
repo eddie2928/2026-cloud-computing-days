@@ -46,7 +46,7 @@ function chunkCells<T>(cells: T[], size: number): T[][] {
 const MAX_BARS = 2;
 const SLOT_H = 20; // BAR_H(18) + BAR_GAP(2)
 const OVERFLOW_H = 16;
-const HEADER_H = 52; // 날짜·공휴일·이모지 고정 헤더 (공휴일+이모티콘 최대 높이 ≈51px 수용, 92px − MAX_BARS×SLOT_H)
+const HEADER_H = 60; // 날짜·공휴일·이모지 고정 헤더 (공휴일+이모티콘(size=27) 최대 높이 ≈58px 수용, 100px − MAX_BARS×SLOT_H)
 
 interface WeekBarSchedule {
   kind: "schedule";
@@ -405,7 +405,7 @@ export function MonthGrid({
                         >
                           {new Date(date).getDate()}
                         </span>
-                        <span style={{ width: 18, height: 18 }} />
+                        <span style={{ width: 27, height: 21 }} />
                       </div>
                     );
                   }
@@ -491,9 +491,9 @@ export function MonthGrid({
                         </span>
                       )}
                       {emotion ? (
-                        <MoodEmoji mood={emotion as Mood} size={18} float />
+                        <MoodEmoji mood={emotion as Mood} size={27} float />
                       ) : (
-                        <span style={{ width: 18, height: 18 }} />
+                        <span style={{ width: 27, height: 21 }} />
                       )}
                     </button>
                   );

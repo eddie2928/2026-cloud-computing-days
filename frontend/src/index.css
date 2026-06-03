@@ -516,7 +516,7 @@ a:hover {
     transform: translateY(0) rotate(-1deg);
   }
   50% {
-    transform: translateY(-5px) rotate(1deg);
+    transform: translateY(-2px) rotate(1deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
