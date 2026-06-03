@@ -1,11 +1,26 @@
 import os
+import urllib.request
 
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server.db import AsyncSessionLocal
 import mcp_server.tools as t
 
-mcp = FastMCP("qna-diary", stateless_http=True, json_response=True)
+
+def _allowed_hosts() -> list[str]:
+    hosts = ["localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*"]
+    try:
+        # EC2 instance metadata: get private IP for VPC-internal callers
+        ip = urllib.request.urlopen(
+            "http://169.254.169.254/latest/meta-data/local-ipv4", timeout=1
+        ).read().decode().strip()
+        hosts += [ip, f"{ip}:*"]
+    except Exception:
+        pass
+    return hosts
+
+
+mcp = FastMCP("qna-diary", stateless_http=True, json_response=True, allowed_hosts=_allowed_hosts())
 
 
 def _db_err(exc: Exception) -> dict:
