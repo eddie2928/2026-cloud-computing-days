@@ -16,8 +16,9 @@ export async function undoQna(
   session_id: number,
   target_sequence: number,
   mode: 'keep' | 'discard',
+  new_answer?: string,
 ): Promise<UndoResponse> {
-  const res = await client.post<UndoResponse>('/qna/undo', { session_id, target_sequence, mode })
+  const res = await client.post<UndoResponse>('/qna/undo', { session_id, target_sequence, mode, new_answer })
   return res.data
 }
 
