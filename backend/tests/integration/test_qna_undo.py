@@ -160,19 +160,19 @@ async def test_undo_discard_removes_schedules(client, bedrock_mock):
 
 @pytest.mark.asyncio
 async def test_undo_keep_basic(client, bedrock_mock, db_session):
-    """Keep undo at sequence=3: items 4,5 preserved, item 3 answer=NULL, question updated."""
+    """Keep undo at sequence=3: items 4,5 preserved, item3 answer=new_answer, response sequence=6."""
     await _login(client)
     session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-07", 5)
 
     resp = await client.post(
         "/api/qna/undo",
-        json={"session_id": session_id, "target_sequence": 3, "mode": "keep"},
+        json={"session_id": session_id, "target_sequence": 3, "mode": "keep", "new_answer": "수정된 답변"},
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["sequence"] == 3
+    assert data["sequence"] == 6
     assert data["question"]
-    assert data["removed_schedule_keys"] == []
+    assert isinstance(data["removed_schedule_keys"], list)
 
     # Verify DB: items 4 and 5 still exist
     result = await db_session.execute(
@@ -184,7 +184,7 @@ async def test_undo_keep_basic(client, bedrock_mock, db_session):
     remaining = result.scalars().all()
     assert len(remaining) == 2
 
-    # Item 3 answer is NULL
+    # Item 3 answer is the new value, not NULL
     result3 = await db_session.execute(
         select(QnAItem).where(
             QnAItem.session_id == session_id, QnAItem.sequence == 3
@@ -192,7 +192,86 @@ async def test_undo_keep_basic(client, bedrock_mock, db_session):
     )
     item3 = result3.scalar_one_or_none()
     assert item3 is not None
-    assert item3.answer is None
+    assert item3.answer == "수정된 답변"
+
+
+@pytest.mark.asyncio
+async def test_undo_keep_requires_new_answer(client, bedrock_mock):
+    """Keep undo without new_answer returns 400."""
+    await _login(client)
+    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-09", 3)
+
+    resp = await client.post(
+        "/api/qna/undo",
+        json={"session_id": session_id, "target_sequence": 2, "mode": "keep"},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_undo_keep_regenerates_trailing_only(client, bedrock_mock, db_session):
+    """Keep undo: target question unchanged, last pending question (seq6) regenerated."""
+    await _login(client)
+    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-10", 5)
+
+    # Capture item3's question before undo
+    result_before = await db_session.execute(
+        select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 3)
+    )
+    item3_before = result_before.scalar_one_or_none()
+    assert item3_before is not None
+    original_question = item3_before.question
+
+    resp = await client.post(
+        "/api/qna/undo",
+        json={"session_id": session_id, "target_sequence": 3, "mode": "keep", "new_answer": "편집된 내용"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    # Response points to last pending question (seq6), not seq3
+    assert data["sequence"] == 6
+    assert isinstance(data["removed_schedule_keys"], list)
+
+    # item3.question must be unchanged
+    db_session.expire_all()
+    result3 = await db_session.execute(
+        select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 3)
+    )
+    item3_after = result3.scalar_one_or_none()
+    assert item3_after is not None
+    assert item3_after.question == original_question
+
+
+@pytest.mark.asyncio
+async def test_undo_discard_keeps_target_question(client, bedrock_mock, db_session):
+    """Discard undo: target question is preserved (not regenerated)."""
+    await _login(client)
+    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-11", 5)
+
+    # Capture item3's question before undo
+    result_before = await db_session.execute(
+        select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 3)
+    )
+    item3_before = result_before.scalar_one_or_none()
+    assert item3_before is not None
+    original_question = item3_before.question
+
+    resp = await client.post(
+        "/api/qna/undo",
+        json={"session_id": session_id, "target_sequence": 3, "mode": "discard"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["sequence"] == 3
+
+    # item3.question must be unchanged after discard
+    db_session.expire_all()
+    result3 = await db_session.execute(
+        select(QnAItem).where(QnAItem.session_id == session_id, QnAItem.sequence == 3)
+    )
+    item3_after = result3.scalar_one_or_none()
+    assert item3_after is not None
+    assert item3_after.question == original_question
 
 
 @pytest.mark.asyncio
