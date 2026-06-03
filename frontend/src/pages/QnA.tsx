@@ -420,7 +420,7 @@ export function Qna() {
         ))}
         {messages.map((msg, i) => (
           <div key={i}>
-            {editing?.sequence === msg.sequence && msg.role === 'user' ? (
+            {editing && editing.sequence === msg.sequence && msg.role === 'user' ? (
               <AnswerEditBubble
                 value={editing.text}
                 onChange={(v) => setEditing((e) => e ? { ...e, text: v } : e)}
