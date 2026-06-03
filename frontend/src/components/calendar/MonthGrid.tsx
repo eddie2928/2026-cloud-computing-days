@@ -365,6 +365,7 @@ export function MonthGrid({
             return (
               <div
                 key={weekIdx}
+                data-testid={`week-${weekIdx}`}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, 1fr)",
