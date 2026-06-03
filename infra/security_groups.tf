@@ -72,11 +72,11 @@ resource "aws_security_group" "mcp_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description     = "MCP Streamable HTTP from app EC2 only"
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ec2_sg.id]
+    description = "MCP Streamable HTTP from internet"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
