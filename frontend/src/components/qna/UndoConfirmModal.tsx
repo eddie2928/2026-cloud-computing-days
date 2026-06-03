@@ -56,7 +56,7 @@ export function UndoConfirmModal({ open, onClose, onConfirm, targetSequence }: U
             letterSpacing: '-0.01em',
           }}
         >
-          {targetSequence}번째 답변으로 돌아갈게요
+          {targetSequence}번째 답변을 수정할게요
         </h2>
         <p
           style={{
@@ -67,7 +67,7 @@ export function UndoConfirmModal({ open, onClose, onConfirm, targetSequence }: U
             lineHeight: 1.6,
           }}
         >
-          이후 대화는 어떻게 할까요?
+          어떻게 수정할까요?
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -88,9 +88,9 @@ export function UndoConfirmModal({ open, onClose, onConfirm, targetSequence }: U
               transition: 'background var(--dur-1) var(--ease-out)',
             }}
           >
-            유지하고 답만 다시
+            이 답변 수정하기
             <span style={{ display: 'block', fontSize: '12px', color: 'var(--ink-hint)', fontWeight: 400, marginTop: 2 }}>
-              이후 대화는 그대로 두고 이 답변만 다시 작성
+              질문은 그대로 두고 답변 텍스트만 고칩니다
             </span>
           </button>
           <button
@@ -110,9 +110,9 @@ export function UndoConfirmModal({ open, onClose, onConfirm, targetSequence }: U
               transition: 'background var(--dur-1) var(--ease-out)',
             }}
           >
-            이후 모두 새로 시작
+            이후 기록 삭제하고 다시
             <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.7)', fontWeight: 400, marginTop: 2 }}>
-              이후 대화와 추출된 일정이 모두 삭제됩니다
+              이 질문부터 다시 답합니다. 이후 대화·추출 일정 삭제
             </span>
           </button>
           <button
