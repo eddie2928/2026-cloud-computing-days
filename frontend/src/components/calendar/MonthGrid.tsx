@@ -380,12 +380,33 @@ export function MonthGrid({
                       <div
                         key={date}
                         style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "flex-start",
+                          gap: 2,
+                          padding: "6px 2px",
                           gridColumn: `${cellColIdx + 1} / ${cellColIdx + 2}`,
                           gridRow: "1 / -1",
-                          background: "transparent",
+                          borderRadius: "var(--r-2)",
+                          border: "1px solid transparent",
+                          background: "var(--cal-day-bg, var(--paper-pure))",
+                          opacity: 0.35,
                           pointerEvents: "none",
                         }}
-                      />
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-sans)",
+                            fontSize: "var(--t-xs)",
+                            color: "var(--ink-body)",
+                            fontWeight: 400,
+                          }}
+                        >
+                          {new Date(date).getDate()}
+                        </span>
+                        <span style={{ width: 18, height: 18 }} />
+                      </div>
                     );
                   }
                   const isToday = date === TODAY;
