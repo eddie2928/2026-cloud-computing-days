@@ -598,25 +598,54 @@ async def undo_qna(
     removed_schedule_keys: list[str] = []
 
     if body.mode == "discard":
-        # Collect schedule keys from items that will be discarded
         discarded = [i for i in session.items if i.sequence > body.target_sequence]
         removed_schedule_keys = _extract_schedule_keys_from_items(discarded)
 
-        # Delete items with sequence > target
         await db.execute(
             delete(QnAItem).where(
                 QnAItem.session_id == body.session_id,
                 QnAItem.sequence > body.target_sequence,
             )
         )
+        target_item.answer = None
+        target_item.answered_at = None
+        await db.commit()
 
-    # Null out target item's answer
-    target_item.answer = None
-    target_item.answered_at = None
+        return QnAUndoResponse(
+            question=target_item.question,
+            sequence=body.target_sequence,
+            suggestions=[],
+            pending_schedules=[],
+            removed_schedule_keys=removed_schedule_keys,
+        )
 
-    # Regenerate question for target sequence
+    # keep mode
+    if not body.new_answer or not body.new_answer.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="new_answer is required for keep mode")
+
+    target_item.answer = body.new_answer
+    target_item.answered_at = datetime.now(timezone.utc)
+
+    pending_item = max(
+        (i for i in session.items if i.answer is None),
+        key=lambda x: x.sequence,
+        default=None,
+    )
+    if pending_item is None:
+        max_seq = max(i.sequence for i in session.items)
+        pending_item = QnAItem(
+            session_id=body.session_id,
+            sequence=max_seq + 1,
+            question="",
+            answer=None,
+        )
+        db.add(pending_item)
+        await db.flush()
+
+    removed_schedule_keys = _extract_schedule_keys_from_items([pending_item])
+
     answered_items = sorted(
-        [i for i in session.items if i.answer is not None and i.sequence < body.target_sequence],
+        [i for i in session.items if i.answer is not None],
         key=lambda x: x.sequence,
     )
     user_profile = await _get_user_profile(db, user_id)
@@ -625,20 +654,20 @@ async def undo_qna(
     prev_extracted = _build_previously_extracted(answered_items)
 
     question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
-        rag_summaries, answered_items, body.target_sequence,
+        rag_summaries, answered_items, pending_item.sequence,
         user_profile=user_profile, relevant_schedules=relevant_scheds,
         today=session.diary_date, previously_extracted=prev_extracted,
     )
 
-    target_item.question = question
-    target_item.bedrock_meta = meta
+    pending_item.question = question
+    pending_item.bedrock_meta = meta
     await db.commit()
 
     pending = _to_pending_schedules(extracted_schedules)
 
     return QnAUndoResponse(
         question=question,
-        sequence=body.target_sequence,
+        sequence=pending_item.sequence,
         suggestions=suggestions,
         pending_schedules=pending,
         removed_schedule_keys=removed_schedule_keys,
