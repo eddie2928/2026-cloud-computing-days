@@ -185,6 +185,7 @@ class QnAUndoRequest(BaseModel):
     session_id: int
     target_sequence: int
     mode: Literal["keep", "discard"]
+    new_answer: str | None = None
 
 
 class QnAUndoResponse(BaseModel):
