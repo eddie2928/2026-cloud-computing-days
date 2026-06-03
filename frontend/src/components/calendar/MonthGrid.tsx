@@ -84,7 +84,6 @@ function getWeekScheduleBars(
 
   for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
     const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
-    const weekDates = weekCells.map((c) => c.date);
 
     const candidates: Array<{
       schedule: ScheduleItem;
@@ -93,13 +92,13 @@ function getWeekScheduleBars(
     }> = [];
 
     for (const schedule of schedules) {
-      const firstOverlap = weekDates.findIndex(
-        (d) => d >= schedule.period_start && d <= schedule.period_end,
+      const firstOverlap = weekCells.findIndex(
+        (c) => c.inMonth && c.date >= schedule.period_start && c.date <= schedule.period_end,
       );
       if (firstOverlap === -1) continue;
       let lastOverlap = firstOverlap;
       for (let i = 6; i >= 0; i--) {
-        if (weekDates[i] >= schedule.period_start && weekDates[i] <= schedule.period_end) {
+        if (weekCells[i].inMonth && weekCells[i].date >= schedule.period_start && weekCells[i].date <= schedule.period_end) {
           lastOverlap = i;
           break;
         }
@@ -142,7 +141,6 @@ function getWeekPlanSegments(
 
   for (let weekIdx = 0; weekIdx < 6; weekIdx++) {
     const weekCells = cells.slice(weekIdx * 7, weekIdx * 7 + 7);
-    const weekDates = weekCells.map((c) => c.date);
 
     const candidates: Array<{
       plan: PlanWithTodosOut;
@@ -152,9 +150,9 @@ function getWeekPlanSegments(
     }> = [];
 
     for (const plan of plans) {
-      const overlapping = weekDates
-        .map((d, i) => ({ date: d, colIndex: i + 1 }))
-        .filter((c) => c.date >= plan.period_start && c.date <= plan.period_end);
+      const overlapping = weekCells
+        .map((c, i) => ({ date: c.date, colIndex: i + 1 }))
+        .filter((c, i) => weekCells[i].inMonth && c.date >= plan.period_start && c.date <= plan.period_end);
       if (overlapping.length === 0) continue;
       candidates.push({
         plan,
