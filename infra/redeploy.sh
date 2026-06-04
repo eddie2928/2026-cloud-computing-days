@@ -154,7 +154,8 @@ echo "==> [7/8] Configuring MCP Auth and Environment..."
 # htpasswd: recreate on every redeploy (picks up password changes)
 _mcp_pw="$APP_PASSWORD"
 printf 'mcp:%s\n' "$(openssl passwd -apr1 "$_mcp_pw")" > /etc/nginx/.mcp.htpasswd
-chmod 600 /etc/nginx/.mcp.htpasswd
+chmod 640 /etc/nginx/.mcp.htpasswd
+chown root:nginx /etc/nginx/.mcp.htpasswd
 unset _mcp_pw
 
 # Keep DATABASE_URL in sync with DB_URL (mcp_server/db.py reads DATABASE_URL)

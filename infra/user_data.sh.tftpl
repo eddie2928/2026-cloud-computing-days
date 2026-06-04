@@ -126,7 +126,8 @@ rm -f /etc/nginx/conf.d/default.conf
 # 6-b. Create htpasswd for MCP Basic Auth
 _mcp_pw="${app_password}"
 printf 'mcp:%s\n' "$(openssl passwd -apr1 "$_mcp_pw")" > /etc/nginx/.mcp.htpasswd
-chmod 600 /etc/nginx/.mcp.htpasswd
+chmod 640 /etc/nginx/.mcp.htpasswd
+chown root:nginx /etc/nginx/.mcp.htpasswd
 unset _mcp_pw
 
 # 7. Alembic migration
