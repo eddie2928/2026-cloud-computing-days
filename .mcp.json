@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "qna-diary": {
+      "type": "http",
+      "url": "http://<MCP_PUBLIC_IP>:8080/mcp"
+    }
+  }
+}
