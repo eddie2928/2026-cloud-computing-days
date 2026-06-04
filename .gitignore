@@ -41,3 +41,6 @@ jmh-agent-orchestration/
 # Manual migration guide — local-only (do not push to github)
 /Manual.md
 /manual.md
+
+# MCP config (contains credentials)
+.mcp.json
