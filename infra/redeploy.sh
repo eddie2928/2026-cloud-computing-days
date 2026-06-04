@@ -6,8 +6,8 @@ exec &> >(stdbuf -oL -eL tee /var/log/deploy.log)
 GIT_REPO_URL="https://github.com/55002ghals/2026-cloud-computing-days.git"
 GIT_BRANCH="master"
 
-# Read credentials from env file (written by user_data.sh.tftpl)
-source /etc/qna-diary/env
+# Read credentials from env file and export to subprocesses
+set -a; source /etc/qna-diary/env; set +a
 
 echo "==> [1/8] Installing System Packages..."
 dnf install -y python3.11 python3.11-pip nodejs20 git nginx
