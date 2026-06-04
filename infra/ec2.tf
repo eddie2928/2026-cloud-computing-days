@@ -54,29 +54,3 @@ resource "aws_instance" "app" {
     Project = "qna-diary"
   }
 }
-
-resource "aws_instance" "mcp" {
-  ami                    = data.aws_ami.al2023.id
-  instance_type          = var.mcp_ec2_instance_type
-  subnet_id              = aws_subnet.public[0].id
-  vpc_security_group_ids = [aws_security_group.mcp_sg.id]
-  key_name               = aws_key_pair.app.key_name
-
-  root_block_device {
-    volume_size = 20
-    volume_type = "gp3"
-  }
-
-  user_data_replace_on_change = true
-
-  user_data = templatefile("${path.module}/user_data_mcp.sh.tftpl", {
-    git_repo_url = var.git_repo_url
-    git_branch   = var.git_branch
-    db_url       = local.db_url
-  })
-
-  tags = {
-    Name    = "qna-diary-mcp"
-    Project = "qna-diary"
-  }
-}
