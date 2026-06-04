@@ -39,13 +39,22 @@ sudo -u ec2-user .venv/bin/pip install -r requirements.txt
 echo "==> [4/8] Verifying Database Context..."
 cd /opt/app/backend
 .venv/bin/python3 -u -c "
-import asyncio
-import asyncpg
-import os
+import asyncio, asyncpg, re
+
+def read_env(key):
+    with open('/etc/qna-diary/env') as f:
+        for line in f:
+            m = re.match(rf'^{key}=[\"\'']?([^\"\''\n]+)[\"\'']?', line.strip())
+            if m:
+                return m.group(1)
+    return ''
 
 async def init_database():
-    url = os.environ['DB_URL'].replace('postgresql+asyncpg://', 'postgresql://')
-    base_url = url.rsplit('/', 1)[0] + '/postgres'
+    raw = read_env('DB_URL')
+    if not raw:
+        print('Warning: DB_URL not found in /etc/qna-diary/env, skipping check.', flush=True)
+        return
+    base_url = raw.replace('postgresql+asyncpg://', 'postgresql://').rsplit('/', 1)[0] + '/postgres'
     try:
         conn = await asyncpg.connect(base_url)
         exists = await conn.fetchval(\"SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'qnadiary')\")
@@ -148,8 +157,14 @@ printf 'mcp:%s\n' "$(openssl passwd -apr1 "$_mcp_pw")" > /etc/nginx/.mcp.htpassw
 chmod 600 /etc/nginx/.mcp.htpasswd
 unset _mcp_pw
 
-# Add DATABASE_URL to env file if missing (mcp_server/db.py reads this)
-if ! grep -q "^DATABASE_URL=" /etc/qna-diary/env; then
+# Keep DATABASE_URL in sync with DB_URL (mcp_server/db.py reads DATABASE_URL)
+if [ -z "$DB_URL" ]; then
+    echo "ERROR: DB_URL is not set in /etc/qna-diary/env — cannot continue" >&2
+    exit 1
+fi
+if grep -q "^DATABASE_URL=" /etc/qna-diary/env; then
+    sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$DB_URL|" /etc/qna-diary/env
+else
     echo "DATABASE_URL=$DB_URL" >> /etc/qna-diary/env
 fi
 

@@ -9,12 +9,29 @@ timedatectl set-timezone Asia/Seoul
 dnf install -y python3.11 python3.11-pip nodejs20 git nginx
 dnf clean all
 
-# 2. Clone repository
+# 2. Write env file early so it exists even if later steps fail
+mkdir -p /etc/qna-diary
+cat > /etc/qna-diary/env <<'ENVEOF'
+APP_PASSWORD="${app_password}"
+SESSION_SECRET="${session_secret}"
+DB_URL="${db_url}"
+DATABASE_URL="${db_url}"
+BEDROCK_MODEL_ID="${bedrock_model_id}"
+AWS_REGION="${aws_region}"
+VAPID_PUBLIC_KEY="${vapid_public_key}"
+VAPID_PRIVATE_KEY="${vapid_private_key}"
+VAPID_SUBJECT="${vapid_subject}"
+COOKIE_SECURE="${cookie_secure}"
+ENVEOF
+chmod 600 /etc/qna-diary/env
+chown root:root /etc/qna-diary/env
+
+# 3. Clone repository
 mkdir -p /opt/app
 git clone --branch "${git_branch}" "${git_repo_url}" /opt/app
 chown -R ec2-user:ec2-user /opt/app
 
-# 3. Backend: create venv and install dependencies (as ec2-user so redeploy can pip install later)
+# 4. Backend: create venv and install dependencies (as ec2-user so redeploy can pip install later)
 cd /opt/app/backend
 sudo -u ec2-user python3.11 -m venv .venv
 sudo -u ec2-user .venv/bin/pip install --upgrade pip
@@ -112,24 +129,7 @@ printf 'mcp:%s\n' "$(openssl passwd -apr1 "$_mcp_pw")" > /etc/nginx/.mcp.htpassw
 chmod 600 /etc/nginx/.mcp.htpasswd
 unset _mcp_pw
 
-# 7. Write env file (used by systemd unit and redeploy.sh)
-mkdir -p /etc/qna-diary
-cat > /etc/qna-diary/env <<'ENVEOF'
-APP_PASSWORD="${app_password}"
-SESSION_SECRET="${session_secret}"
-DB_URL="${db_url}"
-DATABASE_URL="${db_url}"
-BEDROCK_MODEL_ID="${bedrock_model_id}"
-AWS_REGION="${aws_region}"
-VAPID_PUBLIC_KEY="${vapid_public_key}"
-VAPID_PRIVATE_KEY="${vapid_private_key}"
-VAPID_SUBJECT="${vapid_subject}"
-COOKIE_SECURE="${cookie_secure}"
-ENVEOF
-chmod 600 /etc/qna-diary/env
-chown root:root /etc/qna-diary/env
-
-# 8. Alembic migration
+# 7. Alembic migration
 cd /opt/app/backend
 set -a; source /etc/qna-diary/env; set +a
 .venv/bin/alembic upgrade head
