@@ -30,8 +30,8 @@ setup: ## 첫 실행 전 전체 환경 세팅 (venv + npm + .env)
 	cd $(FRONTEND_DIR) && npm install --silent
 	@echo ">>> [3/3] .env 파일 확인"
 	@if [ ! -f $(BACKEND_DIR)/.env ]; then \
-	  printf 'APP_PASSWORD=inha-nxt\nSESSION_SECRET=local-dev-secret-change-me\nDB_URL=postgresql+asyncpg://appuser:localdevpass@localhost:5432/qnadiary\nBEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-6\nAWS_REGION=us-east-1\n' > $(BACKEND_DIR)/.env; \
-	  echo "  .env 생성됨 → $(BACKEND_DIR)/.env (AWS 자격증명은 별도 aws configure 필요)"; \
+	  printf 'APP_PASSWORD=inha-nxt\nSESSION_SECRET=local-dev-secret-change-me\nDB_URL=postgresql+asyncpg://appuser:localdevpass@localhost:5432/qnadiary\nANTHROPIC_API_KEY=\nCLAUDE_MODEL=claude-sonnet-4-6\n' > $(BACKEND_DIR)/.env; \
+	  echo "  .env 생성됨 → $(BACKEND_DIR)/.env (ANTHROPIC_API_KEY에 실제 키 입력 필요)"; \
 	else \
 	  echo "  .env 이미 존재 — 건너뜀"; \
 	fi
