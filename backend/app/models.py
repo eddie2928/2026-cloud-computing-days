@@ -84,7 +84,7 @@ class QnAItem(Base):
     question: Mapped[str] = mapped_column(TEXT, nullable=False)
     answer: Mapped[str | None] = mapped_column(TEXT, nullable=True)
     rag_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    bedrock_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    claude_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     asked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -110,7 +110,7 @@ class DiaryEntry(Base):
     body: Mapped[str] = mapped_column(TEXT, nullable=False)
     summary: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="")
     emotion: Mapped[str] = mapped_column(TEXT, nullable=False, server_default="neutral")
-    bedrock_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    claude_meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     session: Mapped["QnASession"] = relationship(back_populates="diary_entry")
