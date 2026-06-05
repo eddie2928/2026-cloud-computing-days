@@ -4,7 +4,7 @@ sqlalchemy>=2.0
 asyncpg
 alembic
 pydantic-settings
-boto3
+anthropic
 python-multipart
 itsdangerous
 pywebpush>=2.2
