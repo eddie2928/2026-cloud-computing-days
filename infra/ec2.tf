@@ -25,7 +25,6 @@ resource "aws_instance" "app" {
   instance_type          = var.ec2_instance_type
   subnet_id              = aws_subnet.public[0].id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.app.key_name
 
   root_block_device {
@@ -38,12 +37,12 @@ resource "aws_instance" "app" {
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     git_repo_url      = var.git_repo_url
     git_branch        = var.git_branch
-    db_url            = local.db_url
-    app_password      = var.app_password
-    session_secret    = var.session_secret
-    bedrock_model_id  = var.bedrock_model_id
-    aws_region        = var.aws_region
-    vapid_public_key  = var.vapid_public_key
+    db_url              = local.db_url
+    app_password        = var.app_password
+    session_secret      = var.session_secret
+    anthropic_api_key   = var.anthropic_api_key
+    claude_model        = var.claude_model
+    vapid_public_key    = var.vapid_public_key
     vapid_private_key = var.vapid_private_key
     vapid_subject     = var.vapid_subject
     cookie_secure     = var.cookie_secure

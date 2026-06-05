@@ -59,10 +59,16 @@ variable "session_secret" {
   sensitive   = true
 }
 
-variable "bedrock_model_id" {
-  description = "AWS Bedrock model ID to use for AI generation"
+variable "anthropic_api_key" {
+  description = "Anthropic API key for Claude AI calls"
   type        = string
-  default     = "global.anthropic.claude-sonnet-4-6"
+  sensitive   = true
+}
+
+variable "claude_model" {
+  description = "Claude model ID to use for AI generation"
+  type        = string
+  default     = "claude-sonnet-4-6"
 }
 
 variable "git_repo_url" {

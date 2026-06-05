@@ -9,6 +9,10 @@ GIT_BRANCH="master"
 # Read credentials from env file and export to subprocesses
 set -a; source /etc/qna-diary/env; set +a
 
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "WARNING: ANTHROPIC_API_KEY is not set in /etc/qna-diary/env — Claude API calls will fail" >&2
+fi
+
 echo "==> [1/8] Installing System Packages..."
 dnf install -y python3.11 python3.11-pip nodejs20 git nginx
 dnf clean all
