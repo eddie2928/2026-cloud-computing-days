@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     app_password: str
     session_secret: str
     db_url: str
-    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
-    aws_region: str = "us-east-1"
+    anthropic_api_key: str = ""
+    claude_model: str = "claude-sonnet-4-6"
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:admin@example.com"
