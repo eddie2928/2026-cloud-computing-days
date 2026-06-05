@@ -7,7 +7,7 @@ async def _login(client):
     assert resp.status_code == 200
 
 
-async def _complete_qna(client, bedrock_mock, diary_date: str):
+async def _complete_qna(client, claude_mock, diary_date: str):
     start = await client.post("/api/qna/start", json={"diary_date": diary_date})
     data = start.json()
     session_id = data["session_id"]
@@ -24,9 +24,9 @@ async def _complete_qna(client, bedrock_mock, diary_date: str):
 
 
 @pytest.mark.asyncio
-async def test_get_diary_after_completion(client, bedrock_mock):
+async def test_get_diary_after_completion(client, claude_mock):
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-06-01")
+    await _complete_qna(client, claude_mock, "2026-06-01")
 
     resp = await client.get("/api/diary/2026-06-01")
     assert resp.status_code == 200
@@ -37,16 +37,16 @@ async def test_get_diary_after_completion(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_get_diary_not_found(client, bedrock_mock):
+async def test_get_diary_not_found(client, claude_mock):
     await _login(client)
     resp = await client.get("/api/diary/2099-12-31")
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_calendar_includes_completed_date(client, bedrock_mock):
+async def test_calendar_includes_completed_date(client, claude_mock):
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-07-15")
+    await _complete_qna(client, claude_mock, "2026-07-15")
 
     resp = await client.get("/api/calendar", params={"month": "2026-07"})
     assert resp.status_code == 200
@@ -58,9 +58,9 @@ async def test_calendar_includes_completed_date(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_calendar_excludes_other_month(client, bedrock_mock):
+async def test_calendar_excludes_other_month(client, claude_mock):
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-08-20")
+    await _complete_qna(client, claude_mock, "2026-08-20")
 
     resp = await client.get("/api/calendar", params={"month": "2026-07"})
     assert resp.status_code == 200
@@ -70,10 +70,10 @@ async def test_calendar_excludes_other_month(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_calendar_entry_has_written_date(client, bedrock_mock):
+async def test_calendar_entry_has_written_date(client, claude_mock):
     """written_date 필드가 CalendarEntry 응답에 존재하는지 확인"""
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-09-10")
+    await _complete_qna(client, claude_mock, "2026-09-10")
 
     resp = await client.get("/api/calendar", params={"month": "2026-09"})
     assert resp.status_code == 200
@@ -84,10 +84,10 @@ async def test_calendar_entry_has_written_date(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
+async def test_calendar_written_date_same_day(client, db_session, claude_mock):
     """created_at이 diary_date와 같은 KST 날짜이면 written_date == date"""
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-10-05")
+    await _complete_qna(client, claude_mock, "2026-10-05")
 
     # 2026-10-05T05:00:00 UTC = 2026-10-05T14:00:00 KST → 같은 날
     same_day_utc = datetime(2026, 10, 5, 5, 0, 0, tzinfo=timezone.utc)
@@ -105,10 +105,10 @@ async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_calendar_kst_midnight_boundary(client, db_session, bedrock_mock):
+async def test_calendar_kst_midnight_boundary(client, db_session, claude_mock):
     """UTC 15:30 = KST 다음날 00:30: written_date가 diary_date + 1일로 나와야 함"""
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-11-20")
+    await _complete_qna(client, claude_mock, "2026-11-20")
 
     # 2026-11-20T15:30:00 UTC = 2026-11-21T00:30:00 KST → 다음 날
     next_day_utc = datetime(2026, 11, 20, 15, 30, 0, tzinfo=timezone.utc)

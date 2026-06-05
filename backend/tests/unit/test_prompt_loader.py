@@ -16,8 +16,8 @@ def test_normal_substitution(tmp_path):
     prompt_file = tmp_path / "test_prompt.md"
     prompt_file.write_text("안녕 {{name}}, 오늘은 {{date}}입니다.", encoding="utf-8")
 
-    with patch("app.bedrock._PROMPTS_DIR", tmp_path):
-        from app.bedrock import _read_prompt_file, _load_prompt
+    with patch("app.claude._PROMPTS_DIR", tmp_path):
+        from app.claude import _read_prompt_file, _load_prompt
         _read_prompt_file.cache_clear()
         result = _load_prompt("test_prompt", name="수진", date="2026-05-23")
 
@@ -29,8 +29,8 @@ def test_missing_variable_replaced_with_empty(tmp_path):
     prompt_file = tmp_path / "test_missing.md"
     prompt_file.write_text("Hello {{name}} and {{unknown}}.", encoding="utf-8")
 
-    with patch("app.bedrock._PROMPTS_DIR", tmp_path):
-        from app.bedrock import _read_prompt_file, _load_prompt
+    with patch("app.claude._PROMPTS_DIR", tmp_path):
+        from app.claude import _read_prompt_file, _load_prompt
         _read_prompt_file.cache_clear()
         result = _load_prompt("test_missing", name="테스트")
 
@@ -42,8 +42,8 @@ def test_cache_effect(tmp_path):
     prompt_file = tmp_path / "test_cache.md"
     prompt_file.write_text("캐시 테스트 {{var}}", encoding="utf-8")
 
-    with patch("app.bedrock._PROMPTS_DIR", tmp_path):
-        from app.bedrock import _read_prompt_file, _load_prompt
+    with patch("app.claude._PROMPTS_DIR", tmp_path):
+        from app.claude import _read_prompt_file, _load_prompt
         _read_prompt_file.cache_clear()
 
         result1 = _load_prompt("test_cache", var="첫 번째")

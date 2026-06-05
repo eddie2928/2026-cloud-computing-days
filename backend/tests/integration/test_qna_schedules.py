@@ -13,10 +13,10 @@ async def _login(client):
 
 
 @pytest.mark.asyncio
-async def test_pending_schedules_in_response(client, bedrock_mock, db_session):
-    """Bedrock returns schedules → no auto-insert, pending_schedules in start response."""
+async def test_pending_schedules_in_response(client, claude_mock, db_session):
+    """Claude returns schedules → no auto-insert, pending_schedules in start response."""
     await _login(client)
-    bedrock_mock.generate_question.return_value = (
+    claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [{"period_start": "2026-07-01", "period_end": "2026-07-07", "situation": "기말 시험"}],
         {"model_id": "test"},
@@ -30,7 +30,7 @@ async def test_pending_schedules_in_response(client, bedrock_mock, db_session):
         select(UserSchedule).where(UserSchedule.situation == "기말 시험")
     )
     rows = result.scalars().all()
-    assert len(rows) == 0, "Bedrock schedules must NOT be auto-inserted"
+    assert len(rows) == 0, "Claude schedules must NOT be auto-inserted"
 
     # 응답에 pending_schedules 포함
     data = start.json()
@@ -42,10 +42,10 @@ async def test_pending_schedules_in_response(client, bedrock_mock, db_session):
 
 
 @pytest.mark.asyncio
-async def test_empty_schedules_no_pending(client, bedrock_mock, db_session):
-    """Empty schedules from Bedrock → pending_schedules is empty list."""
+async def test_empty_schedules_no_pending(client, claude_mock, db_session):
+    """Empty schedules from Claude → pending_schedules is empty list."""
     await _login(client)
-    bedrock_mock.generate_question.return_value = (
+    claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [],
         {"model_id": "test"},
@@ -65,7 +65,7 @@ async def test_empty_schedules_no_pending(client, bedrock_mock, db_session):
 
 
 @pytest.mark.asyncio
-async def test_relevant_schedules_passed(client, bedrock_mock, db_session):
+async def test_relevant_schedules_passed(client, claude_mock, db_session):
     """Manually inserted schedules are passed with correct labels to generate_question."""
     await _login(client)
 
@@ -81,17 +81,17 @@ async def test_relevant_schedules_passed(client, bedrock_mock, db_session):
     )
     await db_session.commit()
 
-    bedrock_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-10-15"})
 
-    call_kwargs = bedrock_mock.generate_question.call_args
+    call_kwargs = claude_mock.generate_question.call_args
     relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
     assert any("10월 프로젝트" in s for s in relevant_schedules_arg)
     assert any("[진행중]" in s for s in relevant_schedules_arg)
 
 
 @pytest.mark.asyncio
-async def test_recently_ended_schedule_included(client, bedrock_mock, db_session):
+async def test_recently_ended_schedule_included(client, claude_mock, db_session):
     """Schedule ended within 7 days is included with [N일 전 종료] label."""
     await _login(client)
 
@@ -106,17 +106,17 @@ async def test_recently_ended_schedule_included(client, bedrock_mock, db_session
     )
     await db_session.commit()
 
-    bedrock_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-11-15"})
 
-    call_kwargs = bedrock_mock.generate_question.call_args
+    call_kwargs = claude_mock.generate_question.call_args
     relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
     assert any("종료 일정" in s for s in relevant_schedules_arg)
     assert any("전 종료" in s for s in relevant_schedules_arg)
 
 
 @pytest.mark.asyncio
-async def test_old_ended_schedule_excluded(client, bedrock_mock, db_session):
+async def test_old_ended_schedule_excluded(client, claude_mock, db_session):
     """Schedule ended more than 7 days ago is excluded from relevant_schedules."""
     await _login(client)
 
@@ -131,17 +131,17 @@ async def test_old_ended_schedule_excluded(client, bedrock_mock, db_session):
     )
     await db_session.commit()
 
-    bedrock_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-12-20"})
 
-    call_kwargs = bedrock_mock.generate_question.call_args
+    call_kwargs = claude_mock.generate_question.call_args
     relevant_schedules_arg = call_kwargs.kwargs.get("relevant_schedules") or []
     assert not any("오래된 일정" in s for s in relevant_schedules_arg)
 
 
 @pytest.mark.asyncio
-async def test_resume_session_preserves_pending_schedules(client, bedrock_mock):
-    """Session resume restores pending_schedules from bedrock_meta raw_response."""
+async def test_resume_session_preserves_pending_schedules(client, claude_mock):
+    """Session resume restores pending_schedules from claude_meta raw_response."""
     await _login(client)
 
     raw_response = (
@@ -150,7 +150,7 @@ async def test_resume_session_preserves_pending_schedules(client, bedrock_mock):
         "2026-08-01|2026-08-07|여름 방학\n"
         "</schedules>"
     )
-    bedrock_mock.generate_question.return_value = (
+    claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [{"period_start": "2026-08-01", "period_end": "2026-08-07", "situation": "여름 방학"}],
         {"model_id": "test", "raw_response": raw_response},
@@ -161,7 +161,7 @@ async def test_resume_session_preserves_pending_schedules(client, bedrock_mock):
     assert len(first.json().get("pending_schedules", [])) == 1
 
     # 세션 재개: 같은 날짜로 재호출
-    bedrock_mock.generate_question.reset_mock()
+    claude_mock.generate_question.reset_mock()
     resumed = await client.post("/api/qna/start", json={"diary_date": "2026-08-10"})
     assert resumed.status_code == 200
 

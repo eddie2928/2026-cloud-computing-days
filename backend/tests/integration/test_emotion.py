@@ -22,7 +22,7 @@ async def _complete_qna(client, diary_date: str):
 
 
 @pytest.mark.asyncio
-async def test_patch_emotion_success(client, bedrock_mock):
+async def test_patch_emotion_success(client, claude_mock):
     await _login(client)
     await _complete_qna(client, "2026-09-01")
 
@@ -35,7 +35,7 @@ async def test_patch_emotion_success(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_patch_emotion_invalid_value(client, bedrock_mock):
+async def test_patch_emotion_invalid_value(client, claude_mock):
     await _login(client)
     await _complete_qna(client, "2026-09-02")
 
@@ -44,7 +44,7 @@ async def test_patch_emotion_invalid_value(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_patch_emotion_diary_not_found(client, bedrock_mock):
+async def test_patch_emotion_diary_not_found(client, claude_mock):
     await _login(client)
     resp = await client.patch("/api/diary/2099-01-01/emotion", json={"emotion": "sad"})
     assert resp.status_code == 404

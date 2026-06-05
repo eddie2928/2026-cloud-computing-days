@@ -1,16 +1,15 @@
-"""Unit tests for bedrock parsing (todos #8.4, #13.2, #10.3)."""
+"""Unit tests for claude parsing."""
 import re
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.bedrock import BedrockClient, _build_rag_block, _parse_schedules, _parse_suggestions
+from app.claude import ClaudeClient, _build_rag_block, _parse_schedules, _parse_suggestions
 
 
 def _make_client():
-    with patch("app.bedrock.boto3.client"):
-        return BedrockClient(region="us-east-1", model_id="test-model")
+    return ClaudeClient()
 
 
 def _mock_invoke(text: str):
@@ -26,7 +25,6 @@ def _make_item(seq: int, question: str = "질문", answer: str = "답변"):
     return item
 
 
-@pytest.mark.skip(reason="BedrockClient는 현재 BedrockStubClient로 re-export됨 — _invoke_claude/boto3 mock 불필요 (수동 마이그레이션 기간)")
 @pytest.mark.asyncio
 async def test_generate_diary_normal_parse():
     """<diary> and <summary> tags parsed correctly."""
@@ -34,14 +32,13 @@ async def test_generate_diary_normal_parse():
     raw = "<diary>오늘은 좋은 날이었다.</diary>\n<summary>좋은 하루 요약.</summary>"
     items = [_make_item(1), _make_item(2)]
 
-    with patch("app.bedrock._invoke_claude", return_value=(raw, {})):
+    with patch("app.claude._invoke_claude", return_value=(raw, {})):
         body, summary, meta = await client.generate_diary(items)
 
     assert body == "오늘은 좋은 날이었다."
     assert summary == "좋은 하루 요약."
 
 
-@pytest.mark.skip(reason="BedrockClient는 현재 BedrockStubClient로 re-export됨 — _invoke_claude/boto3 mock 불필요 (수동 마이그레이션 기간)")
 @pytest.mark.asyncio
 async def test_generate_diary_no_tags_fallback():
     """When tags are absent, entire text becomes body and summary is empty."""
@@ -49,14 +46,13 @@ async def test_generate_diary_no_tags_fallback():
     raw = "태그 없는 일기 본문입니다."
     items = [_make_item(1)]
 
-    with patch("app.bedrock._invoke_claude", return_value=(raw, {})):
+    with patch("app.claude._invoke_claude", return_value=(raw, {})):
         body, summary, meta = await client.generate_diary(items)
 
     assert body == raw
     assert summary == ""
 
 
-@pytest.mark.skip(reason="BedrockClient는 현재 BedrockStubClient로 re-export됨 — _invoke_claude/boto3 mock 불필요 (수동 마이그레이션 기간)")
 @pytest.mark.asyncio
 async def test_generate_diary_markdown_mixed():
     """Markdown noise outside tags is ignored; tags still parsed."""
@@ -69,7 +65,7 @@ async def test_generate_diary_markdown_mixed():
     )
     items = [_make_item(1)]
 
-    with patch("app.bedrock._invoke_claude", return_value=(raw, {})):
+    with patch("app.claude._invoke_claude", return_value=(raw, {})):
         body, summary, meta = await client.generate_diary(items)
 
     assert body == "마크다운 혼합 일기 내용입니다."
@@ -171,8 +167,8 @@ def test_parse_suggestions_tag_missing():
 @pytest.mark.asyncio
 async def test_generate_question_returns_suggestions():
     """generate_question (stub) returns 4-tuple including a suggestions list."""
-    from app.bedrock_stub import BedrockStubClient
-    client = BedrockStubClient()
+    from app.claude_stub import ClaudeStubClient
+    client = ClaudeStubClient()
     question, schedules, suggestions, meta = await client.generate_question([], [], 1)
     assert question
     assert schedules == []

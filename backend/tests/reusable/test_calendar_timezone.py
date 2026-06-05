@@ -15,7 +15,7 @@ async def _login(client):
     assert resp.status_code == 200
 
 
-async def _complete_qna(client, bedrock_mock, diary_date: str):
+async def _complete_qna(client, claude_mock, diary_date: str):
     start = await client.post("/api/qna/start", json={"diary_date": diary_date})
     data = start.json()
     session_id = data["session_id"]
@@ -32,7 +32,7 @@ async def _complete_qna(client, bedrock_mock, diary_date: str):
 
 
 @pytest.mark.asyncio
-async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
+async def test_calendar_written_date_same_day(client, db_session, claude_mock):
     """
     @reusable
     created_at이 diary_date와 같은 KST 날짜이면 written_date == date.
@@ -40,7 +40,7 @@ async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
     향후 타임스탬프 기반 로직 테스트에 참고 가능.
     """
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-10-05")
+    await _complete_qna(client, claude_mock, "2026-10-05")
 
     # 2026-10-05T05:00:00 UTC = 2026-10-05T14:00:00 KST → 같은 날
     same_day_utc = datetime(2026, 10, 5, 5, 0, 0, tzinfo=timezone.utc)
@@ -58,14 +58,14 @@ async def test_calendar_written_date_same_day(client, db_session, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_calendar_kst_midnight_boundary(client, db_session, bedrock_mock):
+async def test_calendar_kst_midnight_boundary(client, db_session, claude_mock):
     """
     @reusable
     UTC 15:30 = KST 다음날 00:30: written_date가 diary_date + 1일로 나와야 함.
     패턴: KST 자정 경계(UTC+9 = 15:00 UTC) 검증. timezone 변환 로직 변경 시 회귀 방지에 활용 가능.
     """
     await _login(client)
-    await _complete_qna(client, bedrock_mock, "2026-11-20")
+    await _complete_qna(client, claude_mock, "2026-11-20")
 
     # 2026-11-20T15:30:00 UTC = 2026-11-21T00:30:00 KST → 다음 날
     next_day_utc = datetime(2026, 11, 20, 15, 30, 0, tzinfo=timezone.utc)

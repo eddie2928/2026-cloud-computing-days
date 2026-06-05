@@ -10,7 +10,7 @@ async def _login(client):
     assert resp.status_code == 200
 
 
-async def _setup_session_with_n_answers(client, bedrock_mock, diary_date, n):
+async def _setup_session_with_n_answers(client, claude_mock, diary_date, n):
     """Create a session and answer n questions. Returns (session_id, last_seq)."""
     start = await client.post("/api/qna/start", json={"diary_date": diary_date})
     assert start.status_code == 200
@@ -32,10 +32,10 @@ async def _setup_session_with_n_answers(client, bedrock_mock, diary_date, n):
 
 
 @pytest.mark.asyncio
-async def test_undo_validation_nonexistent_sequence(client, bedrock_mock):
+async def test_undo_validation_nonexistent_sequence(client, claude_mock):
     """Undo with target_sequence=99 returns 400."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-01", 3)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-01", 3)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -45,10 +45,10 @@ async def test_undo_validation_nonexistent_sequence(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_validation_unanswered_sequence(client, bedrock_mock):
+async def test_undo_validation_unanswered_sequence(client, claude_mock):
     """Undo on an unanswered sequence returns 400."""
     await _login(client)
-    session_id, next_seq = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-02", 3)
+    session_id, next_seq = await _setup_session_with_n_answers(client, claude_mock, "2026-06-02", 3)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -58,10 +58,10 @@ async def test_undo_validation_unanswered_sequence(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_validation_completed_session(client, bedrock_mock):
+async def test_undo_validation_completed_session(client, claude_mock):
     """Undo on a completed session returns 409."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-03", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-03", 5)
     await client.post("/api/qna/finalize", json={"session_id": session_id})
 
     resp = await client.post(
@@ -72,10 +72,10 @@ async def test_undo_validation_completed_session(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_validation_wrong_user(client, bedrock_mock):
+async def test_undo_validation_wrong_user(client, claude_mock):
     """Undo on another user's session returns 404."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-04", 3)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-04", 3)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -85,10 +85,10 @@ async def test_undo_validation_wrong_user(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_discard_basic(client, bedrock_mock, db_session):
+async def test_undo_discard_basic(client, claude_mock, db_session):
     """Discard undo at sequence=3: items 4,5 deleted, item 3 answer=NULL, new question set."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-05", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-05", 5)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -122,12 +122,12 @@ async def test_undo_discard_basic(client, bedrock_mock, db_session):
 
 
 @pytest.mark.asyncio
-async def test_undo_discard_removes_schedules(client, bedrock_mock):
+async def test_undo_discard_removes_schedules(client, claude_mock):
     """Discard undo response includes removed_schedule_keys from discarded items."""
     await _login(client)
 
-    # Set up bedrock_mock to return schedules for items 4 and 5
-    original_return = bedrock_mock.generate_question.return_value
+    # Set up claude_mock to return schedules for items 4 and 5
+    original_return = claude_mock.generate_question.return_value
     call_count = 0
 
     async def side_effect(*args, **kwargs):
@@ -142,12 +142,12 @@ async def test_undo_discard_removes_schedules(client, bedrock_mock):
             )
         return ("오늘 어떤 일이 있었나요?", [], ["답변1", "답변2", "답변3"], {"model_id": "test", "raw_response": ""})
 
-    bedrock_mock.generate_question.side_effect = side_effect
+    claude_mock.generate_question.side_effect = side_effect
 
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-06", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-06", 5)
 
-    bedrock_mock.generate_question.side_effect = None
-    bedrock_mock.generate_question.return_value = original_return
+    claude_mock.generate_question.side_effect = None
+    claude_mock.generate_question.return_value = original_return
 
     resp = await client.post(
         "/api/qna/undo",
@@ -159,10 +159,10 @@ async def test_undo_discard_removes_schedules(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_keep_basic(client, bedrock_mock, db_session):
+async def test_undo_keep_basic(client, claude_mock, db_session):
     """Keep undo at sequence=3: items 4,5 preserved, item3 answer=new_answer, response sequence=6."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-07", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-07", 5)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -196,10 +196,10 @@ async def test_undo_keep_basic(client, bedrock_mock, db_session):
 
 
 @pytest.mark.asyncio
-async def test_undo_keep_requires_new_answer(client, bedrock_mock):
+async def test_undo_keep_requires_new_answer(client, claude_mock):
     """Keep undo without new_answer returns 400."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-09", 3)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-09", 3)
 
     resp = await client.post(
         "/api/qna/undo",
@@ -209,10 +209,10 @@ async def test_undo_keep_requires_new_answer(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_undo_keep_regenerates_trailing_only(client, bedrock_mock, db_session):
+async def test_undo_keep_regenerates_trailing_only(client, claude_mock, db_session):
     """Keep undo: target question unchanged, last pending question (seq6) regenerated."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-10", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-10", 5)
 
     # Capture item3's question before undo
     result_before = await db_session.execute(
@@ -243,10 +243,10 @@ async def test_undo_keep_regenerates_trailing_only(client, bedrock_mock, db_sess
 
 
 @pytest.mark.asyncio
-async def test_undo_discard_keeps_target_question(client, bedrock_mock, db_session):
+async def test_undo_discard_keeps_target_question(client, claude_mock, db_session):
     """Discard undo: target question is preserved (not regenerated)."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-11", 5)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-11", 5)
 
     # Capture item3's question before undo
     result_before = await db_session.execute(
@@ -275,10 +275,10 @@ async def test_undo_discard_keeps_target_question(client, bedrock_mock, db_sessi
 
 
 @pytest.mark.asyncio
-async def test_undo_response_includes_suggestions_and_schedules(client, bedrock_mock):
+async def test_undo_response_includes_suggestions_and_schedules(client, claude_mock):
     """Undo response includes suggestions and pending_schedules fields."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, bedrock_mock, "2026-06-08", 3)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-08", 3)
 
     resp = await client.post(
         "/api/qna/undo",

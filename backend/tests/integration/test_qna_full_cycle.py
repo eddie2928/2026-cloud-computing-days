@@ -29,7 +29,7 @@ async def _answer_n(client, session_id, start_seq, n):
 
 
 @pytest.mark.asyncio
-async def test_start_returns_first_question(client, bedrock_mock):
+async def test_start_returns_first_question(client, claude_mock):
     await _login(client)
     resp = await client.post("/api/qna/start", json={"diary_date": "2026-05-01"})
     assert resp.status_code == 200
@@ -40,7 +40,7 @@ async def test_start_returns_first_question(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_5_does_not_auto_finalize(client, bedrock_mock):
+async def test_qna_5_does_not_auto_finalize(client, claude_mock):
     """5th answer does NOT auto-complete — returns min_reached=True and next_question."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-02"})
@@ -55,7 +55,7 @@ async def test_qna_5_does_not_auto_finalize(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_finalize_after_5(client, bedrock_mock):
+async def test_qna_finalize_after_5(client, claude_mock):
     """5 answers + POST /qna/finalize → diary created, session completed."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-12"})
@@ -72,7 +72,7 @@ async def test_qna_finalize_after_5(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_finalize_before_5_fails(client, bedrock_mock):
+async def test_qna_finalize_before_5_fails(client, claude_mock):
     """Finalize with fewer than 5 answers returns 400."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-13"})
@@ -87,7 +87,7 @@ async def test_qna_finalize_before_5_fails(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_finalize_idempotent(client, bedrock_mock):
+async def test_qna_finalize_idempotent(client, claude_mock):
     """Calling finalize twice returns the same diary."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-14"})
@@ -104,7 +104,7 @@ async def test_qna_finalize_idempotent(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_unlimited_questions(client, bedrock_mock):
+async def test_qna_unlimited_questions(client, claude_mock):
     """Answering beyond 5 still returns next_question each time."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-15"})
@@ -127,7 +127,7 @@ async def test_qna_unlimited_questions(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_qna_response_includes_suggestions(client, bedrock_mock):
+async def test_qna_response_includes_suggestions(client, claude_mock):
     """start and answer responses include suggestions list."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-16"})
@@ -147,7 +147,7 @@ async def test_qna_response_includes_suggestions(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_completed_date_returns_409(client, bedrock_mock):
+async def test_completed_date_returns_409(client, claude_mock):
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-03"})
     session_id = start.json()["session_id"]
@@ -160,7 +160,7 @@ async def test_completed_date_returns_409(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_in_progress_session_can_resume(client, bedrock_mock):
+async def test_in_progress_session_can_resume(client, claude_mock):
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-04"})
     assert start.status_code == 200
@@ -180,7 +180,7 @@ async def test_in_progress_session_can_resume(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_wrong_sequence_returns_400(client, bedrock_mock):
+async def test_wrong_sequence_returns_400(client, claude_mock):
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-05"})
     session_id = start.json()["session_id"]
@@ -193,7 +193,7 @@ async def test_wrong_sequence_returns_400(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_start_returns_history_on_resume(client, bedrock_mock):
+async def test_start_returns_history_on_resume(client, claude_mock):
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-07"})
     assert start.status_code == 200
@@ -216,7 +216,7 @@ async def test_start_returns_history_on_resume(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
+async def test_profile_passed_to_claude_when_set(client, claude_mock):
     await _login(client)
     await client.put(
         "/api/profile",
@@ -226,7 +226,7 @@ async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-06"})
     assert start.status_code == 200
 
-    call_kwargs = bedrock_mock.generate_question.call_args
+    call_kwargs = claude_mock.generate_question.call_args
     user_profile_arg = call_kwargs.kwargs.get("user_profile") or (
         call_kwargs.args[3] if len(call_kwargs.args) > 3 else None
     )
@@ -235,7 +235,7 @@ async def test_profile_passed_to_bedrock_when_set(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_diary_summary_saved_after_completion(client, bedrock_mock, db_session):
+async def test_diary_summary_saved_after_completion(client, claude_mock, db_session):
     """DiaryEntry.summary is populated when finalize is called."""
     await _login(client)
     start = await client.post("/api/qna/start", json={"diary_date": "2026-05-10"})
@@ -255,7 +255,7 @@ async def test_diary_summary_saved_after_completion(client, bedrock_mock, db_ses
 
 
 @pytest.mark.asyncio
-async def test_pet_xp_grows_after_diary_completion(client, bedrock_mock, db_session):
+async def test_pet_xp_grows_after_diary_completion(client, claude_mock, db_session):
     """Pet xp increases by XP_PER_DIARY after finalizing a diary."""
     await _login(client)
     await db_session.execute(delete(Pet).where(Pet.user_id == 1))

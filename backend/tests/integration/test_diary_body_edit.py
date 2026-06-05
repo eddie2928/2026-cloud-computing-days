@@ -22,7 +22,7 @@ async def _complete_qna(client, diary_date: str):
 
 
 @pytest.mark.asyncio
-async def test_patch_body_success(client, bedrock_mock):
+async def test_patch_body_success(client, claude_mock):
     await _login(client)
     await _complete_qna(client, "2026-10-01")
 
@@ -35,14 +35,14 @@ async def test_patch_body_success(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_patch_body_404(client, bedrock_mock):
+async def test_patch_body_404(client, claude_mock):
     await _login(client)
     resp = await client.patch("/api/diary/2099-12-31/body", json={"body": "없는 날짜"})
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_patch_body_validation(client, bedrock_mock):
+async def test_patch_body_validation(client, claude_mock):
     await _login(client)
     resp = await client.patch("/api/diary/2026-10-01/body", json={"body": ""})
     assert resp.status_code == 422

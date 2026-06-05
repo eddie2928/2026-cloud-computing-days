@@ -14,8 +14,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "."))
 
 os.environ.setdefault("APP_PASSWORD", "inha-nxt")
 os.environ.setdefault("SESSION_SECRET", "test-secret-key-for-session-signing-32ch")
-os.environ.setdefault("AWS_REGION", "us-east-1")
-os.environ.setdefault("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+os.environ.setdefault("ANTHROPIC_API_KEY", "sk-ant-test-key")
+os.environ.setdefault("CLAUDE_MODEL", "claude-sonnet-4-6")
 
 
 @pytest.fixture(scope="session")
@@ -83,10 +83,12 @@ async def client(app) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-def bedrock_mock():
+def claude_mock():
     mock_client = AsyncMock()
     mock_client.generate_question.return_value = ("오늘 어떤 일이 있었나요?", [], ["답변1", "답변2", "답변3"], {"model_id": "test"})
     mock_client.generate_diary.return_value = ("오늘 하루를 돌아보며...", "오늘 하루 요약.", {"model_id": "test"})
-    with patch("app.routers.qna._get_bedrock", return_value=mock_client):
-        with patch("app.routers.diary.BedrockClient", return_value=mock_client):
-            yield mock_client
+    mock_client.generate_plan.return_value = ("AI Plan", None, None, [], {"model_id": "test"})
+    with patch("app.routers.qna._get_claude", return_value=mock_client):
+        with patch("app.routers.diary.ClaudeClient", return_value=mock_client):
+            with patch("app.routers.plans._get_claude", return_value=mock_client):
+                yield mock_client

@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import patch
 
-from app.bedrock_stub import BedrockStubClient, _STUB_QUESTIONS
+from app.claude_stub import ClaudeStubClient, _STUB_QUESTIONS
 
 
 @pytest.mark.asyncio
 async def test_generate_question_returns_five_distinct_questions():
-    client = BedrockStubClient()
+    client = ClaudeStubClient()
     questions = []
     for seq in range(1, 6):
         q, schedules, suggestions, meta = await client.generate_question([], [], seq)
@@ -21,7 +21,7 @@ async def test_generate_question_returns_five_distinct_questions():
 @pytest.mark.asyncio
 async def test_generate_question_seq3_returns_schedule_with_time():
     """sequence=3에서 시간 포함 샘플 일정 1건 반환 (B4)."""
-    client = BedrockStubClient()
+    client = ClaudeStubClient()
     _, schedules, _, _ = await client.generate_question([], [], 3)
     assert len(schedules) >= 1, "sequence=3은 일정 1건 이상 반환"
     sched = schedules[0]
@@ -32,7 +32,7 @@ async def test_generate_question_seq3_returns_schedule_with_time():
 
 @pytest.mark.asyncio
 async def test_generate_question_wraps_at_sequence_6():
-    client = BedrockStubClient()
+    client = ClaudeStubClient()
     q1, _, _, _ = await client.generate_question([], [], 1)
     q6, _, _, _ = await client.generate_question([], [], 6)
     assert q1 == q6, "sequence=6은 sequence=1과 동일한 질문이어야 한다"
@@ -40,7 +40,7 @@ async def test_generate_question_wraps_at_sequence_6():
 
 @pytest.mark.asyncio
 async def test_generate_diary_returns_nonempty_body_and_summary():
-    client = BedrockStubClient()
+    client = ClaudeStubClient()
     seen_bodies = set()
     for n in range(5):
         # qna_items 길이를 0~4로 변화시켜 5가지 다른 결과를 유도
@@ -54,21 +54,17 @@ async def test_generate_diary_returns_nonempty_body_and_summary():
 
 
 @pytest.mark.asyncio
-async def test_no_boto3_calls(monkeypatch):
-    """stub 경로에서 boto3.client가 호출되지 않음을 검증한다."""
-    import boto3
-    original_client = boto3.client
-
+async def test_no_network_calls(monkeypatch):
+    """stub 경로에서 AsyncAnthropic.messages.create가 호출되지 않음을 검증한다."""
     called = []
 
-    def mock_boto3_client(*args, **kwargs):
+    async def mock_create(*args, **kwargs):
         called.append(args)
-        return original_client(*args, **kwargs)
 
-    monkeypatch.setattr(boto3, "client", mock_boto3_client)
+    monkeypatch.setattr("anthropic.AsyncAnthropic.messages", mock_create, raising=False)
 
-    client = BedrockStubClient()
+    client = ClaudeStubClient()
     await client.generate_question([], [], 1)
     await client.generate_diary([])
 
-    assert called == [], "BedrockStubClient는 boto3.client를 호출해서는 안 된다"
+    assert called == [], "ClaudeStubClient는 실제 API를 호출해서는 안 된다"

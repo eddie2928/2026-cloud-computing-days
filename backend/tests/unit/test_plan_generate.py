@@ -193,12 +193,12 @@ class TestGeneratePlanValidation:
             _make_execute_result(scalar_one_or_none=None),
             _make_execute_result(scalars_first=plan),
         ]
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "AI Plan", date(2026, 6, 1), date(2026, 8, 30), [], _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             resp = client.post("/api/plans/generate", json={
                 **_VALID_BODY,
@@ -210,13 +210,13 @@ class TestGeneratePlanValidation:
 
 # ── Stub 직접 테스트 ───────────────────────────────────────────────────────────
 
-class TestBedrockStubGeneratePlan:
+class TestClaudeStubGeneratePlan:
     def _run(self, coro):
         return asyncio.run(coro)
 
     def test_generates_correct_day_count(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         _, _, _, days, _ = self._run(client.generate_plan(
             description="운동 루틴 만들기",
             period_start=date(2026, 6, 1),
@@ -226,8 +226,8 @@ class TestBedrockStubGeneratePlan:
         assert len(days) == 3
 
     def test_each_day_has_3_todos(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         _, _, _, days, _ = self._run(client.generate_plan(
             description="계획",
             period_start=date(2026, 6, 1),
@@ -240,8 +240,8 @@ class TestBedrockStubGeneratePlan:
             assert len(day["todos"]) == 3
 
     def test_single_day_plan(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         _, _, _, days, _ = self._run(client.generate_plan(
             description="하루 계획",
             period_start=date(2026, 6, 1),
@@ -251,8 +251,8 @@ class TestBedrockStubGeneratePlan:
         assert len(days) == 1
 
     def test_title_truncation_over_14_chars(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         long_desc = "이것은 매우 긴 계획 설명입니다"
         title, *_ = self._run(client.generate_plan(
             description=long_desc,
@@ -264,8 +264,8 @@ class TestBedrockStubGeneratePlan:
         assert len(title) <= 15
 
     def test_title_kept_when_14_chars_or_less(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         short_desc = "운동루틴"
         title, *_ = self._run(client.generate_plan(
             description=short_desc,
@@ -277,8 +277,8 @@ class TestBedrockStubGeneratePlan:
         assert "…" not in title
 
     def test_meta_format(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         _, _, _, _, meta = self._run(client.generate_plan(
             description="계획",
             period_start=date(2026, 6, 1),
@@ -288,8 +288,8 @@ class TestBedrockStubGeneratePlan:
         assert meta == _STUB_META
 
     def test_period_preserved(self):
-        from app.bedrock_stub import BedrockStubClient
-        client = BedrockStubClient()
+        from app.claude_stub import ClaudeStubClient
+        client = ClaudeStubClient()
         ps = date(2026, 7, 1)
         pe = date(2026, 7, 10)
         _, ret_ps, ret_pe, _, _ = self._run(client.generate_plan(
@@ -324,26 +324,26 @@ class TestGeneratePlanEndpoint:
 
     def test_returns_201_with_plan(self):
         session, _ = self._setup()
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "운동 루틴", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             resp = client.post("/api/plans/generate", json=_VALID_BODY)
         assert resp.status_code == 201
 
     def test_response_source_is_ai(self):
         session, _ = self._setup()
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "운동 루틴", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             resp = client.post("/api/plans/generate", json=_VALID_BODY)
         data = resp.json()
@@ -351,13 +351,13 @@ class TestGeneratePlanEndpoint:
 
     def test_response_contains_todos(self):
         session, _ = self._setup()
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "운동 루틴", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             resp = client.post("/api/plans/generate", json=_VALID_BODY)
         data = resp.json()
@@ -366,13 +366,13 @@ class TestGeneratePlanEndpoint:
 
     def test_stub_called_with_correct_args(self):
         session, _ = self._setup()
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "운동 루틴", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             client.post("/api/plans/generate", json=_VALID_BODY)
         mock_inst.generate_plan.assert_called_once()
@@ -396,13 +396,13 @@ class TestGeneratePlanEndpoint:
             _make_execute_result(scalars_first=plan),
         ]
 
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "AI Plan", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             resp = client.post("/api/plans/generate", json=_VALID_BODY)
 
@@ -417,13 +417,13 @@ class TestGeneratePlanEndpoint:
 
     def test_no_user_profile_passes_none(self):
         session, _ = self._setup()
-        with patch("app.routers.plans.BedrockStubClient") as mock_cls:
+        with patch("app.routers.plans._get_claude") as mock_factory:
             mock_inst = MagicMock()
             mock_inst.generate_plan = AsyncMock(return_value=(
                 "운동 루틴", date(2026, 6, 1), date(2026, 6, 3),
                 _STUB_DAYS, _STUB_META,
             ))
-            mock_cls.return_value = mock_inst
+            mock_factory.return_value = mock_inst
             client = _setup_client(session)
             client.post("/api/plans/generate", json=_VALID_BODY)
         call_kwargs = mock_inst.generate_plan.call_args.kwargs

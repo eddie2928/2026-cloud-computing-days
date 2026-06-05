@@ -19,14 +19,14 @@ def _make_item(seq: int, question: str, answer: str | None = None, days_ago: int
 
 
 def test_empty_rag_contains_no_previous():
-    from app.bedrock import _build_rag_block
+    from app.claude import _build_rag_block
 
     result = _build_rag_block([])
     assert "이전 일기 없음" in result
 
 
 def test_rag_summaries_sorted_newest_first():
-    from app.bedrock import _build_rag_block
+    from app.claude import _build_rag_block
 
     summaries = [
         (date(2026, 5, 25), "최근 요약"),
@@ -41,7 +41,7 @@ def test_rag_summaries_sorted_newest_first():
 
 
 def test_session_partial_includes_only_answered():
-    from app.bedrock import _build_session_block
+    from app.claude import _build_session_block
 
     items = [
         _make_item(1, "Q1", "A1"),
@@ -55,7 +55,7 @@ def test_session_partial_includes_only_answered():
 
 
 def test_profile_block_with_profile():
-    from app.bedrock import _build_profile_block
+    from app.claude import _build_profile_block
 
     profile = {"nickname": "수진", "occupation": "개발자", "interests": ["커리어", "건강"], "hobbies": ["독서"]}
     result = _build_profile_block(profile)
@@ -66,14 +66,14 @@ def test_profile_block_with_profile():
 
 
 def test_profile_block_without_profile():
-    from app.bedrock import _build_profile_block
+    from app.claude import _build_profile_block
 
     result = _build_profile_block(None)
     assert result == ""
 
 
 def test_relevant_schedules_substituted():
-    from app.bedrock import _load_prompt
+    from app.claude import _load_prompt
 
     result = _load_prompt(
         "question",
@@ -89,7 +89,7 @@ def test_relevant_schedules_substituted():
 
 
 def test_empty_relevant_schedules_no_placeholder_left():
-    from app.bedrock import _load_prompt
+    from app.claude import _load_prompt
 
     result = _load_prompt(
         "question",

@@ -18,14 +18,14 @@ _PROFILE_PAYLOAD = {
 
 
 @pytest.mark.asyncio
-async def test_get_profile_not_found(client, bedrock_mock):
+async def test_get_profile_not_found(client, claude_mock):
     await _login(client)
     resp = await client.get("/api/profile")
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_put_profile_create_and_retrieve(client, bedrock_mock):
+async def test_put_profile_create_and_retrieve(client, claude_mock):
     await _login(client)
     resp = await client.put("/api/profile", json=_PROFILE_PAYLOAD)
     assert resp.status_code == 200
@@ -42,7 +42,7 @@ async def test_put_profile_create_and_retrieve(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_put_profile_update(client, bedrock_mock):
+async def test_put_profile_update(client, claude_mock):
     await _login(client)
     await client.put("/api/profile", json=_PROFILE_PAYLOAD)
 
@@ -54,6 +54,6 @@ async def test_put_profile_update(client, bedrock_mock):
 
 
 @pytest.mark.asyncio
-async def test_put_profile_unauthenticated(client, bedrock_mock):
+async def test_put_profile_unauthenticated(client, claude_mock):
     resp = await client.put("/api/profile", json=_PROFILE_PAYLOAD)
     assert resp.status_code == 401
