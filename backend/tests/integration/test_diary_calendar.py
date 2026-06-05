@@ -19,8 +19,9 @@ async def _complete_qna(client, claude_mock, diary_date: str):
             json={"session_id": session_id, "sequence": seq, "answer": f"답변{i}"},
         )
         d = resp.json()
-        if not d.get("completed"):
+        if d.get("sequence"):
             seq = d["sequence"]
+    await client.post("/api/qna/finalize", json={"session_id": session_id})
 
 
 @pytest.mark.asyncio

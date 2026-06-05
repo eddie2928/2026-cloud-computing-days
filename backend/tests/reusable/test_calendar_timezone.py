@@ -29,6 +29,7 @@ async def _complete_qna(client, claude_mock, diary_date: str):
         d = resp.json()
         if not d.get("completed"):
             seq = d["sequence"]
+    await client.post("/api/qna/finalize", json={"session_id": session_id})
 
 
 @pytest.mark.asyncio
@@ -40,21 +41,21 @@ async def test_calendar_written_date_same_day(client, db_session, claude_mock):
     향후 타임스탬프 기반 로직 테스트에 참고 가능.
     """
     await _login(client)
-    await _complete_qna(client, claude_mock, "2026-10-05")
+    await _complete_qna(client, claude_mock, "2025-10-05")
 
-    # 2026-10-05T05:00:00 UTC = 2026-10-05T14:00:00 KST → 같은 날
-    same_day_utc = datetime(2026, 10, 5, 5, 0, 0, tzinfo=timezone.utc)
+    # 2025-10-05T05:00:00 UTC = 2025-10-05T14:00:00 KST → 같은 날
+    same_day_utc = datetime(2025, 10, 5, 5, 0, 0, tzinfo=timezone.utc)
     from sqlalchemy import text
     await db_session.execute(
-        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2026-10-05'"),
+        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2025-10-05'"),
         {"ts": same_day_utc},
     )
     await db_session.commit()
 
-    resp = await client.get("/api/calendar", params={"month": "2026-10"})
+    resp = await client.get("/api/calendar", params={"month": "2025-10"})
     entries = resp.json()["entries"]
-    entry = next(e for e in entries if e["date"] == "2026-10-05")
-    assert entry["written_date"] == "2026-10-05"
+    entry = next(e for e in entries if e["date"] == "2025-10-05")
+    assert entry["written_date"] == "2025-10-05"
 
 
 @pytest.mark.asyncio
@@ -65,19 +66,19 @@ async def test_calendar_kst_midnight_boundary(client, db_session, claude_mock):
     패턴: KST 자정 경계(UTC+9 = 15:00 UTC) 검증. timezone 변환 로직 변경 시 회귀 방지에 활용 가능.
     """
     await _login(client)
-    await _complete_qna(client, claude_mock, "2026-11-20")
+    await _complete_qna(client, claude_mock, "2025-11-20")
 
-    # 2026-11-20T15:30:00 UTC = 2026-11-21T00:30:00 KST → 다음 날
-    next_day_utc = datetime(2026, 11, 20, 15, 30, 0, tzinfo=timezone.utc)
+    # 2025-11-20T15:30:00 UTC = 2025-11-21T00:30:00 KST → 다음 날
+    next_day_utc = datetime(2025, 11, 20, 15, 30, 0, tzinfo=timezone.utc)
     from sqlalchemy import text
     await db_session.execute(
-        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2026-11-20'"),
+        text("UPDATE diary_entries SET created_at = :ts WHERE diary_date = '2025-11-20'"),
         {"ts": next_day_utc},
     )
     await db_session.commit()
 
-    resp = await client.get("/api/calendar", params={"month": "2026-11"})
+    resp = await client.get("/api/calendar", params={"month": "2025-11"})
     entries = resp.json()["entries"]
-    entry = next(e for e in entries if e["date"] == "2026-11-20")
-    assert entry["written_date"] == "2026-11-21"
+    entry = next(e for e in entries if e["date"] == "2025-11-20")
+    assert entry["written_date"] == "2025-11-21"
     assert entry["written_date"] != entry["date"]

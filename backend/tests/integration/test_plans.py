@@ -338,8 +338,20 @@ async def test_c12_delete_plan_returns_404_and_todos_gone(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_d13_generate_plan_source_ai_and_meta_stored(client, db_session):
+async def test_d13_generate_plan_source_ai_and_meta_stored(client, db_session, claude_mock):
     """D-13: POST /api/plans/generate → source='ai', ai_meta stored in DB."""
+    from datetime import date as _date
+    claude_mock.generate_plan.return_value = (
+        "운동 루틴 AI",
+        _date(2027, 12, 1),
+        _date(2027, 12, 3),
+        [
+            {"date": _date(2027, 12, 1), "todos": ["아침 루틴"]},
+            {"date": _date(2027, 12, 2), "todos": ["핵심 작업"]},
+            {"date": _date(2027, 12, 3), "todos": ["마무리 회고"]},
+        ],
+        {"model_id": "test"},
+    )
     await _login(client)
     resp = await client.post("/api/plans/generate", json={
         "description": "운동 루틴 만들기",
@@ -358,12 +370,20 @@ async def test_d13_generate_plan_source_ai_and_meta_stored(client, db_session):
     db_plan = result.scalars().first()
     assert db_plan is not None
     assert db_plan.ai_meta is not None
-    assert db_plan.ai_meta.get("model_id") == "stub"
+    assert db_plan.ai_meta.get("model_id") == "test"
 
 
 @pytest.mark.asyncio
-async def test_d14_generate_plan_5_days_todos_cover_all_dates(client):
+async def test_d14_generate_plan_5_days_todos_cover_all_dates(client, claude_mock):
     """D-14: 5-day period → todos for each of the 5 dates."""
+    from datetime import date as _date
+    claude_mock.generate_plan.return_value = (
+        "주간 AI 계획",
+        _date(2028, 1, 1),
+        _date(2028, 1, 5),
+        [{"date": _date(2028, 1, d), "todos": ["할 일"]} for d in range(1, 6)],
+        {"model_id": "test"},
+    )
     await _login(client)
     resp = await client.post("/api/plans/generate", json={
         "description": "주간 계획 테스트",

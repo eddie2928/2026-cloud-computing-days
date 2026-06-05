@@ -19,6 +19,7 @@ async def test_pending_schedules_in_response(client, claude_mock, db_session):
     claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [{"period_start": "2026-07-01", "period_end": "2026-07-07", "situation": "기말 시험"}],
+        ["답변1", "답변2", "답변3"],
         {"model_id": "test"},
     )
 
@@ -48,17 +49,18 @@ async def test_empty_schedules_no_pending(client, claude_mock, db_session):
     claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [],
+        ["답변1", "답변2", "답변3"],
         {"model_id": "test"},
     )
 
-    start = await client.post("/api/qna/start", json={"diary_date": "2026-09-10"})
+    start = await client.post("/api/qna/start", json={"diary_date": "2026-09-11"})
     assert start.status_code == 200
 
     data = start.json()
     assert data.get("pending_schedules", []) == []
 
     result = await db_session.execute(
-        select(UserSchedule).where(UserSchedule.period_start == date(2026, 9, 10))
+        select(UserSchedule).where(UserSchedule.period_start == date(2026, 9, 11))
     )
     rows = result.scalars().all()
     assert rows == []
@@ -81,7 +83,7 @@ async def test_relevant_schedules_passed(client, claude_mock, db_session):
     )
     await db_session.commit()
 
-    claude_mock.generate_question.return_value = ("다음 질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("다음 질문", [], ["답변1", "답변2", "답변3"], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-10-15"})
 
     call_kwargs = claude_mock.generate_question.call_args
@@ -106,7 +108,7 @@ async def test_recently_ended_schedule_included(client, claude_mock, db_session)
     )
     await db_session.commit()
 
-    claude_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("질문", [], ["답변1", "답변2", "답변3"], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-11-15"})
 
     call_kwargs = claude_mock.generate_question.call_args
@@ -131,7 +133,7 @@ async def test_old_ended_schedule_excluded(client, claude_mock, db_session):
     )
     await db_session.commit()
 
-    claude_mock.generate_question.return_value = ("질문", [], {"model_id": "test"})
+    claude_mock.generate_question.return_value = ("질문", [], ["답변1", "답변2", "답변3"], {"model_id": "test"})
     await client.post("/api/qna/start", json={"diary_date": "2026-12-20"})
 
     call_kwargs = claude_mock.generate_question.call_args
@@ -153,6 +155,7 @@ async def test_resume_session_preserves_pending_schedules(client, claude_mock):
     claude_mock.generate_question.return_value = (
         "오늘 어떤 일이 있었나요?",
         [{"period_start": "2026-08-01", "period_end": "2026-08-07", "situation": "여름 방학"}],
+        ["답변1", "답변2", "답변3"],
         {"model_id": "test", "raw_response": raw_response},
     )
 

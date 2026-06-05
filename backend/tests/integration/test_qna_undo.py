@@ -35,7 +35,7 @@ async def _setup_session_with_n_answers(client, claude_mock, diary_date, n):
 async def test_undo_validation_nonexistent_sequence(client, claude_mock):
     """Undo with target_sequence=99 returns 400."""
     await _login(client)
-    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-01", 3)
+    session_id, _ = await _setup_session_with_n_answers(client, claude_mock, "2026-06-15", 3)
 
     resp = await client.post(
         "/api/qna/undo",

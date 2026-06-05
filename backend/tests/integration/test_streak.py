@@ -35,9 +35,7 @@ async def _make_entry(db: AsyncSession, user_id: int, diary_date: date) -> None:
 async def test_streak_zero_no_diary(client, db_session, pg_container):
     """Streak is 0 when no diary entries exist for the reference date."""
     await _login(client)
-    with patch("app.routers.user.date") as mock_date:
-        mock_date.today.return_value = date(2035, 1, 1)
-        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+    with patch("app.routers.user.kst_today", return_value=date(2035, 1, 1)):
         resp = await client.get("/api/user/streak")
     assert resp.status_code == 200
     assert resp.json()["streak"] == 0
@@ -51,9 +49,7 @@ async def test_streak_one_consecutive(client, db_session, pg_container):
     await _make_entry(db_session, 1, today)
     await db_session.commit()
 
-    with patch("app.routers.user.date") as mock_date:
-        mock_date.today.return_value = today
-        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+    with patch("app.routers.user.kst_today", return_value=today):
         resp = await client.get("/api/user/streak")
     assert resp.status_code == 200
     assert resp.json()["streak"] == 1
@@ -69,9 +65,7 @@ async def test_streak_two_consecutive(client, db_session, pg_container):
     await _make_entry(db_session, 1, yesterday)
     await db_session.commit()
 
-    with patch("app.routers.user.date") as mock_date:
-        mock_date.today.return_value = today
-        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+    with patch("app.routers.user.kst_today", return_value=today):
         resp = await client.get("/api/user/streak")
     assert resp.status_code == 200
     assert resp.json()["streak"] == 2
@@ -87,9 +81,7 @@ async def test_streak_month_boundary(client, db_session, pg_container):
     await _make_entry(db_session, 1, jan31)
     await db_session.commit()
 
-    with patch("app.routers.user.date") as mock_date:
-        mock_date.today.return_value = feb1
-        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+    with patch("app.routers.user.kst_today", return_value=feb1):
         resp = await client.get("/api/user/streak")
     assert resp.status_code == 200
     assert resp.json()["streak"] == 2
