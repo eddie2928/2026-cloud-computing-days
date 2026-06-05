@@ -11,12 +11,14 @@ import { PlantVideoCardV2 } from "../components/hub/PlantVideoCardV2";
 import { getWeekWindow, type CalendarEntry } from "../lib/week";
 import { fetchStreak } from "../lib/streak";
 import { useMockDate } from "../hooks/useMockDate";
+import { usePlantTest } from "../hooks/usePlantTest";
 import { listPlans, listPlansForCalendar } from "../api/plans";
 import type { PlanOut } from "../lib/plans";
 
 export function Hub() {
   const navigate = useNavigate();
   const today = useMockDate();
+  const plantTestOverride = usePlantTest();
   const thisMonth = today.slice(0, 7);
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [diaryBody, setDiaryBody] = useState<string | null>(null);
@@ -160,8 +162,8 @@ export function Hub() {
       />
 
       {plantDesign === 1
-        ? <PlantVideoCard plantState={plantState} />
-        : <PlantVideoCardV2 plantState={plantState} />}
+        ? <PlantVideoCard plantState={plantTestOverride.state ?? plantState} season={plantTestOverride.season ?? undefined} />
+        : <PlantVideoCardV2 plantState={plantTestOverride.state ?? plantState} season={plantTestOverride.season ?? undefined} />}
     </div>
   );
 }

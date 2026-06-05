@@ -5,6 +5,13 @@ import { ThinkingDots } from '../components/qna/ThinkingDots'
 import { getMockDate, setMockDate, clearMockDate, hasMockDate } from '../lib/mockDate'
 import { getSeoulToday } from '../lib/today'
 import { getPushState, subscribePush, type PushState } from '../lib/push'
+import {
+  getPlantTestSeason, setPlantTestSeason, hasPlantTestSeason,
+  getPlantTestState, setPlantTestState, hasPlantTestState,
+  clearPlantTest, hasPlantTest,
+} from '../lib/plantTest'
+import type { Season } from '../lib/season'
+import type { PlantState } from '../components/hub/PlantVideoCard'
 
 const TABLES = [
   'users',
@@ -67,9 +74,9 @@ const TABLE_FIELD_HINTS: Record<string, Record<string, string>> = {
   },
 }
 
-type Tab = 'db' | 'bedrock' | 'date' | 'push' | 'music'
+type Tab = 'db' | 'claude' | 'date' | 'push' | 'music' | 'pet'
 
-interface BedrockLog {
+interface ClaudeLog {
   id: number
   session_id: number
   sequence: number
@@ -111,11 +118,16 @@ export function Admin() {
   const [newRow, setNewRow] = useState<Record<string, string>>({})
   const [addError, setAddError] = useState<string | null>(null)
 
-  // Bedrock 로그 탭
-  const [bedrockLogs, setBedrockLogs] = useState<BedrockLog[]>([])
-  const [bedrockLoading, setBedrockLoading] = useState(false)
-  const [bedrockError, setBedrockError] = useState<string | null>(null)
+  // Claude 로그 탭
+  const [claudeLogs, setClaudeLogs] = useState<ClaudeLog[]>([])
+  const [claudeLoading, setClaudeLoading] = useState(false)
+  const [claudeError, setClaudeError] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null)
+
+  // 펫 탭
+  const [petSeason, setPetSeason] = useState<Season>(getPlantTestSeason() ?? 'spring')
+  const [petState, setPetState] = useState<PlantState>(getPlantTestState() ?? 1)
+  const [petActive, setPetActive] = useState(hasPlantTest)
 
   // 날짜 탭
   const [mockDateInput, setMockDateInput] = useState(getMockDate())
@@ -291,25 +303,25 @@ export function Admin() {
     }
   }
 
-  const fetchBedrockLogs = useCallback(() => {
-    setBedrockLoading(true)
-    setBedrockError(null)
+  const fetchClaudeLogs = useCallback(() => {
+    setClaudeLoading(true)
+    setClaudeError(null)
     client
-      .get('/admin/bedrock-logs?limit=50')
-      .then(res => setBedrockLogs(res.data ?? []))
-      .catch(() => setBedrockError('로그를 불러오지 못했습니다.'))
-      .finally(() => setBedrockLoading(false))
+      .get('/admin/claude-logs?limit=50')
+      .then(res => setClaudeLogs(res.data ?? []))
+      .catch(() => setClaudeError('로그를 불러오지 못했습니다.'))
+      .finally(() => setClaudeLoading(false))
   }, [])
 
   useEffect(() => {
-    if (tab === 'bedrock') fetchBedrockLogs()
-  }, [tab, fetchBedrockLogs])
+    if (tab === 'claude') fetchClaudeLogs()
+  }, [tab, fetchClaudeLogs])
 
   useEffect(() => {
-    if (tab !== 'bedrock') return
-    const timer = setInterval(fetchBedrockLogs, 30000)
+    if (tab !== 'claude') return
+    const timer = setInterval(fetchClaudeLogs, 30000)
     return () => clearInterval(timer)
-  }, [tab, fetchBedrockLogs])
+  }, [tab, fetchClaudeLogs])
 
   return (
     <div style={{ padding: '16px 16px 40px' }}>
@@ -320,12 +332,15 @@ export function Admin() {
       {/* 탭 네비게이션 */}
       <div style={{ display: 'flex', gap: 20, borderBottom: '1px solid var(--line-faint)', marginBottom: 20 }}>
         <button style={tabStyle(tab === 'db')} onClick={() => setTab('db')}>DB 조회</button>
-        <button style={tabStyle(tab === 'bedrock')} onClick={() => setTab('bedrock')}>Bedrock 로그</button>
+        <button style={tabStyle(tab === 'claude')} onClick={() => setTab('claude')}>Claude 로그</button>
         <button style={tabStyle(tab === 'date')} onClick={() => setTab('date')}>
           날짜{isMockActive ? ' ●' : ''}
         </button>
         <button style={tabStyle(tab === 'push')} onClick={() => setTab('push')}>푸시</button>
         <button style={tabStyle(tab === 'music')} onClick={() => setTab('music')}>음악 API</button>
+        <button style={tabStyle(tab === 'pet')} onClick={() => setTab('pet')}>
+          펫{petActive ? ' ●' : ''}
+        </button>
       </div>
 
       {/* DB 조회 탭 */}
@@ -1019,12 +1034,12 @@ export function Admin() {
         </div>
       )}
 
-      {/* Bedrock 로그 탭 */}
-      {tab === 'bedrock' && (
+      {/* Claude 로그 탭 */}
+      {tab === 'claude' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
             <button
-              onClick={fetchBedrockLogs}
+              onClick={fetchClaudeLogs}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -1039,18 +1054,18 @@ export function Admin() {
             </button>
           </div>
 
-          {bedrockLoading && (
+          {claudeLoading && (
             <div style={{ padding: '16px 0' }}>
               <ThinkingDots visible />
             </div>
           )}
-          {bedrockError && <p style={{ color: 'var(--accent-clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{bedrockError}</p>}
-          {!bedrockLoading && !bedrockError && bedrockLogs.length === 0 && (
+          {claudeError && <p style={{ color: 'var(--accent-clay)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>{claudeError}</p>}
+          {!claudeLoading && !claudeError && claudeLogs.length === 0 && (
             <p style={{ color: 'var(--ink-meta)', fontFamily: 'var(--font-sans)', fontSize: 14 }}>로그 없음</p>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {bedrockLogs.map(log => (
+            {claudeLogs.map(log => (
               <div
                 key={log.id}
                 style={{
@@ -1100,7 +1115,7 @@ export function Admin() {
                     </div>
                     <div style={{ marginBottom: 16 }}>
                       <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, color: 'var(--ink-deep)', margin: '0 0 6px' }}>
-                        Bedrock 응답
+                        Claude 응답
                       </p>
                       <pre style={{
                         background: 'var(--paper-mist)',
@@ -1135,6 +1150,130 @@ export function Admin() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* 펫 테스트 탭 */}
+      {tab === 'pet' && (
+        <div style={{ maxWidth: 360 }}>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-meta)', margin: '0 0 20px', lineHeight: 1.6 }}>
+            홈 화면 식물의 계절과 상태를 임의로 변경합니다.
+          </p>
+
+          {petActive && (
+            <div style={{
+              background: 'var(--sage-wash)',
+              border: '1px solid var(--sage-mist)',
+              borderRadius: 'var(--r-3)',
+              padding: '10px 14px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--sage-forest)', fontWeight: 600 }}>
+                {hasPlantTestSeason() ? getPlantTestSeason() : '—'} / 상태 {hasPlantTestState() ? getPlantTestState() : '—'}
+              </span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-meta)' }}>으로 설정됨</span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-body)', display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                계절
+              </label>
+              <select
+                value={petSeason}
+                onChange={e => setPetSeason(e.target.value as Season)}
+                style={{
+                  width: '100%',
+                  background: 'var(--paper-pure)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 14px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  color: 'var(--ink-deep)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="spring">봄 (spring)</option>
+                <option value="summer">여름 (summer)</option>
+                <option value="autumn">가을 (autumn)</option>
+                <option value="winter">겨울 (winter)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--ink-body)', display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                식물 상태
+              </label>
+              <select
+                value={petState}
+                onChange={e => setPetState(parseInt(e.target.value, 10) as PlantState)}
+                style={{
+                  width: '100%',
+                  background: 'var(--paper-pure)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 14px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  color: 'var(--ink-deep)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value={1}>1 — 시듦</option>
+                <option value={2}>2 — 보통</option>
+                <option value={3}>3 — 무럭무럭</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  setPlantTestSeason(petSeason)
+                  setPlantTestState(petState)
+                  setPetActive(true)
+                }}
+                style={{
+                  flex: 1,
+                  background: 'var(--sage-leaf)',
+                  color: 'var(--paper-pure)',
+                  border: 'none',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                적용
+              </button>
+              <button
+                onClick={() => {
+                  clearPlantTest()
+                  setPetActive(false)
+                }}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: 'var(--ink-meta)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-3)',
+                  padding: '10px 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                초기화
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -55,11 +55,12 @@ const SEASON_MSG: Record<Season, Record<PlantState, string>> = {
 
 interface PlantVideoCardV2Props {
   plantState: PlantState;
+  season?: Season;
 }
 
-export function PlantVideoCardV2({ plantState }: PlantVideoCardV2Props) {
+export function PlantVideoCardV2({ plantState, season: seasonProp }: PlantVideoCardV2Props) {
   const today = useMockDate();
-  const season = useMemo(() => getSeasonFromDate(today), [today]);
+  const season = useMemo(() => seasonProp ?? getSeasonFromDate(today), [seasonProp, today]);
   const src = SEASON_VIDEO[season][plantState];
 
   return (
