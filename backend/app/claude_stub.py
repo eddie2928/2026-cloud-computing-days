@@ -54,7 +54,7 @@ _STUB_SUGGESTIONS = [
 ]
 
 
-class BedrockStubClient:
+class ClaudeStubClient:
     async def generate_question(
         self,
         rag_summaries: list,
@@ -68,7 +68,6 @@ class BedrockStubClient:
         idx = ((next_sequence - 1) % 5)
         question = _STUB_QUESTIONS[idx]
         suggestions = _STUB_SUGGESTIONS[idx]
-        # sequence 3(2번째 답변 후)에서 시간 포함 샘플 일정 반환 — UI 모달 흐름 확인용
         schedules: list[dict] = []
         if next_sequence == 3:
             today_str = str(today or date.today())
@@ -98,13 +97,6 @@ class BedrockStubClient:
         goal: str,
         user_profile: dict | None = None,
     ) -> tuple[str, date, date, list[dict], dict]:
-        """
-        returns (title, period_start, period_end, days, meta)
-          title: AI가 결정한 Plan 이름
-          period_start/end: AI가 결정한 Plan 시작·종료일
-          days: [{"date": date, "todos": ["...", ...]}, ...]
-          meta: bedrock_meta dict
-        """
         _DAILY_TODOS = ["아침 루틴", "핵심 작업", "마무리 회고"]
         title = (description[:14] + "…") if len(description) > 14 else description
         if not title:
