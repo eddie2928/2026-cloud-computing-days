@@ -10,8 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
-# NOTE: BedrockClient는 현재 bedrock_stub의 BedrockStubClient로 re-export됨 (수동 마이그레이션 기간).
-from app.bedrock import BedrockClient, _parse_schedules
+from app.claude import ClaudeClient, _parse_schedules
 from app.db import get_db
 from app.models import DiaryEntry, QnAItem, QnASession, UserProfile, UserSchedule
 from app.schemas import PendingSchedule, QnAAnswerRequest, QnAAnswerResponse, QnAFinalizeRequest, QnAFinalizeResponse, QnAHistoryItem, QnAStartRequest, QnAStartResponse, QnAUndoRequest, QnAUndoResponse
@@ -21,8 +20,8 @@ router = APIRouter(prefix="/api/qna", tags=["qna"])
 _MIN_SEQUENCE = 5
 
 
-def _get_bedrock() -> BedrockClient:
-    return BedrockClient()
+def _get_claude() -> ClaudeClient:
+    return ClaudeClient()
 
 
 async def _get_user_profile(db: AsyncSession, user_id: int) -> dict | None:
@@ -80,7 +79,7 @@ def _build_previously_extracted(items: list[QnAItem]) -> str:
     seen: set[str] = set()
     lines: list[str] = []
     for item in items:
-        meta = item.bedrock_meta
+        meta = item.claude_meta
         if not meta or not meta.get("raw_response"):
             continue
         for s in _parse_schedules(meta["raw_response"]):
@@ -134,14 +133,14 @@ async def _resume_session(
         rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
         relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
         prev_extracted = _build_previously_extracted(answered_items)
-        question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+        question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(
             rag_summaries, answered_items, first.sequence,
             user_profile=user_profile, relevant_schedules=relevant_scheds,
             today=existing.diary_date, previously_extracted=prev_extracted,
         )
         pending = _to_pending_schedules(extracted_schedules)
         first.question = question
-        first.bedrock_meta = meta
+        first.claude_meta = meta
         await db.commit()
         return QnAStartResponse(
             session_id=existing.id, question=question, sequence=first.sequence,
@@ -152,10 +151,10 @@ async def _resume_session(
     rag_summaries = await _get_recent_summaries(db, user_id, existing.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, existing.diary_date)
     prev_extracted = _build_previously_extracted(answered_items)
-    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date, previously_extracted=prev_extracted)
+    question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(rag_summaries, answered_items, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=existing.diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
     try:
-        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
+        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, claude_meta=meta))
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -185,7 +184,7 @@ async def start_qna(
     if existing:
         return await _resume_session(existing, db, user_id, user_profile=user_profile)
 
-    # Commit session BEFORE Bedrock call to close the race window where concurrent
+    # Commit session BEFORE Claude call to close the race window where concurrent
     # requests both see no existing session and both try to INSERT.
     session = QnASession(user_id=user_id, diary_date=body.diary_date, status="in_progress")
     db.add(session)
@@ -204,10 +203,10 @@ async def start_qna(
 
     rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, body.diary_date)
-    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds, today=body.diary_date)
+    question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(rag_summaries, [], 1, user_profile=user_profile, relevant_schedules=relevant_scheds, today=body.diary_date)
     pending = _to_pending_schedules(extracted_schedules)
     try:
-        db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
+        db.add(QnAItem(session_id=session_id, sequence=1, question=question, claude_meta=meta))
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -280,17 +279,17 @@ async def answer_qna(
     answered_snapshot = [i for i in session.items if i.answer is not None]
 
     await db.flush()
-    await db.commit()  # commit before any Bedrock call to close race window
+    await db.commit()  # commit before any Claude call to close race window
 
     next_seq = body.sequence + 1
     rag_summaries = await _get_recent_summaries(db, user_id, diary_date)
     relevant_scheds = await _get_relevant_schedules(db, user_id, diary_date)
     prev_extracted = _build_previously_extracted(answered_snapshot)
-    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date, previously_extracted=prev_extracted)
+    question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(rag_summaries, answered_snapshot, next_seq, user_profile=user_profile, relevant_schedules=relevant_scheds, today=diary_date, previously_extracted=prev_extracted)
     pending = _to_pending_schedules(extracted_schedules)
 
     try:
-        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, bedrock_meta=meta))
+        db.add(QnAItem(session_id=session_id, sequence=next_seq, question=question, claude_meta=meta))
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -352,14 +351,14 @@ async def start_qna_stream(
                 first = unanswered[0]
                 prev_extracted = _build_previously_extracted(answered_items)
                 yield _sse_event("status", {"step": "generating"})
-                question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+                question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(
                     rag_summaries, answered_items, first.sequence,
                     user_profile=user_profile, relevant_schedules=relevant_scheds,
                     today=existing.diary_date, previously_extracted=prev_extracted,
                 )
                 pending = _to_pending_schedules(extracted_schedules)
                 first.question = question
-                first.bedrock_meta = meta
+                first.claude_meta = meta
                 await db.commit()
                 resp = QnAStartResponse(
                     session_id=existing.id, question=question, sequence=first.sequence,
@@ -369,14 +368,14 @@ async def start_qna_stream(
                 next_seq = max((i.sequence for i in answered_items), default=0) + 1
                 prev_extracted = _build_previously_extracted(answered_items)
                 yield _sse_event("status", {"step": "generating"})
-                question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+                question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(
                     rag_summaries, answered_items, next_seq,
                     user_profile=user_profile, relevant_schedules=relevant_scheds,
                     today=existing.diary_date, previously_extracted=prev_extracted,
                 )
                 pending = _to_pending_schedules(extracted_schedules)
                 try:
-                    db.add(QnAItem(session_id=existing.id, sequence=next_seq, question=question, bedrock_meta=meta))
+                    db.add(QnAItem(session_id=existing.id, sequence=next_seq, question=question, claude_meta=meta))
                     await db.commit()
                 except IntegrityError:
                     await db.rollback()
@@ -431,13 +430,13 @@ async def start_qna_stream(
                 first2 = unanswered2[0]
                 prev2 = _build_previously_extracted(answered_items2)
                 yield _sse_event("status", {"step": "generating"})
-                q2, es2, sug2, m2 = await _get_bedrock().generate_question(
+                q2, es2, sug2, m2 = await _get_claude().generate_question(
                     rag_summaries2, answered_items2, first2.sequence,
                     user_profile=user_profile, relevant_schedules=relevant_scheds2,
                     today=existing2.diary_date, previously_extracted=prev2,
                 )
                 first2.question = q2
-                first2.bedrock_meta = m2
+                first2.claude_meta = m2
                 await db.commit()
                 resp2 = QnAStartResponse(
                     session_id=existing2.id, question=q2, sequence=first2.sequence,
@@ -447,13 +446,13 @@ async def start_qna_stream(
                 nseq2 = max((i.sequence for i in answered_items2), default=0) + 1
                 prev2 = _build_previously_extracted(answered_items2)
                 yield _sse_event("status", {"step": "generating"})
-                q2, es2, sug2, m2 = await _get_bedrock().generate_question(
+                q2, es2, sug2, m2 = await _get_claude().generate_question(
                     rag_summaries2, answered_items2, nseq2,
                     user_profile=user_profile, relevant_schedules=relevant_scheds2,
                     today=existing2.diary_date, previously_extracted=prev2,
                 )
                 try:
-                    db.add(QnAItem(session_id=existing2.id, sequence=nseq2, question=q2, bedrock_meta=m2))
+                    db.add(QnAItem(session_id=existing2.id, sequence=nseq2, question=q2, claude_meta=m2))
                     await db.commit()
                 except IntegrityError:
                     await db.rollback()
@@ -475,13 +474,13 @@ async def start_qna_stream(
         yield _sse_event("status", {"step": "summaries"})
         rag_summaries = await _get_recent_summaries(db, user_id, body.diary_date)
         yield _sse_event("status", {"step": "generating"})
-        question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+        question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(
             rag_summaries, [], 1, user_profile=user_profile,
             relevant_schedules=relevant_scheds, today=body.diary_date,
         )
         pending = _to_pending_schedules(extracted_schedules)
         try:
-            db.add(QnAItem(session_id=session_id, sequence=1, question=question, bedrock_meta=meta))
+            db.add(QnAItem(session_id=session_id, sequence=1, question=question, claude_meta=meta))
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -559,7 +558,7 @@ async def finalize_qna(
 def _extract_schedule_keys_from_items(items: list[QnAItem]) -> list[str]:
     keys: list[str] = []
     for item in items:
-        meta = item.bedrock_meta
+        meta = item.claude_meta
         if not meta or not meta.get("raw_response"):
             continue
         for s in _parse_schedules(meta["raw_response"]):
@@ -653,14 +652,14 @@ async def undo_qna(
     relevant_scheds = await _get_relevant_schedules(db, user_id, session.diary_date)
     prev_extracted = _build_previously_extracted(answered_items)
 
-    question, extracted_schedules, suggestions, meta = await _get_bedrock().generate_question(
+    question, extracted_schedules, suggestions, meta = await _get_claude().generate_question(
         rag_summaries, answered_items, pending_item.sequence,
         user_profile=user_profile, relevant_schedules=relevant_scheds,
         today=session.diary_date, previously_extracted=prev_extracted,
     )
 
     pending_item.question = question
-    pending_item.bedrock_meta = meta
+    pending_item.claude_meta = meta
     await db.commit()
 
     pending = _to_pending_schedules(extracted_schedules)

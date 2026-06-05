@@ -27,8 +27,8 @@ async def list_tables(user_id: int = Depends(require_session)) -> list[str]:
     return sorted(_ALLOWED_TABLES)
 
 
-@router.get("/bedrock-logs")
-async def get_bedrock_logs(
+@router.get("/claude-logs")
+async def get_claude_logs(
     limit: int = 50,
     user_id: int = Depends(require_session),
     db: AsyncSession = Depends(get_db),
@@ -41,7 +41,7 @@ async def get_bedrock_logs(
     items = result.scalars().all()
     logs = []
     for item in items:
-        meta = item.bedrock_meta or {}
+        meta = item.claude_meta or {}
         logs.append({
             "id": item.id,
             "session_id": item.session_id,

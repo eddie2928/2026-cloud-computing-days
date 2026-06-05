@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
-# NOTE: BedrockClient는 현재 bedrock_stub의 BedrockStubClient로 re-export됨 (수동 마이그레이션 기간).
-from app.bedrock import BedrockClient
+from app.claude import ClaudeClient
 from app.db import get_db
 from app.models import DiaryEntry, QnASession, ShareLink
 from app.schemas import DiaryBodyUpdate, DiaryResponse, DiarySearchResponse, DiarySearchItem, EmotionUpdate, ShareCreateResponse
@@ -28,7 +27,7 @@ async def finalize_session(
     )
     session = result.scalar_one()
 
-    client = BedrockClient()
+    client = ClaudeClient()
     diary_body, diary_summary, meta = await client.generate_diary(session.items, user_profile=user_profile)
 
     entry = DiaryEntry(
@@ -38,7 +37,7 @@ async def finalize_session(
         body=diary_body,
         summary=diary_summary,
         emotion="neutral",
-        bedrock_meta=meta,
+        claude_meta=meta,
     )
     db.add(entry)
     session.status = "completed"

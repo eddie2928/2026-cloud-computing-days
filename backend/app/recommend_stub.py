@@ -1,4 +1,4 @@
-# Bedrock 연결 시 이 함수를 교체 (app/bedrock.py의 [DISABLED] 패턴 참고)
+# Claude 연결 시 이 함수를 교체 (app/claude.py 참고)
 # 현재는 결정론적 stub 구현 — 실제 AI 추천 없음
 
 import hashlib

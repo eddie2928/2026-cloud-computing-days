@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_session
-from app.bedrock_stub import BedrockStubClient
+from app.claude import ClaudeClient
 from app.db import get_db
 from app.models import Plan, PlanTodo, UserProfile
 from app.schemas import (
@@ -24,6 +24,10 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/api/plans", tags=["plans"])
+
+
+def _get_claude() -> ClaudeClient:
+    return ClaudeClient()
 
 
 class _TodoIn(BaseModel):
@@ -176,7 +180,7 @@ async def generate_plan_with_ai(
         else None
     )
 
-    title, ps, pe, days, meta = await BedrockStubClient().generate_plan(
+    title, ps, pe, days, meta = await _get_claude().generate_plan(
         description=body.description,
         period_start=body.period_start,
         period_end=body.period_end,
